@@ -16,6 +16,18 @@ What it writes (design.md "데모 데이터 파일"):
   were written by looking at each photo (``TAGS``). The 20 non-outfit JPGs are
   labeled ``non_outfit`` and carry ``UNKNOWN_TAGS``.
 
+Legacy builder. These are the fixed-temperature data of the design table from
+before the Phase 1 change. The current demo data are the recorded weather
+(``weather.json`` with a ``recorded`` block from
+``scripts/record_fixture_weather.py``), the seed-vote sidecars and scenarios of
+``scripts/select_scenarios.py``, and a ``vision.json`` whose entries this
+builder wrote for 159 photos and ``scripts/import_clothing_tags.py`` supplements
+for the rest without changing existing entries. To keep those files intact,
+both modes refuse to run (exit code 1, nothing written) when the target
+``weather.json`` has a ``recorded`` block. ``TAGS``, ``NON_OUTFIT`` and
+``vision_analysis_for`` stay as the hand-checked reference for the fixture
+convention (``photo_type_confidence`` 1.0, fixed reasons).
+
 ``--check`` validates the written files instead of building them: sidecars
 against ``SidecarMetadata``, vision entries against ``VisionAnalysis``, the
 temperature rules T1-T6, and the expected outcome of each demo scenario.
@@ -523,6 +535,32 @@ def _write_json(path: Path, data) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def recorded_data_refusal(fixtures_dir: Path) -> str | None:
+    """Why this legacy builder must not run, or None.
+
+    A ``weather.json`` with a ``recorded`` block holds the current demo data
+    (recorded weather or placeholders); building would overwrite it, the
+    sidecars, ``scenarios.json`` and ``vision.json`` with the old design table.
+    Both the target ``fixtures_dir`` and the repository's own fixtures are
+    checked, because ``build`` always writes the repository ``scenarios.json``.
+    """
+    for path in dict.fromkeys((fixtures_dir / "weather.json", DEFAULT_FIXTURES / "weather.json")):
+        try:
+            recorded = json.loads(path.read_text(encoding="utf-8")).get("recorded")
+        except (OSError, ValueError, AttributeError):
+            continue
+        if recorded is not None:
+            break
+    else:
+        return None
+    return (
+        f"{path} has a 'recorded' block (current demo data); build_fixtures.py is the "
+        "pre-Phase-1 builder and would overwrite weather.json, the sidecars, scenarios.json "
+        "and vision.json. Nothing was written. Use scripts/import_clothing_tags.py, "
+        "scripts/record_fixture_weather.py and scripts/select_scenarios.py [--check] instead."
+    )
+
+
 # ---------------------------------------------------------------- build
 
 def build(photo_dir: Path, fixtures_dir: Path) -> None:
@@ -792,6 +830,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--photos", type=Path, default=DEFAULT_PHOTOS)
     parser.add_argument("--fixtures", type=Path, default=DEFAULT_FIXTURES)
     args = parser.parse_args(argv)
+    refusal = recorded_data_refusal(args.fixtures)
+    if refusal is not None:
+        print(refusal, file=sys.stderr)
+        return 1
     if args.check:
         return check(args.photos, args.fixtures)
     build(args.photos, args.fixtures)

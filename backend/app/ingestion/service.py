@@ -81,6 +81,36 @@ class _Duplicate(Exception):
 MIN_PHOTO_TYPE_CONFIDENCE = 0.70
 
 
+def apply_confidence_gate(analysis: VisionAnalysis) -> VisionAnalysis:
+    """The photo type the scan acts on; only ``outfit`` is stored as an Outfit.
+
+    An ``outfit`` without garment evidence (``UNKNOWN_TAGS``) and an
+    ``outfit``/``non_outfit`` below ``MIN_PHOTO_TYPE_CONFIDENCE`` become
+    ``uncertain``. Public so the demo data scripts apply the same rule.
+    """
+    if analysis.photo_type == "outfit" and analysis.tags == UNKNOWN_TAGS:
+        return analysis.model_copy(
+            update={
+                "photo_type": "uncertain",
+                "reason": "The photo was labeled outfit but contains no garment evidence.",
+            }
+        )
+    if (
+        analysis.photo_type != "uncertain"
+        and analysis.photo_type_confidence < MIN_PHOTO_TYPE_CONFIDENCE
+    ):
+        return analysis.model_copy(
+            update={
+                "photo_type": "uncertain",
+                "reason": (
+                    f"Photo-type confidence {analysis.photo_type_confidence:.2f} is below "
+                    f"the {MIN_PHOTO_TYPE_CONFIDENCE:.2f} acceptance threshold."
+                ),
+            }
+        )
+    return analysis
+
+
 class _NotOutfit(Exception):
     """Internal: a valid image should not be persisted as an Outfit."""
 
@@ -248,7 +278,7 @@ class ImageIngestionService:
         if analysis is None:
             # Explicitly retry persisted uncertain decisions; a later model or
             # clearer result may promote them to outfit/non_outfit.
-            analysis = self._apply_confidence_gate(self._analyze(image, data, sha256))
+            analysis = apply_confidence_gate(self._analyze(image, data, sha256))
             self._save_analysis(image, sha256, analysis)
 
             if outfit_exists and analysis.photo_type == "outfit":
@@ -356,30 +386,6 @@ class ImageIngestionService:
             raise _FileFailed(
                 "storage", "STORAGE_ERROR", "기존 착장 분석을 갱신하지 못했습니다."
             ) from None
-
-    @staticmethod
-    def _apply_confidence_gate(analysis: VisionAnalysis) -> VisionAnalysis:
-        if analysis.photo_type == "outfit" and analysis.tags == UNKNOWN_TAGS:
-            return analysis.model_copy(
-                update={
-                    "photo_type": "uncertain",
-                    "reason": "The photo was labeled outfit but contains no garment evidence.",
-                }
-            )
-        if (
-            analysis.photo_type != "uncertain"
-            and analysis.photo_type_confidence < MIN_PHOTO_TYPE_CONFIDENCE
-        ):
-            return analysis.model_copy(
-                update={
-                    "photo_type": "uncertain",
-                    "reason": (
-                        f"Photo-type confidence {analysis.photo_type_confidence:.2f} is below "
-                        f"the {MIN_PHOTO_TYPE_CONFIDENCE:.2f} acceptance threshold."
-                    ),
-                }
-            )
-        return analysis
 
     def _analyze(self, image: Path, data: bytes, sha256: str) -> VisionAnalysis:
         """Classify and analyze with exactly one provider call and no retry."""

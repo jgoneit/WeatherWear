@@ -32,6 +32,7 @@ from app.providers.vision.fixture import (
 )
 
 DEMO_PHOTO = REPO_ROOT / "data" / "demo" / "photos" / "081_hiphop_varsity_baggy_denim.png"
+MANIFEST_PATH = REPO_ROOT / "data" / "demo" / "photos.manifest.json"
 
 TAGS = ClothingTags(
     upper_type="knit",
@@ -102,7 +103,10 @@ def test_load_skips_invalid_entries(tmp_path: Path) -> None:
 
 def test_real_fixture_uses_only_canonical_categories() -> None:
     fixture = load_vision_fixture(DEFAULT_VISION_FIXTURE_PATH)
-    assert len(fixture) == 174
+    # One valid entry per rights-confirmed demo photo (none skipped by the loader).
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    assert len(fixture) == sum(1 for p in manifest["photos"] if p["rights_confirmed"] is True)
+    assert len(fixture) == len(json.loads(DEFAULT_VISION_FIXTURE_PATH.read_text(encoding="utf-8")))
     for analysis in fixture.values():
         tags = analysis.tags
         assert tags.upper_type in UPPER_TYPES
@@ -125,7 +129,8 @@ def test_real_demo_fixture_matches_demo_photo() -> None:
     if not DEMO_PHOTO.exists():
         pytest.skip("demo photos not prepared")
     provider = FixtureVisionProvider.from_file(DEFAULT_VISION_FIXTURE_PATH)
-    assert len(provider) == 174
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    assert len(provider) == sum(1 for p in manifest["photos"] if p["rights_confirmed"] is True)
 
     data = DEMO_PHOTO.read_bytes()
     analysis = provider.analyze(data, "image/png", hashlib.sha256(data).hexdigest())

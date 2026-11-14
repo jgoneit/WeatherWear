@@ -2787,5 +2787,274 @@
       "layers_visible": 1,
       "confidence": 0.95
     }
+  },
+  "6274d30d740f1ae9991e14a0ad70e7fe0801f107d96e8ad082bbe5b79f8834ce": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "hoodie",
+      "outer_type": "jersey",
+      "lower_type": "track_pants",
+      "colors": [
+        "navy",
+        "grey",
+        "red",
+        "white"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.85
+    }
+  },
+  "22c743421a7e3cdabb44e8eff46193e459c7419bf7bbe83a46109c7edcc72013": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "t_shirt",
+      "outer_type": "windbreaker",
+      "lower_type": "shorts",
+      "colors": [
+        "turquoise",
+        "charcoal",
+        "white",
+        "black"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.85
+    }
+  },
+  "122d7bd88a3777915d5b8349b4e96de3c80a29343c82915212718455184beb11": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "coveralls",
+      "outer_type": "none",
+      "lower_type": "none",
+      "colors": [
+        "indigo",
+        "white",
+        "red",
+        "tan"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.85
+    }
+  },
+  "7f017b8eaa6f9f8b391a5d3841306dc7bc95baa9def3fd82d6b7fd73a7008707": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "hoodie",
+      "outer_type": "vest",
+      "lower_type": "cargo_pants",
+      "colors": [
+        "black",
+        "chartreuse",
+        "violet",
+        "orange"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.9
+    }
+  },
+  "139e47387ccfe5d71b39db0547defa720e7d875a7ace07da50e2ea812a125329": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "sweatshirt",
+      "outer_type": "none",
+      "lower_type": "trousers",
+      "colors": [
+        "cream",
+        "grey",
+        "blue",
+        "black"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.85
+    }
+  },
+  "3c0874b61dbabf514d2f2a1aaf60fb75a2e48403d77bb382fcd3ee8a48d787df": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "hoodie",
+      "outer_type": "windbreaker",
+      "lower_type": "parachute_pants",
+      "colors": [
+        "violet",
+        "yellow",
+        "black"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.9
+    }
+  },
+  "c1ac2bec5c029bfef717f9c12abf40f1e5227f917aae3aa9fc7002d9c4a6b414": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "shirt",
+      "outer_type": "vest",
+      "lower_type": "corduroy_pants",
+      "colors": [
+        "green",
+        "plum",
+        "rust",
+        "cream",
+        "red"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.85
+    }
+  },
+  "857841d8c830b1aa303932df7cad68d39a1320e16d7aa0e721061428e019366b": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "jersey",
+      "outer_type": "utility_jacket",
+      "lower_type": "jeans",
+      "colors": [
+        "orange",
+        "navy",
+        "indigo",
+        "white"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.9
+    }
+  },
+  "5ef0e304f117dbbf410f3e1a318b230a4f52c5e4bb92f6f6fa0fed5ddf22d426": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "long_sleeve_t_shirt",
+      "outer_type": "vest",
+      "lower_type": "track_pants",
+      "colors": [
+        "slate blue",
+        "white",
+        "graphite",
+        "mint"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.85
+    }
+  },
+  "bae01f0be37470092b6b2ae9465e98fcacd3f5bef7d56577188be47176076234": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "t_shirt",
+      "outer_type": "shirt_jacket",
+      "lower_type": "jeans",
+      "colors": [
+        "black",
+        "burgundy",
+        "red"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.85
+    }
+  },
+  "ecac1897a31c4e9f65aa0857a9103c1f328fe06ea138418754b03d14b5902715": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "shorts",
+      "colors": [
+        "cobalt blue",
+        "yellow",
+        "red",
+        "black",
+        "white"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.85
+    }
+  },
+  "7231c2419f92b23e167a355dd918be2ae325096995c2799db792ef432ad1066d": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "jersey",
+      "outer_type": "none",
+      "lower_type": "track_pants",
+      "colors": [
+        "black",
+        "white",
+        "red"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.9
+    }
+  },
+  "d9026944a18d4b6884389ffb565932e40f7463e5a8a4c5d512a421d9ed9a7c7f": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "cargo_pants",
+      "colors": [
+        "lilac",
+        "white",
+        "forest green",
+        "silver"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.85
+    }
+  },
+  "ec26cf7b05bfb9a6c8d2f6d9e1fda23d3b170534093102a110cf0058c42739b6": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "long_sleeve_t_shirt",
+      "outer_type": "vest",
+      "lower_type": "trousers",
+      "colors": [
+        "charcoal",
+        "white",
+        "cream",
+        "black"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.85
+    }
+  },
+  "9a3dcb0f7c618f0c2c3d796c9fd3604e3df38cfdda1ea05c1ca552592d540cbe": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "A person with visible clothing is the main subject.",
+    "tags": {
+      "upper_type": "hoodie",
+      "outer_type": "utility_jacket",
+      "lower_type": "parachute_pants",
+      "colors": [
+        "mustard",
+        "teal",
+        "black",
+        "orange"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.9
+    }
   }
 }

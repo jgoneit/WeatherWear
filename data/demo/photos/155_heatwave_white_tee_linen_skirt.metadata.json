@@ -3,5 +3,7 @@
   "latitude": 37.5665,
   "longitude": 126.978,
   "synthetic": true,
-  "source": "AI-generated demo; capture time and weather are authored fixtures."
+  "source": "AI-generated demo; capture time and weather are authored fixtures.",
+  "thermal_vote": "cold",
+  "note": "select_scenarios.py 시드 투표 (V4). 촬영 시각·위치는 이 사이드카에서 읽는다(내장 메타데이터 없음)"
 }

@@ -948,8 +948,8 @@ Phase 1 구현 후 결정(요구사항 서론 참고)에 따라 이전 계획의
 
 1. `ex_img/clothing_tags.json`을 읽고 `schema == "WeatherWear ClothingTags"`, `images` 항목 수가 `image_count`와 같은지 확인한다.
 2. `images`의 각 파일 이름을 `data/demo/photos/<file>`과 연결하고 각 `tags`를 `ClothingTags.model_validate`로 검증한다. 사진이 없거나 검증에 실패한 항목, 또는 태그가 없는 사진이 있으면 목록을 출력하고 종료 코드 1로 끝난다(파일을 쓰지 않음).
-3. 키는 `data/demo/photos/<file>` 바이트 전체의 SHA-256이다. `clothing_tags.json`의 `sha256`은 메타데이터를 넣기 전 바이트의 해시라서(리서치 요약) 키로 쓰지 않는다. 결과 형식은 기존과 같은 `{ "<sha256>": ClothingTags }`이고, 같은 폴더의 `vision.sources.json`에 `{ "<sha256>": { "file": ..., "source_sha256": ... } }`를 남겨 추적할 수 있게 한다.
-4. 이전 에이전트 작성 태그(159개 키)와 작업 중 생긴 `data/demo/fixtures/ex_img_vision.json`(이전 해시 키)은 더 쓰지 않는다. `scripts/build_fixtures.py`의 태그 작성 부분은 이 스크립트로 대체한다.
+3. 키는 `data/demo/photos/<file>` 바이트 전체의 SHA-256이다. `clothing_tags.json`의 `sha256`은 메타데이터를 넣기 전 바이트의 해시라서(리서치 요약) 키로 쓰지 않는다. 결과 형식은 `{ "<sha256>": VisionAnalysis }`이고, 같은 폴더의 `vision.sources.json`에 `{ "<sha256>": { "file": ..., "source_sha256": ... } }`를 남겨 추적할 수 있게 한다.
+4. 보충 방식이다. `vision.json`에 이미 있는 항목은 바꾸지 않고, 해시가 없는 사진만 추가한다. 원본의 자유 표기 의류 이름은 `normalize_*_type`으로 표준 분류 값으로 바꾸고(분류에 없는 이름은 실패), 태그가 `UNKNOWN_TAGS`면 `non_outfit`, 아니면 `outfit`으로 `build_fixtures.py`와 같은 관례(photo_type_confidence 1.0, 고정 reason)로 적는다. 원본이 기존 항목과 다른 값을 내면 아무것도 쓰지 않고 실패한다. 작업 중 생긴 `data/demo/fixtures/ex_img_vision.json`(이전 해시 키)은 더 쓰지 않는다. `scripts/build_fixtures.py`는 Phase 1 변경 전 데이터용이라 `weather.json`에 `recorded` 블록이 있으면 실행을 거부한다.
 
 `clothing_tags.json`에서 세 타입이 모두 `unknown`이고 confidence가 0.0인 사진은 음식·풍경 JPG 20장이다(Non_Outfit_Photo, Req 15.13).
 
@@ -958,9 +958,9 @@ Phase 1 구현 후 결정(요구사항 서론 참고)에 따라 이전 계획의
 ```json
 { "scenarios": [
   { "id": "chilly-morning", "name": "쌀쌀한 아침", "actual_temperature_c": "<S1>", "apparent_temperature_c": null, "relative_humidity_pct": 55, "wind_speed_kmh": 12, "precipitation_mm": 0 },
-  { "id": "cold-snap", "name": "기록적 한파 (경계 3.0°C)", "actual_temperature_c": "<S2>", "apparent_temperature_c": null, "relative_humidity_pct": 35, "wind_speed_kmh": 20, "precipitation_mm": 0 },
-  { "id": "early-heat", "name": "무더위 (범위 확장)", "actual_temperature_c": "<S3>", "apparent_temperature_c": null, "relative_humidity_pct": 65, "wind_speed_kmh": 6, "precipitation_mm": 0 },
-  { "id": "heatwave", "name": "기록적 폭염 (데이터 부족)", "actual_temperature_c": "<S4>", "apparent_temperature_c": null, "relative_humidity_pct": 70, "wind_speed_kmh": 5, "precipitation_mm": 0 }
+  { "id": "cold-snap", "name": "기록적 한파", "actual_temperature_c": "<S2>", "apparent_temperature_c": null, "relative_humidity_pct": 35, "wind_speed_kmh": 20, "precipitation_mm": 0 },
+  { "id": "early-heat", "name": "때 이른 무더위", "actual_temperature_c": "<S3>", "apparent_temperature_c": null, "relative_humidity_pct": 65, "wind_speed_kmh": 6, "precipitation_mm": 0 },
+  { "id": "heatwave", "name": "기록적 폭염", "actual_temperature_c": "<S4>", "apparent_temperature_c": null, "relative_humidity_pct": 70, "wind_speed_kmh": 5, "precipitation_mm": 0 }
 ] }
 ```
 
@@ -968,7 +968,7 @@ Phase 1 구현 후 결정(요구사항 서론 참고)에 따라 이전 계획의
 
 **시나리오 규칙과 선택 알고리즘** (`scripts/select_scenarios.py`, 순수 함수는 `backend/app/demo_scenarios.py`, Req 15.9, 15.10):
 
-입력은 `weather.json` 항목 중 `vision.json` 태그가 Non_Outfit_Photo가 아닌 착장 사진의 기온 목록 `T`다. `d(x, t) = round_half_up(|x − t|, 1)`(Req 6.7과 같은 Decimal 계산), `N(t, r) = #{x ∈ T : d(x, t) ≤ r}`. 기본 `TEMPERATURE_TOLERANCE_C=3.0` 기준이다.
+입력은 `weather.json` 항목 중 `vision.json` 판정이 수집 게이트(`apply_confidence_gate`)를 거쳐 `outfit`인 사진, 곧 스캔이 Outfit으로 저장하는 사진의 기온 목록 `T`다. `d(x, t) = round_half_up(|x − t|, 1)`(Req 6.7과 같은 Decimal 계산), `N(t, r) = #{x ∈ T : d(x, t) ≤ r}`. 기본 `TEMPERATURE_TOLERANCE_C=3.0` 기준이다.
 
 | 규칙 | 조건 | 보장하는 결과 |
 |---|---|---|
@@ -1011,7 +1011,7 @@ V2 때문에 S1에서 기온이 가장 가까운 사진이 감점(−15)을 받�
 
 **Fixture 파일**:
 
-- `data/demo/fixtures/vision.json`: `{ "<sha256>": VisionAnalysis }`, 159개 키. `scripts/build_fixtures.py`가 `photos/`의 해시를 계산해 키를 채운다(159장의 SHA-256은 모두 서로 다름을 확인했다). 태그 값은 사람이 각 사진을 보고 적고, 파일 이름에서 바로 알 수 있는 값은 사진 내용과 일치할 때만 사용한다. 착장 사진 139장은 `photo_type="outfit"`, 비착장 JPG 20장은 `photo_type="non_outfit"`과 `UNKNOWN_TAGS`로 기록한다. fixture에 없는 사진은 `uncertain`이다.
+- `data/demo/fixtures/vision.json`: `{ "<sha256>": VisionAnalysis }`, 174개 키(현재 사진 바이트의 SHA-256, 모두 서로 다름). 159개는 `scripts/build_fixtures.py`가 사람이 각 사진을 보고 적은 태그 표에서 만들었고, 나머지 15장(`126_…`~`140_…`)은 `scripts/import_clothing_tags.py`가 `clothing_tags.json`에서 보충했다. 두 출처의 태그는 표준 분류로 바꾸면 174장 모두 같다. 착장 사진 154장은 `photo_type="outfit"`, 비착장 JPG 20장은 `photo_type="non_outfit"`과 `UNKNOWN_TAGS`로 기록한다. fixture에 없는 사진은 `uncertain`이다.
 - `data/demo/fixtures/weather.json`: `{ "recorded": {...}, "entries": [...174건...], "today_default": {...} }`. `record_fixture_weather.py`가 만들고 `select_scenarios.py`가 `today_default`를 채운다(Weather_Provider 절의 형식).
 - `data/demo/scenario_expectations.json`: `select_scenarios.py`가 만든다.
 
@@ -1020,7 +1020,7 @@ V2 때문에 S1에서 기온이 가장 가까운 사진이 감점(−15)을 받�
 모든 스크립트는 저장소 루트에서 `backend/.venv/bin/python scripts/<이름>.py`로 실행한다. 네트워크를 쓰는 것은 3번뿐이다.
 
 1. `prepare_demo_photos.py`: manifest의 `rights_confirmed: true` 항목(174장)을 `ex_img/`에서 `data/demo/photos/`로 `shutil.copyfile`로 복사한다. 바이트를 그대로 복사해야 내장 메타데이터와 해시가 유지된다(Pillow로 다시 저장하지 않는다). 이전 복사본(메타데이터를 넣기 전 159장)은 덮어쓴다. 사이드카 템플릿은 더 만들지 않는다. 복사 후 각 사진이 `read_embedded_metadata`로 읽히는지 확인하고, 읽히지 않으면 파일 이름을 출력하고 종료 코드 1. 복사본은 약 325MB다.
-2. `import_clothing_tags.py`: `vision.json` 생성.
+2. `import_clothing_tags.py`: `vision.json`에 빠진 사진 보충.
 3. `record_fixture_weather.py`: Open-Meteo Archive에서 174장의 날씨를 기록한다(네트워크 필요, 1회).
 4. `select_scenarios.py`: 시나리오 기온 선택 → 시드 투표 사이드카 작성 → `today_default` 채우기 → 기대 결과 기록 → `check_scenarios`. 위반이 있으면 종료 코드 1. `--check` 옵션은 파일을 쓰지 않고 검사만 한다.
 5. pytest의 데모 데이터 테스트(`test_demo_data_layout`, `test_demo_scenarios_satisfy_rules`)와 통합 테스트를 돌린다.

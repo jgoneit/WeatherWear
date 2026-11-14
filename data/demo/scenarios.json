@@ -3,8 +3,8 @@
     {
       "id": "chilly-morning",
       "name": "쌀쌀한 아침",
-      "actual_temperature_c": 9.0,
-      "apparent_temperature_c": 6.5,
+      "actual_temperature_c": 14.5,
+      "apparent_temperature_c": null,
       "relative_humidity_pct": 55,
       "wind_speed_kmh": 12,
       "precipitation_mm": 0
@@ -12,8 +12,8 @@
     {
       "id": "cold-snap",
       "name": "기록적 한파",
-      "actual_temperature_c": -12.0,
-      "apparent_temperature_c": -18.0,
+      "actual_temperature_c": -16.0,
+      "apparent_temperature_c": null,
       "relative_humidity_pct": 35,
       "wind_speed_kmh": 20,
       "precipitation_mm": 0
@@ -21,8 +21,8 @@
     {
       "id": "early-heat",
       "name": "때 이른 무더위",
-      "actual_temperature_c": 30.0,
-      "apparent_temperature_c": 33.0,
+      "actual_temperature_c": 44.0,
+      "apparent_temperature_c": null,
       "relative_humidity_pct": 65,
       "wind_speed_kmh": 6,
       "precipitation_mm": 0
@@ -30,8 +30,8 @@
     {
       "id": "heatwave",
       "name": "기록적 폭염",
-      "actual_temperature_c": 38.0,
-      "apparent_temperature_c": 41.0,
+      "actual_temperature_c": 48.0,
+      "apparent_temperature_c": null,
       "relative_humidity_pct": 70,
       "wind_speed_kmh": 5,
       "precipitation_mm": 0

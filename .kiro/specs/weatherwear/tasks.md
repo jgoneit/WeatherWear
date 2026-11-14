@@ -451,7 +451,7 @@
 - [x] 18. Final checkpoint - 전체 테스트 통과 확인
   - 백엔드 pytest, 프론트엔드 vitest·typecheck·check:bundle이 외부 API 호출 없이 모두 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
-- [ ] 19. Phase 1 변경: Agent Platform, 내장 메타데이터, 실제 날씨 기록
+- [x] 19. Phase 1 변경: Agent Platform, 내장 메타데이터, 실제 날씨 기록
   - [x] 19.1 설정과 `.env.example` 갱신 (`backend/app/config.py`, `.env.example`, `backend/tests/test_config.py`)
     - 사용자 결정으로 변수 이름 `GEMINI_API_KEY`는 그대로 두고 12개 변수 목록도 바꾸지 않는다. `.env.example`과 `RawSettings`의 설명을 "Google Cloud Agent Platform express mode API 키, Google AI Studio 키로는 동작하지 않음"으로 바꾼다
     - 프로젝트 ID·위치 관련 변수를 추가하지 않는다. `GEMINI_MODEL` 기본값 `gemini-4-hydrogen`은 유지한다
@@ -536,23 +536,23 @@
     - 이후 새로 생기는 `ex_img/` 파일은 `rights_confirmed: false`로 두고 사용자에게 확인한다
     - _Requirements: 15.2, 15.3_
 
-  - [ ] 19.17 사진 복사 스크립트 수정 후 실행 (`scripts/prepare_demo_photos.py`)
+  - [x] 19.17 사진 복사 스크립트 수정 후 실행 (`scripts/prepare_demo_photos.py`)
     - manifest의 174장을 `shutil.copyfile`로 바이트 그대로 복사(이전 159장 복사본 덮어쓰기), 사이드카 템플릿 생성 제거, 복사 후 각 사진을 `read_embedded_metadata`로 확인하고 실패하면 종료 코드 1
     - 스크립트를 실행해 `data/demo/photos/`를 174장(약 325MB)으로 채운다
     - _Requirements: 2.1, 15.2, 15.3_
 
-  - [ ] 19.18 `clothing_tags.json` 가져오기 스크립트 작성 후 실행 (`scripts/import_clothing_tags.py`)
+  - [x] 19.18 `clothing_tags.json` 가져오기 스크립트 작성 후 실행 (`scripts/import_clothing_tags.py`)
     - design "의류 태그 fixture" 절대로 파일 이름으로 연결, `ClothingTags` 검증, 키는 `data/demo/photos` 파일 바이트 전체의 SHA-256, 원래 `sha256`은 `vision.sources.json`의 `source_sha256`으로 기록. 누락·검증 실패 시 파일을 쓰지 않고 종료 코드 1
     - 실행해 `data/demo/fixtures/vision.json`을 174개 키로 교체. `build_fixtures.py`의 태그 작성 경로는 이 스크립트를 쓰도록 바꾸거나 제거
     - _Requirements: 3.3, 15.8, 15.12, 15.13_
 
-  - [ ] 19.19 날씨 기록 스크립트 작성 후 실행 (`scripts/record_fixture_weather.py`)
+  - [x] 19.19 날씨 기록 스크립트 작성 후 실행 (`scripts/record_fixture_weather.py`)
     - 각 사진의 내장 메타데이터로 `(날짜, 좌표)` 묶음마다 Archive API 요청 1건(OpenMeteoWeatherProvider와 같은 파라미터), `map_archive_response`로 변환, 실패 시 값을 지어내지 않고 종료 코드 1, 성공 시 `recorded` 블록과 함께 원자적 교체
     - 순수 부분(묶기, 항목 생성)에 대한 단위 테스트를 respx로 작성(네트워크 없음). pytest는 스크립트 본체를 실행하지 않는다
     - 개발자 환경에서 한 번 실행해 `data/demo/fixtures/weather.json`을 174건의 기록값으로 교체한다(네트워크 필요)
     - _Requirements: 4.11, 4.12, 4.13, 4.14, 4.15_
 
-  - [ ] 19.20 시나리오 선택·검사와 시드 투표 구현 후 실행 (`backend/app/demo_scenarios.py`, `scripts/select_scenarios.py`)
+  - [x] 19.20 시나리오 선택·검사와 시드 투표 구현 후 실행 (`backend/app/demo_scenarios.py`, `scripts/select_scenarios.py`)
     - 순수 함수 `choose_scenarios(T)`, `check_scenarios(scenarios, T)`, `assign_seed_votes(...)`를 design의 S1~S4, V1~V4 규칙대로 구현. Non_Outfit_Photo는 T와 투표에서 제외
     - 스크립트: `scenarios.json` 기온(소수 첫째 자리), `weather.json`의 `today_default`(S1과 같은 기온), 시드 투표 사이드카(기존 `*.metadata.json` 삭제 후 투표 있는 사진에만 작성), `data/demo/scenario_expectations.json` 작성 후 `check_scenarios`. 위반 시 종료 코드 1. `--check`는 쓰기 없이 검사만
     - 실행해 데이터 파일을 갱신한다
@@ -562,11 +562,11 @@
     - **Property 35: 시나리오 선택은 규칙 S1~S4를 만족한다**
     - **Validates: Requirements 15.9, 15.10, 15.11**
 
-  - [ ] 19.22 플레이스홀더 스크립트에 내장 메타데이터 추가 (`scripts/make_placeholders.py`)
+  - [x] 19.22 플레이스홀더 스크립트에 내장 메타데이터 추가 (`scripts/make_placeholders.py`)
     - 생성 PNG마다 UserComment JSON(`synthetic: true`, 서로 다른 시각, 서울 좌표)을 EXIF로 기록하고, 사이드카 대신 `weather.json` 항목(계절 공식 값, `recorded.source="placeholder"`)과 vision fixture를 만든다. 확인된 사진이 0장일 때만 쓰는 경로다
     - _Requirements: 15.7_
 
-  - [ ] 19.23 데모 데이터·통합 테스트 기대값 갱신 (`backend/tests/test_demo_data.py`, `test_integration.py`, `test_demo_scripts.py`)
+  - [x] 19.23 데모 데이터·통합 테스트 기대값 갱신 (`backend/tests/test_demo_data.py`, `test_integration.py`, `test_demo_scripts.py`)
     - `test_demo_data_layout`: 174장, 모든 사진의 내장 메타데이터 읽기, vision 키 = 현재 해시이고 태그가 `clothing_tags.json`과 같음, `weather.json`의 `recorded` 블록과 174건, 사이드카는 `thermal_vote`만 담고 Non_Outfit_Photo에는 없음
     - `test_demo_scenarios_satisfy_rules`(실제 데이터에 `check_scenarios`), `test_demo_scenarios_cover_cases`를 S1~S4 조건 + `scenario_expectations.json` 비교로 교체(고정값 `081`, `076`, 9.0/−12.0/30.0/38.0 제거), `test_five_minute_demo_walkthrough`와 `test_fixture_mode_end_to_end_deterministic`의 기대값도 맞춘다
     - 사진이 없는 환경에서는 기존처럼 skip
@@ -583,14 +583,14 @@
     - **Property 33: fixture/가상 데이터 라벨은 fixture 출처에만 붙는다**
     - **Validates: Requirements 15.4, 4.9, 12.5**
 
-  - [ ] 19.26 README 갱신 (`README.md`)
+  - [x] 19.26 README 갱신 (`README.md`)
     - API 키 절: `GEMINI_API_KEY`에 Agent Platform express mode 키(express mode 콘솔 APIs & Services > Credentials), AI Studio 키는 동작하지 않음, 프로젝트·위치 불필요
     - `GEMINI_MODEL` 기본값 `gemini-4-hydrogen`이 2026-11-14 기준 express mode 지원 모델 표에 없다는 점, `check_gemini_model.py`로 확인하고 실패하면 `gemini-3-flash-preview`를 쓰라는 안내와 출처 URL
     - 명시 사항 교체: 촬영 시각·위치는 사진 내장 합성 EXIF(UserComment JSON, JPG는 표준 EXIF), 사이드카는 대체 수단과 시드 투표, Gemini 전송 전 EXIF·위치 제거, fixture 날씨는 Open-Meteo 기록 재분석값(기록 날짜는 `weather.json`), Non_Outfit_Photo는 추천에서 제외, rule_based_v1 후보 선택 변경, 사진 174장
     - 데모 데이터 준비 명령 순서(prepare → import_clothing_tags → record_fixture_weather(네트워크) → select_scenarios), 5분 데모 절차의 시나리오 기온을 `scenarios.json` 값으로 갱신, Phase 2 목록에서 EXIF 항목 제거(실제 갤러리 접근은 유지), 테스트 영역 (g) 추가
     - _Requirements: 16.1, 17.1, 17.2, 17.3, 17.4, 17.8, 17.9, 17.10_
 
-- [ ] 20. Final checkpoint - Phase 1 변경 확인
+- [x] 20. Final checkpoint - Phase 1 변경 확인
   - 백엔드 `cd backend && python -m pytest -q`, 프론트엔드 `npx vitest --run`, `npm run typecheck`, `npm run check:bundle`, `scripts/select_scenarios.py --check`가 외부 API 호출 없이 모두 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
 ## Notes

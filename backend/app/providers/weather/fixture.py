@@ -18,6 +18,12 @@ truncated to the hour. Null fields in an entry are returned as null.
 
 The file may carry a ``recorded`` provenance block; it is kept for display only
 and does not change lookups. Files without it (older format) still load.
+
+An entry with ``"synthetic": true`` holds authored values rather than recorded
+ones (the AI-generated demo outfits of ``data/demo/generated_outfits.json``;
+its ``source`` names the file). The flag does not change the reading either:
+like every fixture value it is returned with ``is_fixture=True``. The provider
+counts these entries and can tell whether a lookup key hits one.
 """
 
 from __future__ import annotations
@@ -86,6 +92,7 @@ class _RecordedValues(_WeatherValues):
     """An entry's weather values plus the recorded observation hour, if any."""
 
     observed_at: AwareDatetime | None = None
+    synthetic: bool = False  # authored values, not recorded
 
 
 class _FixtureEntry(_RecordedValues):
@@ -159,6 +166,16 @@ class FixtureWeatherProvider:
     @property
     def entry_count(self) -> int:
         return len(self._entries)
+
+    @property
+    def synthetic_entry_count(self) -> int:
+        """Entries marked ``synthetic: true`` (authored, not recorded)."""
+        return sum(1 for values in self._entries.values() if values.synthetic)
+
+    def is_synthetic(self, at: datetime, latitude: float, longitude: float) -> bool:
+        """True when the entry for this capture holds authored values."""
+        values = self._entries.get(fixture_key(at, latitude, longitude))
+        return values is not None and values.synthetic
 
     @property
     def recorded(self) -> dict | None:

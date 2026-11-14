@@ -10,6 +10,7 @@ fixture ones, so no network is used.
 from __future__ import annotations
 
 import io
+import json
 import logging
 import os
 import threading
@@ -37,6 +38,7 @@ from app.main import create_app
 from app.recommendation.base import RecommendationOutcome
 from app.repository import OutfitCreate, OutfitRepository
 from app.schemas import ScanReport
+from app.today_weather import DEFAULT_SCENARIOS_PATH
 
 KST = timezone(timedelta(hours=9))
 FAKE_KEY = "fake-test-key-0123456789abcdef"  # never a real key
@@ -161,6 +163,12 @@ def feedback_rows(client: TestClient) -> list[Feedback]:
 
 def counts(client: TestClient) -> dict[str, int]:
     return repo_of(client).counts()
+
+
+def scenario_temp(scenario_id: str) -> float:
+    """``actual_temperature_c`` of a scenario in the real data/demo/scenarios.json."""
+    doc = json.loads(DEFAULT_SCENARIOS_PATH.read_text(encoding="utf-8"))
+    return next(s["actual_temperature_c"] for s in doc["scenarios"] if s["id"] == scenario_id)
 
 
 def clear_config_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -364,7 +372,7 @@ def test_unknown_scenario_404_keeps_selection(client: TestClient) -> None:
     assert client.get("/api/demo/scenarios").json()["selected_id"] == "chilly-morning"
     today = client.get("/api/weather/today").json()
     assert today["provider"] == "scenario" and today["scenario_id"] == "chilly-morning"
-    assert today["actual_temperature_c"] == 9.0
+    assert today["actual_temperature_c"] == scenario_temp("chilly-morning")
 
 
 # --- OpenAPI -------------------------------------------------------------------
@@ -524,10 +532,11 @@ def test_missing_today_temperature_returns_503(client: TestClient, path: str) ->
 
 
 def test_insufficient_data_returns_200_empty(client: TestClient) -> None:
-    # heatwave = 38.0°C; the only stored temperature is 9.0°C (diff > 5.0),
-    # and one Outfit has no weather at all (Req 6.9).
-    add_outfit(client, sha="a" * 64, temp=9.0)
-    bare = add_outfit(client, sha="b" * 64, file_name="b.png", temp=38.0)
+    # The only stored temperature is 10.0°C below heatwave (diff > 5.0), and
+    # the Outfit recorded at the heatwave temperature has no weather at all (Req 6.9).
+    heat = scenario_temp("heatwave")
+    add_outfit(client, sha="a" * 64, temp=round(heat - 10.0, 1))
+    bare = add_outfit(client, sha="b" * 64, file_name="b.png", temp=heat)
     with Session(client.app.state.container.engine) as session:
         session.exec(delete(WeatherSnapshot).where(WeatherSnapshot.outfit_id == bare))  # type: ignore[call-overload]
         session.commit()
@@ -540,13 +549,13 @@ def test_insufficient_data_returns_200_empty(client: TestClient) -> None:
     assert body["items"] == []
     assert body["fallback"] is True
     assert body["algorithm_version"] == "rule_based_v1"
-    assert body["today"]["actual_temperature_c"] == 38.0
+    assert body["today"]["actual_temperature_c"] == heat
 
 
 def test_strategy_injected_via_dependency_override(client: TestClient) -> None:
-    outfit_id = add_outfit(client, sha="a" * 64, temp=9.0)
+    outfit_id = add_outfit(client, sha="a" * 64, temp=round(scenario_temp("heatwave") - 10.0, 1))
     client.put("/api/demo/scenarios/selected", json={"scenario_id": "heatwave"})
-    # The default strategy finds nothing at 38.0°C.
+    # The default strategy finds nothing 10.0°C away, even with the 5.0°C fallback.
     assert client.get("/api/recommendations/today").json()["status"] == "insufficient_data"
 
     seen: list[list[int]] = []

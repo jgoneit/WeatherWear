@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import json
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,7 @@ from app.ingestion.image_check import (
 )
 
 DEMO_PHOTOS = Path(__file__).resolve().parents[2] / "data" / "demo" / "photos"
+MANIFEST_PATH = DEMO_PHOTOS.parent / "photos.manifest.json"
 
 
 def encode(fmt: str, size: tuple[int, int] = (8, 8)) -> bytes:
@@ -133,6 +135,12 @@ def test_mime_type_for_supported_extensions() -> None:
 
 
 
+def rights_confirmed_files() -> list[str]:
+    """File names in photos.manifest.json that prepare_demo_photos.py copies."""
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    return sorted(p["file"] for p in manifest["photos"] if p["rights_confirmed"] is True)
+
+
 @pytest.mark.skipif(
     not demo_images_present(),
     reason=(
@@ -148,6 +156,6 @@ def test_all_demo_photos_pass_check_image() -> None:
         if is_too_large(p) or check_image(p.read_bytes(), p.suffix) is not None
     ]
     assert failures == []
-    assert len(files) == 189
+    assert [p.name for p in files] == rights_confirmed_files()
     suffixes = {p.suffix.lower() for p in files}
     assert suffixes == {".png", ".jpg"}

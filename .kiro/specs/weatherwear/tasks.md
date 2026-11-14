@@ -128,7 +128,7 @@
     - `test_gemini_factory_uses_model_env`, `test_gemini_schema_invalid_api_error_timeout_fail_once`, `test_prompt_instructs_unknown` (모두 가짜 클라이언트, 네트워크 없음)
     - _Requirements: 3.2, 3.5, 3.6_
 
-- [ ] 5. Weather Provider (Open-Meteo Archive API)
+- [x] 5. Weather Provider (Open-Meteo Archive API)
   - [x] 5.1 Weather 인터페이스와 정규화 순수 함수 구현 (`backend/app/providers/weather/base.py`, `normalize.py`)
     - `WeatherProvider` Protocol, `select_nearest_hour()`(UTC instant 비교, 동률이면 이른 시각), `normalize_value()`(°F→°C, inch→mm, m/s·mph→km/h, 습도 범위 밖 None), `map_archive_response()`(`temperature_2m`→actual, `precipitation`→mm, `relative_humidity_2m`→%, apparent/wind/weather_code는 None)
     - _Requirements: 4.2, 4.8, 4.12_
@@ -163,11 +163,11 @@
     - **Property 12: Open-Meteo 실패 시 fixture로 대체한다**
     - **Validates: Requirements 4.7, 5.8**
 
-  - [~] 5.9 날씨 정규화 단위 테스트 작성 (`backend/tests/test_weather.py`)
+  - [x] 5.9 날씨 정규화 단위 테스트 작성 (`backend/tests/test_weather.py`)
     - 영역 (b): `test_archive_mapping_example`(서울 응답 형태 고정 JSON + respx), `test_open_meteo_no_api_key_param`, `test_fixture_weather_marks_fixture`
     - _Requirements: 4.5, 4.6, 4.12, 17.4_
 
-- [ ] 6. 저장소와 수집 서비스
+- [x] 6. 저장소와 수집 서비스
   - [x] 6.1 OutfitRepository와 유효 피드백 함수 구현 (`backend/app/repository.py`, `backend/app/feedback.py`)
     - `feedback.py`에 순수 함수 `effective_vote(records)`(`(created_at, id)` 최대, 0건이면 None, source 무관) 먼저 작성
     - `exists_sha`, `create_outfit_bundle`(Outfit + Weather_Snapshot + 선택적 `demo_seed` feedback 단일 트랜잭션, 예외 시 롤백), `get_outfit`, `list_outfits`(`captured_at_utc DESC, id DESC`), `list_candidates`, `add_feedback`(INSERT만), `counts`
@@ -196,14 +196,14 @@
     - **Property 2: 재스캔은 멱등이고 실패 파일만 다시 처리한다**
     - **Validates: Requirements 1.5, 1.7, 4.4**
 
-  - [~] 6.7 수집·중복 제거 단위 테스트 작성 (`backend/tests/test_ingestion.py`)
+  - [x] 6.7 수집·중복 제거 단위 테스트 작성 (`backend/tests/test_ingestion.py`)
     - 영역 (a): `test_rescan_same_hash_creates_no_outfit`, `test_same_content_two_names_one_outfit`, `test_snapshot_insert_failure_rolls_back_outfit`, `test_photo_dir_missing_notdir_unreadable_raises`(3개 파라미터), `test_file_over_20mb_fails_without_vision`(sparse 파일), `test_seed_vote_saved_as_demo_seed`, `test_source_is_demo_sidecar`, `test_vision_provider_stored`
     - _Requirements: 1.4, 1.5, 1.10, 1.11, 1.12, 2.6, 2.7, 3.8, 17.4_
 
 - [~] 7. Checkpoint - 수집 슬라이스 확인
   - `cd backend && python -m pytest -q`가 외부 연결 없이 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
-- [ ] 8. 피드백과 오늘 날씨
+- [x] 8. 피드백과 오늘 날씨
   - [x] 8.1 FeedbackService 구현 (`backend/app/feedback.py`)
     - `submit(outfit_id, vote)`: Outfit 없으면 `OutfitNotFound`, `created_at=now(UTC, 마이크로초)`, `source='user_action'`, INSERT만, 저장 예외 시 롤백 후 `FeedbackSaveFailed`
     - _Requirements: 9.1, 9.3, 9.5, 9.7, 9.8_
@@ -225,7 +225,7 @@
     - **Property 16: 시나리오 선택 상태는 마지막 유효 선택을 따른다**
     - **Validates: Requirements 5.3, 5.5, 5.7**
 
-  - [~] 8.6 피드백 갱신 단위 테스트 작성 (`backend/tests/test_feedback.py`)
+  - [x] 8.6 피드백 갱신 단위 테스트 작성 (`backend/tests/test_feedback.py`)
     - 영역 (e): `test_latest_vote_becomes_effective`, `test_same_timestamp_uses_larger_id`, `test_seed_then_user_vote_user_wins`, `test_repeated_same_vote_creates_separate_records`, `test_storage_error_rolls_back_and_keeps_vote`
     - _Requirements: 9.4, 9.5, 9.8, 17.4_
 
@@ -233,7 +233,7 @@
     - `test_today_uses_scenario_else_provider`, `test_today_uses_default_coordinates`, `test_scenario_response_labeled`
     - _Requirements: 5.1, 5.4, 5.5_
 
-- [ ] 9. 추천 rule_based_v1
+- [x] 9. 추천 rule_based_v1
   - [x] 9.1 추천 전략 구현 (`backend/app/recommendation/base.py`, `rule_based_v1.py`, `factory.py`)
     - `RecommendationStrategy` Protocol, 설정 상수(`FALLBACK_TOLERANCE_C=5.0`, `TEMP_SCORE_BASE=100`, `TEMP_WEIGHT_PER_C=10`, `COMFORTABLE_BONUS=15`, `MISMATCH_PENALTY=15`, `MAX_RESULTS=5`), `build_strategy()`
     - Decimal + ROUND_HALF_UP 소수 첫째 자리 diff, 경계 포함, 5.0 확장 1회, 날씨·기온 없는 후보 제외, `MissingTodayTemperature`
@@ -274,18 +274,18 @@
     - **Property 21: 추천 결과 불변식**
     - **Validates: Requirements 7.12, 8.1, 7.9**
 
-  - [~] 9.10 RecommendationService 구현 (`backend/app/recommendation/service.py`)
+  - [x] 9.10 RecommendationService 구현 (`backend/app/recommendation/service.py`)
     - `TodayWeatherService` + `OutfitRepository.list_candidates()` + 전략을 묶어 `RecommendationResponse` 생성(`applied_tolerance_c`, `fallback`), 0건이면 `status="insufficient_data"`, `fallback=True`, `items=[]`, 캐시 없음
     - _Requirements: 6.3, 6.5, 6.8, 8.1, 8.7, 9.6_
 
-  - [~] 9.11 허용 오차 경계·데이터 부족·구조 단위 테스트 작성 (`backend/tests/test_recommendation.py`)
+  - [x] 9.11 허용 오차 경계·데이터 부족·구조 단위 테스트 작성 (`backend/tests/test_recommendation.py`)
     - 영역 (c): `test_diff_exactly_3_0_included`, `test_diff_3_1_excluded`, `test_rounding_3_04_included_3_05_excluded`, `test_fallback_boundary_5_0_included_5_1_excluded`, `test_fallback_applied_once_only`
     - 영역 (d): `test_insufficient_data_status`, `test_outfits_without_weather_excluded`, `test_missing_today_temperature_raises`
     - `test_strategy_module_imports_no_providers_or_repo`(AST import 검사), `test_explanation_max_length_with_50_char_tags`
     - _Requirements: 6.1, 6.3, 6.5, 6.7, 6.8, 6.9, 7.13, 8.1, 8.7, 17.4_
 
 - [ ] 10. REST API
-  - [~] 10.1 앱 생성과 의존성 주입 구현 (`backend/app/deps.py`, `backend/app/main.py`)
+  - [x] 10.1 앱 생성과 의존성 주입 구현 (`backend/app/deps.py`, `backend/app/main.py`)
     - `deps.py`: 설정·Provider·Repository·서비스·`get_strategy` 의존성 함수, 프로세스 전역 `scan_lock`
     - `main.py`: `create_app()`, 기동 시 `resolve_config` + 이슈 로그(ERROR), 로깅 형식과 `RedactingFilter` 설치, `create_all()`, `CORSMiddleware(allow_origins=cfg.cors_origins)`, 공통 오류 형식 예외 핸들러(스택 트레이스 비노출, feedback 경로 검증 오류는 `INVALID_THERMAL_VOTE`, 그 외 `VALIDATION_ERROR`)
     - _Requirements: 7.14, 9.2, 10.6, 15.6, 16.5, 16.7_
@@ -365,11 +365,11 @@
     - 360px에서 가로 스크롤 없음(`min-w-0`, `overflow-x-clip`, `max-w-full`), `prefers-reduced-motion` 시 전환 제거, `backdrop-filter` 미지원 시 `bg-white/90`
     - _Requirements: 11.5, 11.6, 14.1, 14.2_
 
-  - [~] 13.2 날씨·추천 공용 컴포넌트 구현 (`frontend/src/components/`)
+  - [x] 13.2 날씨·추천 공용 컴포넌트 구현 (`frontend/src/components/`)
     - `WeatherHero`(`text-7xl tabular-nums`), `WeatherBento` 2×2(체감·습도·강수·출처), `EstimateNotice`("실측값이 아닌 제공자 추정치/재분석값입니다"), `FixtureBadge`, "가상 데이터" 라벨, `ConfidenceBadge`, `FallbackNotice`("유사 기록 부족 / 범위 확장"), `InsufficientDataState`("개인 착장 데이터 부족"), `ErrorRetry`, `Toast`, `RecommendationCard`(4:5 사진 + 하단 글래스 오버레이, 태그 칩, 근거 펼치기)
     - _Requirements: 4.9, 6.4, 6.6, 11.1, 11.2, 11.3, 11.8, 11.9, 15.4_
 
-  - [~] 13.3 NotificationCard와 FeedbackButtons 구현 (`frontend/src/components/NotificationCard.tsx`, `FeedbackButtons.tsx`)
+  - [x] 13.3 NotificationCard와 FeedbackButtons 구현 (`frontend/src/components/NotificationCard.tsx`, `FeedbackButtons.tsx`)
     - iOS 알림 배너 형태(앱 아이콘, "WeatherWear · 지금", 56px 썸네일, 오늘 기온 문구), 버튼 "🥶 추웠어"/"😊 적당했어"/"🥵 더웠어" → `cold`/`comfortable`/`hot`, 높이 44px 이상
     - `effective_vote` 버튼에만 `aria-pressed=true`, 탭 시 확인 없이 POST 1회, 대기 중 3버튼 disabled, 성공 시 선택 표시 후 `onSaved()`로 추천 재조회, 실패/10초 초과 시 토스트 "저장하지 못했어요. 다시 시도해 주세요."와 이전 선택 복원
     - 본문 탭 → `/outfits/:id`, 버튼 영역 `stopPropagation`

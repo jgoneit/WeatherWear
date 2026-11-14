@@ -53,6 +53,11 @@ export const STRINGS = {
     hot: "🥵 더웠어",
     saveFailed: "저장하지 못했어요. 다시 시도해 주세요.",
     notificationHeader: "WeatherWear · 지금",
+    notificationLabel: "체감 피드백 알림",
+    buttonsLabel: "이 착장의 체감 기록",
+    thumbnailAlt: "추천 착장 썸네일",
+    openDetail: "착장 상세 보기",
+    saving: "저장 중",
   },
 
   vote: {
@@ -77,6 +82,42 @@ export const STRINGS = {
     network: "서버에 연결하지 못했어요.",
     server: "서버 오류가 발생했어요.",
     aborted: "요청이 취소되었어요.",
+  },
+
+  /** 날씨 표시 컴포넌트(WeatherHero, WeatherBento) 문구. */
+  weather: {
+    apparentPrefix: "체감",
+    precipitationUnit: "mm",
+    providerOpenMeteo: "Open-Meteo",
+    providerFixture: "fixture",
+    providerScenario: "시나리오",
+    bentoLabel: "날씨 상세",
+  },
+
+  /** 추천 카드와 추천 상태 문구. */
+  recommendation: {
+    rank: (rank: number) => `${rank}순위`,
+    pastTemperature: "과거 기온",
+    temperatureDiff: "기온 차이",
+    capturedOn: "촬영일",
+    expand: "근거 펼치기",
+    collapse: "근거 접기",
+    fallbackChip: "범위 확장",
+    noTags: "착장 태그 정보 없음",
+    photoAlt: (tags: string) => `추천 착장 사진: ${tags}`,
+    fallbackDetail: (tolerance: string) =>
+      `비슷한 기온의 기록이 없어 허용 범위를 ${tolerance}로 넓혀 찾았어요.`,
+    insufficientDataDetail: "오늘 기온과 비슷한 과거 착장 기록이 아직 없어요.",
+  },
+
+  confidence: {
+    high: "신뢰도 높음",
+    medium: "신뢰도 보통",
+    low: "신뢰도 낮음",
+  },
+
+  toast: {
+    dismiss: "닫기",
   },
 
   emptyValue: "–",

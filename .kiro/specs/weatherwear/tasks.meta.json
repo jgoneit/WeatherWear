@@ -305,6 +305,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629011932
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632189563
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632451230
       }
     ],
     "6.1 OutfitRepository와 유효 피드백 함수 구현 (`backend/app/repository.py`, `backend/app/feedback.py`)": [
@@ -346,6 +356,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629011940
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632190485
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632452039
       }
     ],
     "7. Checkpoint - 수집 슬라이스 확인": [
@@ -394,6 +414,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629011955
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632191703
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632453233
       }
     ],
     "9.1 추천 전략 구현 (`backend/app/recommendation/base.py`, `rule_based_v1.py`, `factory.py`)": [
@@ -435,6 +465,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629011963
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632192880
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632454441
       }
     ],
     "9.11 허용 오차 경계·데이터 부족·구조 단위 테스트 작성 (`backend/tests/test_recommendation.py`)": [
@@ -442,6 +482,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629011967
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632465892
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632736624
       }
     ],
     "10.1 앱 생성과 의존성 주입 구현 (`backend/app/deps.py`, `backend/app/main.py`)": [
@@ -449,6 +499,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629011976
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632467104
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632737379
       }
     ],
     "10.2 착장 라우터 구현 (`backend/app/api/outfits.py`)": [
@@ -559,6 +619,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012049
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632193689
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632455242
       }
     ],
     "13.3 NotificationCard와 FeedbackButtons 구현 (`frontend/src/components/NotificationCard.tsx`, `FeedbackButtons.tsx`)": [
@@ -566,6 +636,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012060
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632467994
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632738280
       }
     ],
     "13.5 HomePage 구현 (`frontend/src/pages/HomePage.tsx`)": [
@@ -671,6 +751,34 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794632090326
+      }
+    ],
+    "5. Weather Provider (Open-Meteo Archive API)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632451236
+      }
+    ],
+    "6. 저장소와 수집 서비스": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632452042
+      }
+    ],
+    "8. 피드백과 오늘 날씨": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632453234
+      }
+    ],
+    "9. 추천 rule_based_v1": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632736627
       }
     ]
   }

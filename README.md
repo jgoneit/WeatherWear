@@ -43,7 +43,7 @@
 
 ## 2. 핵심 기능
 
-✅ Phase 1 구현 완료 · 🗓️ Phase 2 계획(spec 완료, 구현 예정)
+✅ 구현 완료 (Phase 1 · Phase 2 자동화)
 
 | 기능 | 해결하는 불편 | 코드 위치 |
 |---|---|---|
@@ -56,8 +56,10 @@
 | ✅ 체감 피드백 원클릭 저장 → 즉시 재추천 | 그 옷이 적당했는지 기록이 없음 | `backend/app/feedback.py`, `frontend/src/components/FeedbackButtons.tsx` |
 | ✅ 모바일 화면 (홈 · 기록 · 상세 · 데모) | 과거 착장을 날씨와 함께 다시 보기 | `frontend/src/pages/` |
 | ✅ Vision 정확도 평가 · Docker Compose | 품질 확인 · 한 번에 실행 | `backend/app/evaluation/`, `compose.yaml` |
-| 🗓️ 새 사진 자동 감지 | 찍을 때마다 스캔 버튼을 누르는 수고 | `.kiro/specs/weatherwear-automation/` |
-| 🗓️ 매일 아침 위치 기반 Web Push 브리핑 | 앱을 열어야만 추천이 보임 | `.kiro/specs/weatherwear-automation/` |
+| ✅ 갤러리 폴더 자동 감시 → 새 착장 자동 기록 | 찍을 때마다 스캔 버튼을 누르는 수고 | `backend/app/gallery/` |
+| ✅ 매일 아침 착장 브리핑 (알림 기록 · Web Push) | 앱을 열어야만 추천이 보임 | `backend/app/notifications/`, `frontend/public/sw.js` |
+| ✅ 브라우저 위치 → 브리핑 위치와 Live 홈 날씨 | 다른 도시에서도 서울 날씨로 추천 | `backend/app/location.py`, `frontend/src/lib/location.ts` |
+| ✅ 확인이 필요한 사진 "착장 맞음" 확정 | 판정이 애매한 착장이 기록에서 빠짐 | `backend/app/gallery/confirm.py`, `frontend/src/pages/NotificationsPage.tsx` |
 
 ## 3. 사용 시나리오
 
@@ -68,8 +70,10 @@
 3. 👆 **체감 버튼 한 번**: 🥶 / 😊 / 🥵 중 하나를 누르면 확인 없이 저장된다.
 4. 🔄 **추천이 바로 바뀐다**: 새로고침 없이 점수가 다시 계산된다.
 5. 🗂️ **기록 탭**: 과거 착장을 날짜순으로 보고, 그날 날씨와 체감을 확인한다.
-6. 🗓️ *(Phase 2)* 매일 아침 이런 알림을 받는다:
-   > "오늘 서울 14.5°C, 습도 55%. 비슷했던 14.4°C 날 크림 니트를 입고 '적당했어'라고 했어요"
+6. 📸 **새 사진은 알아서 기록된다** *(Phase 2)*: 갤러리 폴더(`ex_img/`)에 새 착장 사진이 생기면 앱이 분석해 기록에 넣는다. EXIF가 없으면 파일 수정 시각과 마지막 위치로 채운다.
+7. 🔔 **매일 아침 브리핑** *(Phase 2)*: 07:30에 이런 알림이 온다(위치를 보고하지 않으면 서울 기준):
+   > "오늘 서울 14.5°C, 습도 55%. 비슷했던 14.4°C 날 크림 니트를 입고 '적당했어'라고 했어요."
+8. ✅ **애매한 사진 확정** *(Phase 2)*: "알림" 탭의 "확인이 필요한 사진"에서 "착장 맞음"을 누르면 기록에 들어간다.
 
 ## 4. 기대 효과
 
@@ -79,7 +83,7 @@
 |---|---|
 | 🎯 사용자 입력 (목표) | 옷 등록 **0건** · 날씨 입력 **0건** · 체감 버튼 **1회** |
 | 💡 가설 | 내 과거 경험을 쓰면 기온별 옷차림 표보다 춥거나 덥게 입는 날이 줄어든다 |
-| 🗓️ Phase 2 목표 | 처음 권한만 허용하면 그 뒤로는 버튼 없이 사진 등록과 아침 추천 |
+| ✅ Phase 2 (구현됨) | 처음 권한만 허용하면 그 뒤로는 버튼 없이 사진 등록과 아침 추천 |
 
 레포로 확인할 수 있는 수치:
 
@@ -89,7 +93,7 @@
 | 시드 체감 투표 | 66개 |
 | 유사 기온 허용 오차 | ±3.0°C (후보가 없으면 ±5.0°C로 1회 확장) |
 | 데모 시나리오 | 14.5°C 정상 · −16.0°C 경계 · 44.0°C 범위 확장 · 48.0°C 데이터 부족 |
-| 테스트 | 백엔드 602 passed · 프론트엔드 92 passed |
+| 테스트 | 백엔드 1109 passed · 프론트엔드 100 passed |
 
 TODO(팀): 사용자 테스트를 했다면 "춥거나 덥게 입은 날 비율" 같은 측정값을 적는다.
 
@@ -126,7 +130,20 @@ docker compose up --build    # 백엔드 :8000, 프론트엔드 :5173
 docker compose down
 ```
 
-환경 변수, Live 모드, 데모 사진 준비는 아래 [부록](#부록)을 본다.
+🤖 자동화(Phase 2) 켜기: 코드 기본값은 꺼짐이다. 루트 `.env`(없으면 `.env.example`을 복사)에서 두 값을 켠다. `docker compose`는 처음부터 켜져 있다.
+
+```bash
+# .env
+GALLERY_WATCH_ENABLED=true   # ex_img/ 감시
+DAILY_BRIEF_ENABLED=true     # 매일 07:30 브리핑 (NOTIFIER=log: 알림 기록만, 네트워크 없음)
+
+# 서버를 켠 채로 "방금 찍은 사진" 1장 넣기 → 몇 초 뒤 기록 탭에 추가된다
+backend/.venv/bin/python scripts/simulate_capture.py
+# 오늘 브리핑 지금 1회 보내기 (같은 날 두 번째는 "이미 보냄")
+backend/.venv/bin/python scripts/daily_brief.py
+```
+
+환경 변수, Live 모드, 데모 사진 준비, Phase 2 데모 절차는 아래 [부록](#부록)을 본다.
 
 ## 7. 테스트
 
@@ -138,15 +155,15 @@ cd backend && .venv/bin/python -m pytest -q
 cd frontend && npx vitest --run && npm run typecheck && npm run check:bundle
 ```
 
-| 검사 | 결과 (PR #9 병합 기록) |
+| 검사 | 결과 (Phase 2 통합, 2026-11-14) |
 |---|---|
-| 백엔드 pytest | ✅ 602 passed (skip 0) |
-| 프론트엔드 vitest | ✅ 92 passed |
+| 백엔드 pytest | ✅ 1109 passed (skip 0) |
+| 프론트엔드 vitest | ✅ 100 passed |
 | typecheck · check:bundle | ✅ 통과 |
 | 데모 데이터 규칙 `scripts/select_scenarios.py --check` | ✅ 통과 |
 
 - API 키와 외부 네트워크 없이 돈다.
-- 5분 데모 흐름은 `test_five_minute_demo_walkthrough`가 그대로 확인한다.
+- 5분 데모 흐름은 `test_five_minute_demo_walkthrough`, Phase 2 흐름(흉내 사진 → 감시 → 저장 → 브리핑)은 `test_automation_e2e.py`가 그대로 확인한다.
 
 ---
 
@@ -165,7 +182,7 @@ cd frontend && npx vitest --run && npm run typecheck && npm run check:bundle
 ## 부록
 
 <details>
-<summary><b>자세한 기술 문서 펼치기</b> (환경 변수, Live 모드, 데모 사진 준비, 5분 데모 절차, 데이터 출처, 기능 상태)</summary>
+<summary><b>자세한 기술 문서 펼치기</b> (환경 변수, Live 모드, 데모 사진 준비, 5분 데모 절차, Phase 2 자동화, 데이터 출처, 기능 상태)</summary>
 
 
 아래는 기존 README의 자세한 기술 내용이다.
@@ -176,7 +193,8 @@ cd frontend && npx vitest --run && npm run typecheck && npm run check:bundle
 - 프론트엔드: React + Vite + TypeScript + Tailwind v4 (`frontend/`)
 - 데모 데이터: `data/demo/` (사진 목록, 시드 투표 사이드카, 시나리오, fixture)
 - 보조 스크립트: `scripts/`
-- Kiro spec: `.kiro/specs/weatherwear/`(Phase 1), `.kiro/specs/weatherwear-automation/`(Phase 2 계획)
+- Kiro spec: `.kiro/specs/weatherwear/`(Phase 1), `.kiro/specs/weatherwear-automation/`(Phase 2 자동화)
+- 저장소: https://github.com/jgoneit/kirothon-020
 - 라이선스: [LICENSE](LICENSE) (MIT)
 
 ### 실행 세부 사항
@@ -299,6 +317,86 @@ cd frontend && npx vitest --run && npm run typecheck && npm run check:bundle
 
 "기록적 한파"(-16.0°C)는 기온 차이가 정확히 3.0°C인 후보 `142_cold_cream_down_denim` 1건(85.0점), "때 이른 무더위"(44.0°C)는 5.0°C 범위 확장으로 `153_heatwave_coral_tank_shorts`(50.0점)와 `155_heatwave_white_tee_linen_skirt`(45.0점) 2건, "기록적 폭염"(48.0°C)은 데이터 부족이다. 시나리오 기온은 `select_scenarios.py`가 189장 전체에 규칙 S1~S4를 적용해 고른다.
 
+### Phase 2 자동화 (갤러리 감시 · 매일 브리핑 · 알림)
+
+Phase 2는 "사진을 찍으면 알아서 기록되고, 아침에는 알림이 온다"를 데스크톱 데모로 구현한다. 휴대폰 갤러리 대신 `ex_img/` 폴더를 갤러리로 보고, FCM 대신 표준 Web Push(VAPID)를 쓴다. spec은 `.kiro/specs/weatherwear-automation/`에 있다.
+
+#### 켜는 방법
+
+- 코드 기본값은 감시와 브리핑 모두 꺼짐이다. 테스트와 Phase 1 실행이 사용자 폴더를 읽지 않게 하기 위해서다.
+- `.env.example`과 `compose.yaml`은 두 값을 `true`로 켜 둔다. 루트 `.env`에 `GALLERY_WATCH_ENABLED=true`, `DAILY_BRIEF_ENABLED=true`를 넣고 서버를 다시 시작한다.
+- 켜면 서버 lifespan이 감시 스레드(`gallery-watcher`)와 브리핑 스케줄러 스레드(`daily-brief`)를 띄운다. 끄면 스레드를 만들지 않고 `ex_img/`를 읽지 않는다.
+
+#### Phase 2 환경 변수 (9개)
+
+| 변수 | 기본값 | 설명 |
+|---|---|---|
+| `GALLERY_WATCH_ENABLED` | `false` | 갤러리 폴더 감시. `true/false/1/0/yes/no/on/off` |
+| `GALLERY_DIR` | `./ex_img` | 감시할 폴더. `ex_img/`를 휴대폰 갤러리로 본다 |
+| `GALLERY_POLL_SECONDS` | `2` | 확인 간격(초), 0.5~60 |
+| `USER_PHOTO_DIR` | `./data/user/photos` | 가져온 사진의 복사본 폴더. `PHOTO_DIR`·`GALLERY_DIR`와 겹치면 기본값을 쓴다 |
+| `DAILY_BRIEF_ENABLED` | `false` | 매일 브리핑 |
+| `DAILY_BRIEF_TIME` | `07:30` | 브리핑 시각(`APP_TIMEZONE`, 24시간 `HH:MM`) |
+| `NOTIFIER` | `log` | `log`(알림 기록만, 오프라인) 또는 `webpush`(Web Push) |
+| `VAPID_KEY_DIR` | `./data/secrets` | VAPID 키 쌍 폴더. 개인키가 있으므로 커밋하지 않는다 |
+| `VAPID_SUBJECT` | `mailto:weatherwear@example.com` | Web Push 발신자 연락처(`mailto:` 또는 `https://`) |
+
+잘못된 값은 Phase 1과 같이 기동을 막지 않는다. 로그에 변수 이름과 허용값만 남기고 기본값을 쓴다.
+
+#### 동작 요약
+
+- **기준선**: 감시를 처음 시작할 때 `ex_img/`에 있던 파일(데모 사진 174장)은 기준선으로만 기록하고 분석하지 않는다. 그 뒤 생긴 파일만 처리한다.
+- **쓰는 중인 파일**: 크기와 수정 시각이 두 번 연속 같고 `GALLERY_POLL_SECONDS`가 지나야 처리한다. 갤러리 폴더의 파일은 고치거나 옮기지 않는다.
+- **저장**: 새 사진은 `data/user/photos/`에 바이트 그대로 복사한 뒤 Phase 1 수집(사진 분류 게이트 → 메타데이터 → 날씨 → 저장)을 그대로 탄다. 같은 해시는 다시 분석하지 않는다. 감시로 들어온 사진은 사용자 본인 사진이라 `data/user/`(git 무시)에만 두고 데모 manifest에는 넣지 않는다.
+- **Fixture 모드의 새 사진**: Fixture Vision은 모르는 사진을 `uncertain`으로 판정한다. 그래서 `scripts/simulate_capture.py`가 사진을 넣기 전에 `data/user/fixtures/vision.overlay.json`에 판정을 먼저 적는다. 실제 분석은 `VISION_PROVIDER=gemini`일 때만 된다.
+- **EXIF가 없는 사진**: 실패시키지 않는다. 촬영 시각은 파일 수정 시각(`APP_TIMEZONE`, 미래 시각이면 처리 시각), 위치는 마지막 브라우저 위치(없으면 기본 위치)로 채우고 "촬영 정보 추정"으로 표시한다.
+- **확인이 필요한 사진**: `uncertain`은 푸시하지 않고 "알림" 탭의 "확인이 필요한 사진"에만 보인다. "착장 맞음"을 누르면 Vision을 다시 부르지 않고 착장으로 저장한다(감사 기록 `photo_confirmations`). "다시 분석"은 한 번 더 분석한다. 태그가 모두 `unknown`이면 기록에는 보이지만 추천에는 쓰이지 않는다.
+- **매일 브리핑**: `DAILY_BRIEF_TIME`에 마지막 위치의 현재 날씨로 `rule_based_v1` 1순위를 골라 알림을 만든다. 하루에 한 번만 보낸다(DB가 날짜별로 막는다). 서버가 그 시각 뒤 3시간 안에 켜지면 그때 보내고, 3시간이 지나면 그날은 건너뛴다.
+- **홈 오늘 날씨**: Live 모드(`WEATHER_PROVIDER=open_meteo`)에서만 마지막 위치 + Forecast API 현재 날씨로 바뀐다. Fixture 모드는 Phase 1 그대로다. 홈과 브리핑은 같은 위치·같은 날씨를 쓴다.
+- **위치**: 브라우저 위치는 소수 둘째 자리(약 1km)로 반올림해 1건만 저장하고, 로그에는 좌표를 남기지 않는다. Open-Meteo 요청 URL의 좌표도 로그에서 지운다.
+
+#### 스크립트
+
+| 명령 | 하는 일 |
+|---|---|
+| `backend/.venv/bin/python scripts/simulate_capture.py` | `GALLERY_DIR`에 "방금 찍은 사진" 1장을 만든다(촬영 시각·위치 EXIF 포함, 파일 이름만 출력). 원본은 `--source`, `data/user/capture_pool/`, 그림 플레이스홀더 순이다. `--at 2026-11-14T08:10:00+09:00`, `--lat 35.18 --lon 129.08`, `--tags '{...}'`, `--no-fixture`를 받는다. 데모 사진은 쓰지 않는다 |
+| `backend/.venv/bin/python scripts/watch_gallery.py [--once]` | 서버 없이 같은 설정·DB로 감시한다. `--once`는 두 번 확인하고 처리한 뒤 끝난다 |
+| `backend/.venv/bin/python scripts/daily_brief.py [--force]` | 오늘 예약 브리핑을 1회 보낸다. 이미 보냈으면 "이미 보냄"(종료 코드 0). `--force`는 수동 브리핑을 하나 더 만든다. cron에서 여러 번 불러도 하루 1건이다 |
+
+#### Web Push와 위치의 조건
+
+- Web Push와 위치는 secure context(`http://localhost` 또는 HTTPS)에서만 동작한다. 휴대폰에서 HTTPS로 여는 구성은 범위 밖이라 데모는 데스크톱 브라우저로 한다.
+- iOS Safari는 홈 화면에 추가한 웹 앱에서만 푸시를 받는다.
+- 브라우저 권한은 버튼을 누를 때만 요청한다. 앱을 열 때는 묻지 않는다. 권한이 이미 있으면 앱을 열 때 마지막 보고 뒤 30분이 지났을 때만 조용히 위치를 보고한다.
+- 실제 푸시는 `NOTIFIER=webpush`에서 "알림" 탭의 "알림 켜기" → 데모 화면 "오늘 브리핑 지금 보내기"로 보낸다(푸시 서비스로 가는 네트워크 필요). VAPID 키는 첫 실행 때 `VAPID_KEY_DIR`에 만들어지고, 개인키는 로그·응답·번들에 나오지 않는다(`npm run check:bundle`이 확인).
+
+#### Docker Compose
+
+`compose.yaml`의 backend는 감시와 브리핑을 켜고(`NOTIFIER=log`), 다음을 마운트한다.
+
+| 마운트 | 용도 |
+|---|---|
+| `${GALLERY_HOST_DIR:-./ex_img}:/data/gallery:ro` | 감시할 갤러리(읽기 전용) |
+| `./data/user:/data/user` | 사진 복사본, 추정 사이드카, fixture overlay. 호스트의 `simulate_capture.py`와 공유 |
+| `vapid-keys:/data/secrets` | VAPID 키(named volume) |
+
+- 처음 한 번 `mkdir -p data/user`를 해 둔다. Linux에서는 컨테이너 사용자(uid 10001)가 쓸 수 있게 `sudo chown -R 10001 data/user`도 한다.
+- 호스트에서 `simulate_capture.py`를 돌리면 호스트의 `ex_img/`와 `data/user/`에 쓰므로 컨테이너가 바로 본다. 컨테이너 DB는 호스트에서 읽지 않으므로 위치는 `--lat/--lon`으로 주거나 기본 위치를 쓴다.
+- 기존 `read_only: true`, DB named volume, 사진 `:ro` 마운트는 그대로다.
+
+#### Phase 2 데모 절차 (Fixture 모드, API 키 없음, 데스크톱 브라우저)
+
+이 흐름은 `backend/tests/test_automation_e2e.py`가 같은 순서로 확인한다.
+
+1. 루트 `.env`에 `GALLERY_WATCH_ENABLED=true`, `DAILY_BRIEF_ENABLED=true`를 넣고(나머지는 Fixture 기본값) 백엔드와 프론트엔드를 실행한다. 비어 있는 DB로 보려면 `DATABASE_URL=sqlite:///./data/demo-run.db`를 쓴다.
+2. 데모 화면에서 "폴더 스캔"을 한 번 한다(189장 → 착장 169). "자동화 상태" 카드에 "갤러리 감시: 동작 중"이 보인다.
+3. "알림" 탭에서 "현재 위치 사용"을 누른다(선택). 위치 이름(예: 부산)이 보인다. 푸시를 보려면 "알림 켜기"도 누른다.
+4. 터미널에서 `backend/.venv/bin/python scripts/simulate_capture.py`를 실행한다. 출력은 `capture_20261114_191915.jpg` 같은 파일 이름 하나다.
+5. 몇 초 안에 "기록" 탭에 새 착장(크림 니트 + 청바지 플레이스홀더)이 맨 앞에 나타난다. 데모 화면의 "최근 사진 처리"에는 "가져옴"이 보인다.
+6. 데모 화면에서 "오늘 브리핑 지금 보내기"를 누르거나 `backend/.venv/bin/python scripts/daily_brief.py`를 실행한다. 제목 "오늘의 착장 브리핑 (fixture 날씨)", 본문 "오늘 부산 14.5°C, 습도 55%. 비슷했던 14.4°C 날 크림 니트를 입고 '적당했어'라고 했어요."(위치를 보고하지 않았으면 "서울")가 나온다.
+7. 홈 맨 위에 오늘의 브리핑 카드가 보이고, 누르면 그 착장의 상세 화면으로 간다. "알림" 탭의 최근 알림에도 같은 항목이 있다.
+8. `simulate_capture.py --no-fixture`로 한 장 더 넣으면 "확인이 필요한 사진"에 나타난다. "착장 맞음"을 누르면 기록 탭에 들어간다.
+
 ### 데이터와 제공자에 관한 사실
 
 - **촬영 시각과 위치**: 사진마다 내장된 합성(synthetic) EXIF 메타데이터에서 읽는다. 1순위는 Exif IFD의 UserComment에 든 JSON(`date`, `time`, `utc_offset` 또는 `timezone`, `latitude`, `longitude`, `synthetic`)이고, 2순위는 표준 EXIF(`DateTimeOriginal` + `OffsetTimeOriginal`, GPS IFD)다. 데모 PNG 134장은 `eXIf` 청크에 UserComment JSON이 있고, JPG 40장은 UserComment JSON과 같은 값의 표준 EXIF도 담고 있다. UserComment JSON의 다른 키(`location`, `outfit`, `prompt` 등)는 저장하지 않는다. 데모 사진의 시각(2024-12-11~2025-12-17)과 위치(서울 시내 몇 곳)는 실제 촬영 기록이 아닌 가상 값이라 화면에 "가상 데이터" 라벨이 붙고, 상세 화면에는 "촬영 정보: 사진 내장 메타데이터"가 보인다.
@@ -347,7 +445,8 @@ pytest 자동화 테스트 영역(Req 17.4)과 대표 테스트:
 | (g) 내장 메타데이터 읽기 | `backend/tests/test_metadata.py` | `test_user_comment_json_parsed`, `test_standard_exif_jpeg_parsed`, `test_user_comment_preferred_over_standard_exif`, `test_sidecar_fallback_when_no_exif`, `test_no_metadata_fails_metadata_not_found`, `test_broken_sidecar_fails_even_with_exif` |
 
 - 테스트는 API 키 없이 돈다. `backend/tests/conftest.py`가 테스트마다 `GEMINI_API_KEY`를 환경에서 지우고 localhost 외 네트워크 연결을 막는다. Open-Meteo는 `respx`, Gemini는 가짜 클라이언트로 대체한다. pytest는 `scripts/record_fixture_weather.py`와 `scripts/check_gemini_model.py`를 실행하지 않는다.
-- 이 README 작성 시점 결과(2026-11-14, 데모 사진 189장 준비 상태, PR #6·#7·#8·#10 병합 후): 백엔드 602 passed, 프론트엔드 11개 파일 92 tests passed, typecheck 오류 0, check:bundle OK, `select_scenarios.py --check` 통과.
+- 이 README 작성 시점 결과(2026-11-14, 데모 사진 189장 준비 상태, Phase 2 통합 후): 백엔드 1109 passed, 프론트엔드 12개 파일 100 tests passed, typecheck 오류 0, check:bundle OK, `select_scenarios.py --check` 통과. Phase 1만 있던 때는 백엔드 602, 프론트엔드 92였다.
+- Phase 2 대표 테스트: 감시·기준선 `test_gallery_watcher.py`, 수집·판정별 처리 `test_gallery_processor.py`, 추정 촬영 정보 `test_gallery_estimate.py`, "착장 맞음" `test_gallery_confirm.py`, 브리핑 문구 `test_brief_compose.py::test_compose_matches_user_example`, 하루 1회 `test_daily_brief.py`, Web Push `test_webpush.py`, DB 2→3 업그레이드 `test_db_automation.py`, 설정 `test_config_automation.py`, 상태 API `test_api_automation.py`, lifespan `test_lifespan_automation.py`, 종단 `test_automation_e2e.py`. 테스트가 저장소의 `data/user/`, `data/secrets/`를 만들면 `conftest.py`가 실패로 처리한다.
 - 데모 사진이 없으면(새로 클론한 직후) 사진 파일을 읽는 테스트(`test_integration.py`의 데모 사진 테스트, `test_api_routes.py::test_demo_data_end_to_end`, `test_image_check.py::test_all_demo_photos_pass_check_image`, `test_metadata.py::test_user_comment_json_parsed_from_real_ex_img_photo` 등)는 skip된다. 전체를 확인하려면 먼저 데모 사진을 준비한다.
 - 데모 데이터 파일이 시나리오·시드 투표 규칙을 지키는지는 pytest와 별도로 `backend/.venv/bin/python scripts/select_scenarios.py --check`로 확인한다(위 "데모 사진 준비").
 
@@ -357,6 +456,7 @@ pytest 자동화 테스트 영역(Req 17.4)과 대표 테스트:
 
 - TypeScript는 7.0.2 대신 5.9.3을 쓴다. `openapi-typescript` 7.13.0의 peer 의존성 범위가 TypeScript `^5.x`이기 때문이다.
 - `sqlalchemy`(2.1.8)와 `starlette`(1.10.0)는 `sqlmodel`·`fastapi`의 전이 의존성이지만 앱 코드가 직접 import하므로 직접 의존성으로 고정했다.
+- Phase 2: `pywebpush==2.5.0`(Web Push 암호화·VAPID 서명), `cryptography==50.0.2`(VAPID P-256 키), `requests==2.34.2`(pywebpush의 HTTP 클라이언트, 앱 코드가 직접 import). `test_requirements_pins.py`가 모든 줄이 설치된 버전과 같은 `==` 고정인지 확인한다.
 
 ### 기능 상태
 
@@ -378,6 +478,12 @@ pytest 자동화 테스트 영역(Req 17.4)과 대표 테스트:
 - REST API와 OpenAPI 문서, 사진 엔드포인트(경로 비노출), CORS 정확 일치
 - 설정 로더(기본값 대체, 잘못된 값 로그)와 API 키 마스킹, 번들 비밀값 검사
 - 모바일 웹: 홈(오늘 날씨, 알림 카드, 추천), 기록 그리드, 상세, 데모 관리 화면(vitest smoke 테스트와 5분 데모 절차)
+- Phase 2 갤러리 감시: 기준선, 쓰는 중인 파일 대기, 바이트 그대로 복사, 해시 중복 제거, 판정별 처리(`imported`/`duplicate`/`skipped_non_outfit`/`uncertain`/재시도/실패), Vision 실패 1분·5분 재시도(최대 3회), 재시작 후 이어서 처리, 사진 처리 기록 API, "다시 분석"과 "착장 맞음"
+- Phase 2 촬영 정보 추정: EXIF 없으면 파일 수정 시각 + 마지막 위치, 추정 사이드카와 "촬영 정보 추정" 표시, 최근 7일은 Forecast `past_days`, 그 전은 Archive
+- Phase 2 매일 브리핑: 위치·현재 날씨·1순위 추천으로 한국어 문장(조사 을/를, 장소 이름 16곳), 하루 1회(DB 부분 고유 인덱스), 3시간 따라잡기, 실패 시 10분 뒤 재시도(최대 3회), CLI와 "지금 보내기" API
+- Phase 2 알림: Notification_Log, `log` Notifier, Web Push(VAPID 키 생성·보관, 구독 저장, 404/410 구독 삭제, 결과 기록), Service Worker 알림 표시와 클릭 이동, 홈 브리핑 카드, "알림" 탭
+- Phase 2 위치·상태: 위치 보고(반올림, 1건 보관, 좌표 비로그), Live 모드 홈 날씨 전환, 자동화 상태 API와 데모 카드, DB user_version 2→3 추가 업그레이드, Docker Compose 볼륨
+- Phase 2 데모 리허설(2026-11-14, 임시 DB·폴더, 오프라인): 서버 기동 → 스캔 189 → 위치(부산) → `simulate_capture.py` → 감시가 `imported`(착장 170) → `daily_brief.py` 전송, 두 번째 실행은 "이미 보냄"
 
 #### 미완료 또는 미검증
 
@@ -386,12 +492,21 @@ pytest 자동화 테스트 영역(Req 17.4)과 대표 테스트:
 - 360~430px 뷰포트에서 가로 스크롤이 없는지 수동 확인(Req 11.6)을 하지 않았다.
 - 실제 휴대폰 기기에서 확인하지 않았다.
 - 화면 문구 한국어 검수(`frontend/src/lib/strings.ts`)를 별도로 하지 않았다.
-- 선택 항목(`tasks.md`에서 `*` 표시)인 property-based test(Hypothesis, fast-check)와 화면별 상세 UI 테스트, 저장소 위생 테스트는 구현하지 않았다. 대신 단위·smoke·통합 테스트가 있다.
+- 선택 항목(`tasks.md`에서 `*` 표시)인 property-based test(Hypothesis, fast-check)와 화면별 상세 UI 테스트, 저장소 위생 테스트는 구현하지 않았다. 대신 단위·smoke·통합 테스트가 있다. Phase 2도 같다(선택 property test 29개 중 미작성).
+- Phase 2 수동 확인 미실시: Chrome에서 실제 Web Push 수신과 클릭 이동(`NOTIFIER=webpush`, 네트워크 필요), macOS Finder로 큰 JPEG를 복사하는 중 처리되지 않는지, 360/390/430px에서 "알림" 탭 가로 스크롤.
+- Live Forecast 호출은 `respx`로만 테스트했다. 요청 파라미터는 2026-11-14에 Open-Meteo 공식 문서와 대조했다.
 
 ### Phase 2 개선 목록
 
-- **실제 갤러리 접근**: 지금은 `PHOTO_DIR` 폴더에 미리 넣어 둔 데모 사진(합성 메타데이터)을 스캔한다. Phase 2에서는 사용자 동의를 받은 휴대폰 갤러리 업로드로 실제 촬영 사진을 받는다. 실제 사진의 위치는 개인정보이므로 저장 범위와 삭제 방법을 함께 설계해야 한다.
-- **Web Push 알림**: 지금의 앱 내부 알림 카드를 Web Push(FCM 등) 실제 알림으로 바꿔, 앱을 열지 않아도 아침에 추천과 체감 기록 버튼을 받게 한다.
+완료(Phase 2 자동화, 위 "Phase 2 자동화" 절):
+
+- **Web Push 알림**: 표준 Web Push(VAPID)와 Service Worker로 앱을 열지 않아도 아침 브리핑을 받는다. 기본 `NOTIFIER=log`는 알림 기록만 남긴다.
+- **갤러리 대체 감시**: `ex_img/` 폴더를 휴대폰 갤러리로 보고 새 사진을 자동으로 수집한다.
+
+범위 밖(다음 단계):
+
+- **실제 휴대폰 갤러리 접근**: 사용자 동의를 받은 휴대폰 갤러리 업로드로 실제 촬영 사진을 받는다. 실제 사진의 위치는 개인정보이므로 저장 범위와 삭제 방법을 함께 설계해야 한다.
+- **FCM·네이티브 앱**: Firebase Cloud Messaging이나 네이티브 앱 푸시, 휴대폰에서 HTTPS로 여는 배포 구성.
 - **추천 엔진 교체**: `RecommendationStrategy` 인터페이스(`recommend(today, candidates)`)의 새 구현체를 만들고 팩토리(`build_strategy`)에서 고르면 API와 화면을 바꾸지 않고 학습 기반 추천 등으로 교체할 수 있다.
 - **SQLite에서 다른 저장소로 이전하는 조건**: 다중 사용자 계정, 여러 서버 프로세스나 워커가 동시에 쓰는 배포, 사용자당 수천 건 이상으로 늘어난 기록 중 하나라도 생기면 PostgreSQL 같은 서버형 DB로 옮긴다. 이전은 `OutfitRepository` 구현과 `DATABASE_URL`만 바꾸는 범위로 끝나도록 저장소 경계를 유지한다.
 

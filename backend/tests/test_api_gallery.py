@@ -127,7 +127,9 @@ def test_imports_response_has_no_paths(client: TestClient, seeded: dict[str, int
 
 def test_routes_answer_501_until_store_is_wired(tmp_path: Path) -> None:
     config, _ = resolve_config({"DATABASE_URL": f"sqlite:///{tmp_path / 'x.db'}", "PHOTO_DIR": str(tmp_path / "photos")})
-    with TestClient(create_app(config), raise_server_exceptions=False) as plain:
+    app = create_app(config)
+    app.state.container.gallery_store = None  # a container without the gallery runtime (7.1 wires it)
+    with TestClient(app, raise_server_exceptions=False) as plain:
         assert plain.get("/api/gallery/imports").status_code == 501
         assert plain.get("/api/gallery/imports?limit=0").status_code == 422  # validation first
         assert plain.post("/api/gallery/imports/1/reanalyze").status_code == 501

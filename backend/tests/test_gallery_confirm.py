@@ -217,5 +217,7 @@ def test_service_outcomes_without_api(app: App) -> None:
 
 def test_route_answers_501_until_wired(tmp_path: Path) -> None:
     config, _ = resolve_config({"DATABASE_URL": f"sqlite:///{tmp_path / 'x.db'}", "PHOTO_DIR": str(tmp_path / "p")})
-    with TestClient(create_app(config), raise_server_exceptions=False) as client:
+    app = create_app(config)
+    app.state.container.outfit_confirm = None  # a container without the gallery runtime (7.1 wires it)
+    with TestClient(app, raise_server_exceptions=False) as client:
         assert client.post("/api/gallery/imports/1/confirm-outfit").status_code == 501

@@ -500,6 +500,16 @@ class RedactingFilter(logging.Filter):
         # Longest first so a secret containing another secret is fully replaced.
         self._secrets = tuple(sorted({v for v in values if v}, key=len, reverse=True))
 
+    def add_secrets(self, secrets: Iterable[str | SecretStr]) -> None:
+        """Register more secrets, e.g. a VAPID private key created at runtime (Phase 2 Req 18.7).
+
+        The tuple is replaced in one assignment, so a concurrent ``filter`` call
+        sees either the old or the new set.
+        """
+        values = (s.get_secret_value() if isinstance(s, SecretStr) else s for s in secrets)
+        merged = set(self._secrets) | {v for v in values if v}
+        self._secrets = tuple(sorted(merged, key=len, reverse=True))
+
     def redact(self, text: str) -> str:
         for secret in self._secrets:
             text = text.replace(secret, REDACTED)

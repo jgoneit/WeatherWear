@@ -20,6 +20,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
 RUN groupadd --system --gid 10001 app \
  && useradd --system --uid 10001 --gid app --no-create-home app \
  && mkdir -p /app/backend /app/data/demo /data/db /data/photos \
+      /data/gallery /data/user/photos /data/secrets \
  && chown -R app:app /data
 COPY --from=builder /opt/venv /opt/venv
 # app.main resolves REPO_ROOT as parents[2] of backend/app/main.py -> /app.
@@ -29,7 +30,7 @@ COPY data/demo/scenarios.json /app/data/demo/scenarios.json
 WORKDIR /app/backend
 USER app
 EXPOSE 8000
-VOLUME ["/data/db"]
+VOLUME ["/data/db", "/data/secrets"]
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=5 \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/meta', timeout=2).status == 200 else 1)"
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

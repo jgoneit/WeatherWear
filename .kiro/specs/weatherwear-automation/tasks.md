@@ -321,12 +321,12 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - 마운트 시 권한 요청 0회, 상태 4종 문구, 켜기·끄기 흐름, 위치 거부 안내, "착장 맞음" 성공·409·처리 중 비활성, 오늘 브리핑만 표시와 `home-dashboard` 첫 영역 위치, `visibilitychange` 재조회, "지금 보내기"와 자동화 상태
     - _Requirements: 16.2, 16.8, 16.11, 14.6, 13.4, 17.4, 6.9_
 
-- [ ] 6. Checkpoint - 흐름별 확인
+- [x] 6. Checkpoint - 흐름별 확인
   - 흐름 A·B·C의 테스트와 Phase 1 전체 테스트가 외부 연결 없이 통과하는지, `npm run typecheck`와 `npm run check:bundle`이 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
   - _Requirements: 20.5_
 
-- [ ] 7. 통합, 의존성, README (리드)
-  - [ ] 7.1 컨테이너 연결과 lifespan (`backend/app/deps.py`, `backend/app/main.py`)
+- [x] 7. 통합, 의존성, README (리드)
+  - [x] 7.1 컨테이너 연결과 lifespan (`backend/app/deps.py`, `backend/app/main.py`)
     - `build_container()`가 `build_gallery_runtime()`, `build_brief_runtime()`, LocationService(`place_label` 연결)를 부른다. lifespan: NOTIFIER=webpush이면 `vapid_keys.ensure()`(실패해도 기동 계속), 감시·스케줄러 데몬 스레드 시작, 종료 시 `stop.set()` + join(35초) + engine dispose
     - `install_logging()`의 RedactingFilter에 VAPID 키 문자열 등록(키를 처음 만들 때도 등록)
     - 기본 AutomationConfig(꺼짐)에서는 스레드를 만들지 않고 Gallery_Dir를 읽지 않는다
@@ -334,34 +334,34 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - 확정 경로: `OutfitConfirmService`를 컨테이너에 넣어 3.20의 confirm-outfit 경로가 쓰게 한다
     - _Requirements: 1.1, 1.2, 1.3, 12.1, 12.2, 15.1, 18.7, 4.6, 10.7_
 
-  - [ ] 7.2 자동화 상태 API (`backend/app/api/automation.py`, `backend/tests/test_api_automation.py`)
+  - [x] 7.2 자동화 상태 API (`backend/app/api/automation.py`, `backend/tests/test_api_automation.py`)
     - `GET /api/automation/status`: 감시·브리핑·Notifier·위치 상태를 모은다(경로·키·endpoint·위경도 원값 없음)
     - 예제: `test_automation_status_fields_no_secrets`, `test_status_reflects_disabled_defaults`, `test_status_dir_unavailable_without_path`
     - _Requirements: 17.1, 17.2, 1.5_
 
-  - [ ] 7.3 lifespan·종단 테스트 (`backend/tests/test_lifespan_automation.py`, `backend/tests/test_automation_e2e.py`)
+  - [x] 7.3 lifespan·종단 테스트 (`backend/tests/test_lifespan_automation.py`, `backend/tests/test_automation_e2e.py`)
     - `test_lifespan_starts_and_stops_threads`(감시·스케줄러 on, `poll_seconds=0.5`, 종료 후 스레드 없음)
     - `test_fixture_end_to_end_simulate_to_brief`: tmp Gallery_Dir에서 `simulate_capture.main()` → `poll_once()` 두 번 → `imported` → GET /api/outfits에 포함 → POST /api/daily-brief/run → GET /api/notifications 1건, 소켓 가드로 외부 연결 0건
     - _Requirements: 20.1, 20.2, 20.3, 1.1, 1.2_
 
-  - [ ] 7.4 의존성 고정 (`backend/requirements.txt`)
+  - [x] 7.4 의존성 고정 (`backend/requirements.txt`)
     - `pywebpush`, `cryptography`를 설치하고 전체 테스트가 통과한 버전으로 `==` 고정. Phase 1 `test_dependencies_pinned`가 통과하는지 확인한다
     - _Requirements: 20.6_
 
-  - [ ] 7.5 README Phase 2 절 (`README.md`)
+  - [x] 7.5 README Phase 2 절 (`README.md`)
     - 감시·브리핑 켜기(`.env.example`과 `compose.yaml`은 `true`, 코드 기본값은 `false`), Phase 2 변수 9개와 기본값, fixture 모드에서 overlay 없는 새 사진은 `uncertain`이고 실제 분석은 `VISION_PROVIDER=gemini`일 때만 된다는 점, uncertain 사진을 알림 탭 "착장 맞음"으로 기록에 넣는 방법, EXIF 없는 사진은 파일 수정 시각을 쓴다는 점, Live 모드에서만 홈 날씨가 마지막 위치 기준이라는 점, `simulate_capture.py`·`watch_gallery.py`·`daily_brief.py` 사용법, secure context와 iOS 홈 화면 조건, 감시 사진은 사용자 본인 사진으로 `data/user/`에만 두고 manifest(데모 사진 189장)에 넣지 않는다는 점
     - Docker Compose로 띄울 때: `GALLERY_HOST_DIR`, `./data/user` 공유, `vapid-keys` volume, 호스트에서 `simulate_capture.py`를 돌릴 때 `--lat/--lon`을 주거나 기본 위치를 쓴다는 점
     - 번호 매긴 Phase 2 데모 절차(API 키 없이 fixture 모드): 기동 → 알림 탭에서 위치·알림 허용 → `simulate_capture.py` → 기록 화면에 새 착장 → 데모 화면 "지금 보내기" → 홈 카드와 알림 목록
     - 저장소 링크는 `https://github.com/jgoneit/kirothon-020`으로 맞춘다. Phase 2 개선 목록에서 Web Push와 갤러리 대체 감시를 완료로 옮기고, 실제 갤러리 접근과 FCM은 범위 밖으로 남긴다
     - _Requirements: 20.7, 20.8, 4.3, 4.4_
 
-  - [ ] 7.6 Docker Compose 자동화 변수와 볼륨 (`compose.yaml`, `backend/tests/test_compose_automation.py`)
+  - [x] 7.6 Docker Compose 자동화 변수와 볼륨 (`compose.yaml`, `backend/tests/test_compose_automation.py`)
     - backend 서비스 `environment`에 `GALLERY_WATCH_ENABLED: ${GALLERY_WATCH_ENABLED:-true}`, `DAILY_BRIEF_ENABLED: ${DAILY_BRIEF_ENABLED:-true}`, `DAILY_BRIEF_TIME`, `NOTIFIER: ${NOTIFIER:-log}`, `VAPID_SUBJECT`와 고정 경로 `GALLERY_DIR=/data/gallery`, `USER_PHOTO_DIR=/data/user/photos`, `VAPID_KEY_DIR=/data/secrets`
     - `volumes`에 `${GALLERY_HOST_DIR:-./ex_img}:/data/gallery:ro`, `./data/user:/data/user`, `vapid-keys:/data/secrets`(최상위 `volumes:`에도 선언). 기존 `read_only: true`, DB named volume, `/data/photos:ro`는 그대로 둔다
     - 예제: `test_compose_has_automation_env_and_volumes`(파일 텍스트를 읽어 위 키·마운트가 있고 `read_only: true`가 남아 있는지 확인, docker는 부르지 않는다)
     - _Requirements: 18.10_
 
-- [ ] 8. Final checkpoint - Phase 2 전체 확인
+- [x] 8. Final checkpoint - Phase 2 전체 확인
   - 백엔드 `cd backend && python -m pytest -q`, 프론트엔드 `npx vitest --run`, `npm run typecheck`, `npm run check:bundle`이 API 키와 외부 연결 없이 모두 통과하는지 확인하고, README 데모 절차를 fixture 모드로 한 번 따라 한다. 질문이 생기면 사용자에게 묻는다.
   - _Requirements: 20.5_
 

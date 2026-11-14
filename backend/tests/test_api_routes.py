@@ -457,26 +457,62 @@ def test_phase2_error_codes_registered() -> None:
         assert MESSAGES[code]
 
 
+PHASE2_SERVICE_FIELDS = (
+    "gallery_store", "gallery_importer", "outfit_confirm", "current_weather", "notification_log",
+    "push_store", "vapid_keys", "notifier", "daily_brief", "brief_runs",
+)
+
+
+def test_phase2_services_are_wired_into_the_container(client: TestClient) -> None:
+    container = client.app.state.container
+    for name in PHASE2_SERVICE_FIELDS:
+        assert getattr(container, name) is not None, name
+    # Code defaults: watching and the daily brief are off, so no watcher or scheduler (Req 1.3, 12.2).
+    assert container.gallery_watcher is None
+    assert container.brief_scheduler is None
+    assert container.place_label(37.5665, 126.978) == "서울"
+
+
 @pytest.mark.parametrize(
-    ("method", "path"),
+    ("method", "path", "status"),
     [
-        ("get", "/api/automation/status"),
-        ("get", "/api/gallery/imports"),
-        ("post", "/api/gallery/imports/1/reanalyze"),
-        ("post", "/api/gallery/imports/1/confirm-outfit"),
-        ("get", "/api/notifications"),
-        ("post", "/api/daily-brief/run"),
-        ("get", "/api/push/vapid-public-key"),
-        ("delete", "/api/push/subscriptions/1"),
-        ("post", "/api/push/test"),
+        ("get", "/api/automation/status", 200),
+        ("get", "/api/gallery/imports", 200),
+        ("post", "/api/gallery/imports/1/reanalyze", 404),
+        ("post", "/api/gallery/imports/1/confirm-outfit", 404),
+        ("get", "/api/notifications", 200),
+        ("delete", "/api/push/subscriptions/1", 404),
+        ("post", "/api/push/test", 409),  # NOTIFIER=log -> WEB_PUSH_DISABLED
     ],
 )
-def test_phase2_skeleton_routes_answer_501_until_filled(client: TestClient, method: str, path: str) -> None:
-    response = getattr(client, method)(path)
+def test_phase2_routes_answer_after_wiring(
+    isolated_client: TestClient, method: str, path: str, status: int
+) -> None:
+    response = getattr(isolated_client, method)(path)
+    assert response.status_code == status, response.text
+
+
+def test_require_answers_501_when_a_service_is_missing(isolated_client: TestClient) -> None:
+    container = isolated_client.app.state.container
+    container.notification_log = None
+    response = isolated_client.get("/api/notifications")
     assert response.status_code == 501
     assert response.json() == {
         "error": {"code": "NOT_IMPLEMENTED", "message": "아직 준비되지 않은 기능입니다."}
     }
+
+
+@pytest.fixture
+def isolated_client(tmp_path: Path):
+    """App whose Phase 2 folders are all under ``tmp_path`` (nothing written to the repo)."""
+    config = make_config(
+        tmp_path,
+        GALLERY_DIR=str(tmp_path / "gallery"),
+        USER_PHOTO_DIR=str(tmp_path / "user" / "photos"),
+        VAPID_KEY_DIR=str(tmp_path / "secrets"),
+    )
+    with make_client(config) as test_client:
+        yield test_client
 
 
 def test_push_subscription_body_error_code(client: TestClient) -> None:

@@ -17,13 +17,17 @@ The recommendation strategy is chosen by ``get_strategy`` (which calls
 router takes it with ``scan_lock.acquire(blocking=False)`` and returns 409
 ``SCAN_IN_PROGRESS`` when that fails (Req 1.13).
 
-Phase 2 (design.md §20): ``AppContainer`` has one optional field per Phase 2
-service, all ``None`` by default. ``build_container`` fills ``location`` and
-``place_label`` now; the gallery and notification fields are filled in tasks
-7.1 from the runtime builders of flows A (``app/gallery/runtime.py``, 3.13)
-and B (``app/notifications/runtime.py``, 4.11). Routers get them through the
-``get_*`` functions below; a missing service answers 501 ``NOT_IMPLEMENTED``
-until its task wires it (``require``).
+Phase 2 (design.md §20, tasks 7.1): ``build_container`` also builds the
+gallery runtime (``app.gallery.runtime.build_gallery_runtime``) and the brief
+runtime (``app.notifications.runtime.build_brief_runtime``) and copies their
+services into the container. Building them touches no folder and opens no
+connection: the watcher and the scheduler only exist when their setting is on
+and only run once ``main.lifespan`` starts their threads. With
+``WEATHER_PROVIDER=open_meteo`` the home "today" weather switches to the brief
+location's Forecast ``current`` (decision A8, Req 10.7); fixture mode keeps the
+Phase 1 ``TodayWeatherService``. Routers get services through the ``get_*``
+functions below; ``require`` answers 501 ``NOT_IMPLEMENTED`` only when a field
+is left ``None`` (e.g. a test container built by hand).
 """
 
 from __future__ import annotations
@@ -31,7 +35,7 @@ from __future__ import annotations
 import logging
 import threading
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, NoReturn, TypeVar
 
@@ -41,8 +45,10 @@ from sqlalchemy.engine import Engine
 from app.config import AppConfig
 from app.db import create_db_engine
 from app.feedback import FeedbackService
+from app.gallery.runtime import build_gallery_runtime
 from app.ingestion.service import ImageIngestionService
 from app.location import LatLon, LocationService
+from app.notifications.runtime import build_brief_runtime
 from app.providers.vision.base import VisionProvider
 from app.providers.vision.factory import build_vision_provider
 from app.providers.weather.base import WeatherProvider
@@ -109,7 +115,10 @@ class AppContainer:
     vapid_keys: Any = None  # app.notifications.vapid.VapidKeyStore
     notifier: Any = None  # app.notifications.notifier.Notifier
     daily_brief: Any = None  # app.notifications.daily_brief.DailyBriefService
-    brief_scheduler: Any = None  # app.notifications.scheduler.BriefScheduler (None when off)
+    brief_runs: Any = None  # app.notifications.daily_brief.DailyBriefRuns
+    brief_scheduler: Any = None  # app.notifications.scheduler.DailyBriefScheduler (None when off)
+    # Objects with ``close()`` (HTTP clients) that ``main.lifespan`` closes on shutdown.
+    closables: list[Any] = field(default_factory=list)
 
 
 FALLBACK_PLACE_LABEL = "현재 위치"
@@ -121,9 +130,17 @@ def fallback_place_label(latitude: float, longitude: float) -> str:
 
 
 def build_container(
-    config: AppConfig, *, scenarios_path: Path = DEFAULT_SCENARIOS_PATH
+    config: AppConfig,
+    *,
+    scenarios_path: Path = DEFAULT_SCENARIOS_PATH,
+    on_vapid_secrets: Callable[[list[str]], object] | None = None,
 ) -> AppContainer:
-    """Build the engine (``create_all`` runs inside), providers and services."""
+    """Build the engine (``create_all`` runs inside), providers and services.
+
+    ``on_vapid_secrets`` receives the VAPID private key strings when the key is
+    first loaded or created; ``create_app`` passes the RedactingFilter's
+    ``add_secrets`` so the key is redacted from logs (Req 18.7).
+    """
     engine = create_db_engine(config.database_url)
     repository = OutfitRepository(engine)
     vision_provider = build_vision_provider(config)
@@ -137,7 +154,7 @@ def build_container(
     location = LocationService(
         engine, LatLon(config.default_latitude, config.default_longitude)
     )
-    return AppContainer(
+    container = AppContainer(
         config=config,
         engine=engine,
         repository=repository,
@@ -152,6 +169,48 @@ def build_container(
         location=location,
         place_label=fallback_place_label,
     )
+    wire_automation(container, on_vapid_secrets=on_vapid_secrets)
+    return container
+
+
+def wire_automation(
+    container: AppContainer,
+    *,
+    on_vapid_secrets: Callable[[list[str]], object] | None = None,
+) -> None:
+    """Fill the Phase 2 fields from the flow A and B runtime builders (tasks 7.1)."""
+    config = container.config
+
+    gallery = build_gallery_runtime(config, container)
+    container.gallery_store = gallery.store
+    container.gallery_importer = gallery.importer
+    container.gallery_watcher = gallery.watcher
+    container.outfit_confirm = gallery.outfit_confirm
+
+    brief = build_brief_runtime(config, container, on_vapid_secrets=on_vapid_secrets)
+    container.place_label = brief.place_label
+    container.current_weather = brief.current_weather
+    container.notification_log = brief.notification_log
+    container.push_store = brief.push_store
+    container.vapid_keys = brief.vapid_keys
+    container.notifier = brief.notifier
+    container.daily_brief = brief.daily_brief
+    container.brief_runs = brief.runs
+    container.brief_scheduler = brief.brief_scheduler
+    if brief.forecast is not None:
+        container.closables.append(brief.forecast)
+
+    # Decision A8 (Req 10.7, 10.8): only Live mode reads the home weather from
+    # the brief location's Forecast ``current``. The brief's recommendations
+    # read ``container.today_weather`` on every call, so replacing it is safe.
+    if config.weather_provider == "open_meteo":
+        container.today_weather = TodayWeatherService(
+            config,
+            container.weather_provider,
+            container.scenario_store,
+            fallback=container.fixture_weather,
+            live_current=brief.live_current,
+        )
 
 
 # --- Dependency functions ---------------------------------------------------

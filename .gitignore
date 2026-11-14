@@ -1,6 +1,9 @@
 # Secrets
 .env
+.env.*
 !.env.example
+*.pem
+*.key
 
 # Local database
 data/weatherwear.db*
@@ -16,6 +19,7 @@ data/demo/photos/*
 # Python
 backend/.venv/
 .venv/
+venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -24,6 +28,9 @@ __pycache__/
 # Node / build
 node_modules/
 dist/
+build/
+.next/
+out/
 
 # OS
 .DS_Store

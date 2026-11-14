@@ -10,7 +10,8 @@ const outfit: Outfit = {
   captured_at: "2025-11-20T08:30:00+09:00",
   latitude: 37.5665,
   longitude: 126.978,
-  source: "demo_sidecar",
+  source: "exif",
+  metadata_synthetic: true,
   photo_url: "/api/outfits/81/photo",
   tags: {
     upper_type: "hoodie",

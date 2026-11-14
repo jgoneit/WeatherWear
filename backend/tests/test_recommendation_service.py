@@ -192,12 +192,23 @@ def test_new_feedback_changes_next_result_without_cache(tmp_path: Path) -> None:
     assert resp.items[0].outfit.effective_vote == "comfortable"
 
 
-def test_outfit_with_unknown_tags_still_listed(tmp_path: Path) -> None:
+def test_outfit_with_no_displayable_tags_still_listed(tmp_path: Path) -> None:
+    # Only the all-unknown + confidence 0.0 case is a non-outfit photo (Req 6.10).
+    no_display = ClothingTags(
+        upper_type="unknown", outer_type="none", lower_type="unknown", colors=[], layers_visible=0, confidence=0.4
+    )
     env = _Env(tmp_path)
-    env.add(9.0, tags=UNKNOWN_TAGS)
+    env.add(9.0, tags=no_display)
     item = env.run().items[0]
     assert "착장 태그 정보 없음" in item.explanation
     assert item.outfit.effective_vote is None
+
+
+def test_non_outfit_photo_still_listed_in_outfits(tmp_path: Path) -> None:
+    env = _Env(tmp_path)
+    non_outfit = env.add(9.0, tags=UNKNOWN_TAGS)
+    assert env.run().items == []
+    assert [r.id for r in env.repo.list_outfits()] == [non_outfit]
 
 
 # --- Real demo data (fixture mode) -------------------------------------------

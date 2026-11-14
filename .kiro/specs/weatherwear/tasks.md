@@ -451,6 +451,148 @@
 - [x] 18. Final checkpoint - 전체 테스트 통과 확인
   - 백엔드 pytest, 프론트엔드 vitest·typecheck·check:bundle이 외부 API 호출 없이 모두 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
+- [ ] 19. Phase 1 변경: Agent Platform, 내장 메타데이터, 실제 날씨 기록
+  - [x] 19.1 설정과 `.env.example` 갱신 (`backend/app/config.py`, `.env.example`, `backend/tests/test_config.py`)
+    - 사용자 결정으로 변수 이름 `GEMINI_API_KEY`는 그대로 두고 12개 변수 목록도 바꾸지 않는다. `.env.example`과 `RawSettings`의 설명을 "Google Cloud Agent Platform express mode API 키, Google AI Studio 키로는 동작하지 않음"으로 바꾼다
+    - 프로젝트 ID·위치 관련 변수를 추가하지 않는다. `GEMINI_MODEL` 기본값 `gemini-4-hydrogen`은 유지한다
+    - `.env.example` 설명 문구를 확인하는 테스트를 추가하거나 고친다(키 값은 빈 문자열)
+    - _Requirements: 16.1, 16.2, 16.3, 16.10_
+
+  - [x] 19.2 도메인·DB·API 스키마에 메타데이터 출처 추가 (`backend/app/domain.py`, `db.py`, `schemas.py`, `repository.py`)
+    - `MetadataSource = Literal["exif", "demo_sidecar"]`, `CaptureMetadata`(captured_at, latitude, longitude, synthetic, origin) 추가, `SidecarMetadata`의 captured_at·latitude·longitude를 선택 필드로 변경
+    - `outfits.source` CHECK를 `('demo_sidecar','exif')`로, `metadata_synthetic INTEGER NOT NULL DEFAULT 1` 컬럼 추가, `OutfitCreate`/`OutfitRecord`/`OutfitOut`에 `source`, `metadata_synthetic` 추가
+    - `PRAGMA user_version = 2`. 기동 시 기존 DB의 `user_version < 2`이면 파일(`-wal`, `-shm` 포함)을 `weatherwear.db.v1-backup-<UTC 시각>`으로 이름만 바꾸고 WARNING 로그 후 새로 만든다(삭제하지 않음)
+    - 단위 테스트 `test_old_schema_db_is_backed_up_and_recreated`, `test_outfit_source_check_allows_exif`, 기존 저장소·스키마 테스트의 `demo_sidecar` 고정값 수정
+    - _Requirements: 2.7, 2.15, 10.3, 10.4_
+
+  - [x] 19.3 내장 메타데이터 리더와 사이드카 파서 수정 (`backend/app/ingestion/metadata.py`, `sidecar.py`)
+    - 순수 함수 `read_embedded_metadata(data)`: UserComment JSON(Exif IFD 0x8769, 태그 0x9286, 8바이트 헤더 제거, date+time+utc_offset 또는 timezone) 1순위, 표준 EXIF(DateTimeOriginal+OffsetTimeOriginal, GPS 도·분·초, Ref 부호, GPSProcessingMethod `SYNTHETIC`) 2순위. 없으면 None, 무효하면 `MetadataError`(`METADATA_PARSE_ERROR`, `METADATA_MISSING_FIELD`, `METADATA_CAPTURED_AT_INVALID`, `METADATA_OUT_OF_RANGE`)
+    - `parse_sidecar_text(text, require_location=...)`: 내장 메타데이터가 유효하면 시각·위치 없이 `thermal_vote`만 허용. `SIDECAR_NOT_FOUND` 코드 제거
+    - 순수 함수 `resolve_capture_metadata(embedded, sidecar)`: design "Metadata_Reader" 절의 표대로 출처, source, 합성 여부, 시드 투표, 오류 코드 결정
+    - location·outfit·prompt 등 텍스트 필드는 읽지 않고 버린다
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.9, 2.11, 2.12, 2.13, 2.14, 2.15, 2.16, 2.17_
+
+  - [ ]* 19.4 내장 메타데이터 round-trip property test 작성 (`backend/tests/test_metadata_props.py`, `strategies.py`에 `capture_metadata()`, `exif_images()` 추가)
+    - **Property 3: 내장 메타데이터 round-trip**
+    - **Validates: Requirements 2.8, 2.2, 2.13, 2.14, 2.15**
+
+  - [ ]* 19.5 메타데이터 결함 보고 property test 작성 (`backend/tests/test_metadata_props.py`)
+    - **Property 4: 메타데이터 검증은 결함 종류를 정확히 보고하고 추가 필드는 무시한다**
+    - **Validates: Requirements 2.3, 2.4, 2.5, 2.9, 2.11**
+
+  - [ ]* 19.6 메타데이터 출처 우선순위 property test 작성 (`backend/tests/test_metadata_props.py`)
+    - **Property 34: 메타데이터 출처 우선순위**
+    - **Validates: Requirements 2.3, 2.7, 2.12, 2.15, 2.16**
+
+  - [x] 19.7 내장 메타데이터 단위 테스트 작성 (`backend/tests/test_metadata.py`)
+    - 영역 (g): `test_user_comment_json_parsed`(ex_img 형식의 고정 바이트), `test_standard_exif_jpeg_parsed`, `test_user_comment_preferred_over_standard_exif`, `test_sidecar_fallback_when_no_exif`, `test_sidecar_vote_only_with_exif`, `test_broken_sidecar_fails_even_with_exif`, `test_no_metadata_fails_metadata_not_found`, `test_timezone_used_when_utc_offset_missing`, `test_text_fields_not_stored`
+    - 테스트 이미지는 Pillow로 8×8 PNG/JPEG에 EXIF를 써서 만들고, `ex_img/` 파일에 의존하지 않는다
+    - _Requirements: 2.1, 2.3, 2.4, 2.5, 2.12, 2.13, 2.14, 2.16, 2.17, 17.4_
+
+  - [x] 19.8 수집 서비스가 내장 메타데이터를 쓰도록 연결 (`backend/app/ingestion/service.py`)
+    - 처리 5단계를 `read_embedded_metadata` → (사이드카 파일이 있으면) `parse_sidecar_text` → `resolve_capture_metadata`로 바꾸고, `OutfitCreate`에 `source='exif'`(사이드카 대체 시 `demo_sidecar`)와 `metadata_synthetic` 전달
+    - 사이드카가 없어도 내장 메타데이터가 유효하면 성공. 실패 코드는 `ScanError(stage="validation")`로 기존 형식 그대로 보고
+    - 기존 `test_ingestion.py`, `test_ingestion_service.py`, `test_sidecar.py`의 "사이드카 필수" 가정을 고치고 `test_source_is_exif_for_embedded_metadata`, `test_source_is_demo_sidecar_for_sidecar_fallback` 추가
+    - _Requirements: 1.6, 2.1, 2.6, 2.7, 2.10, 2.12, 2.16_
+
+  - [x] 19.9 GeminiVisionProvider를 Agent Platform express mode로 전환 (`backend/app/providers/vision/gemini.py`)
+    - `_build_client`: `genai.Client(enterprise=True, api_key=..., http_options=HttpOptions(timeout=30000, retry_options=HttpRetryOptions(attempts=1)))`, `project`/`location` 없음, `vertexai`와 함께 넘기지 않음
+    - 모델 ID가 `gemini-3`/`gemini-4`로 시작하면 `ThinkingConfig(thinking_level="LOW")` 추가
+    - 4xx(모델 미지원 포함)는 `VisionError("api_error")`, 로그에는 모델 ID와 HTTP 상태 코드만
+    - 프롬프트에 "인물·착장이 없으면 세 타입 unknown, confidence 0" 문장 추가. `strip_metadata()`로 UserComment·GPS를 포함한 EXIF 제거는 그대로 유지
+    - _Requirements: 3.2, 3.5, 3.6, 3.7, 3.10, 16.5, 16.10_
+
+  - [x] 19.10 Gemini express mode 단위 테스트 작성 (`backend/tests/test_vision_gemini.py`)
+    - `test_gemini_client_uses_agent_platform_express_mode`(`genai.Client` monkeypatch로 `enterprise=True`, `api_key`, `project`/`location` 없음 확인, 네트워크 없음), `test_gemini_thinking_level_low_for_gemini_3_and_4`, `test_gemini_model_unsupported_logs_status_only`(로그에 키 값 없음), `test_strip_metadata_removes_user_comment_and_gps`
+    - _Requirements: 3.2, 3.7, 3.10, 16.5, 16.10_
+
+  - [ ]* 19.11 Gemini 요청 내용 property test 갱신 (`backend/tests/test_vision_props.py`)
+    - **Property 8: Gemini 요청에는 메타데이터가 제거된 이미지와 프롬프트만 들어간다**
+    - **Validates: Requirements 3.7, 2.17**
+
+  - [x] 19.12 `scripts/check_gemini_model.py` 갱신
+    - 19.9의 `_build_client`로 express mode 클라이언트를 만들고, `models.get` 대신 짧은 텍스트 `generate_content` 1건으로 실제 호출 가능 여부 확인
+    - 성공 시 모델 ID와 "Agent Platform express mode 호출 성공", 실패 시 오류 종류·HTTP 상태 코드와 대체 모델 `gemini-3-flash-preview` 안내(종료 코드 1). 키가 없으면 호출하지 않음. 키 값과 응답 본문은 출력하지 않음. 문서 링크를 Agent Platform express mode 문서로 교체
+    - 기존 `test_demo_scripts.py`의 이 스크립트 관련 검사(키 없음 경로)를 맞춘다
+    - _Requirements: 3.2, 16.5, 17.10_
+
+  - [x] 19.13 착장이 아닌 사진을 추천 후보에서 제외 (`backend/app/recommendation/rule_based_v1.py`)
+    - 순수 함수 `is_non_outfit(tags)`(세 타입 `unknown` + confidence 0.0)를 유효 후보 조건에 추가. 후보 0건·fallback 판정에도 적용. 알고리즘 버전 문자열은 `rule_based_v1` 유지, 모듈 독스트링에 동작 변경 기록
+    - `UNKNOWN_TAGS` 후보가 결과에 나오길 기대하던 기존 테스트(`test_rule_based_v1.py`, `test_recommendation.py`, `test_recommendation_service.py`, `strategies.py`의 기본 태그)를 실제 태그로 바꾼다
+    - 단위 테스트 `test_non_outfit_photo_excluded_from_candidates`, `test_non_outfit_photo_does_not_prevent_fallback`, `test_non_outfit_photo_still_listed_in_outfits`
+    - _Requirements: 6.1, 6.3, 6.5, 6.10, 15.13_
+
+  - [ ]* 19.14 허용 오차 후보 선택 property test 갱신 (`backend/tests/test_recommendation_props.py`)
+    - **Property 17: 허용 오차 후보 선택이 참조 모델과 일치한다** (참조 모델에 Non_Outfit_Photo 제외 추가)
+    - **Validates: Requirements 6.1, 6.3, 6.5, 6.7, 6.9, 6.10**
+
+  - [x] 19.15 FixtureWeatherProvider가 기록 데이터 형식을 읽도록 수정 (`backend/app/providers/weather/fixture.py`)
+    - `weather.json`의 `recorded` 블록을 허용하고, 항목의 `observed_at`·null 필드를 그대로 반환. 항목이 없을 때의 `seasonal_temp` 대체와 `provider='fixture'`, `is_fixture=True`는 유지
+    - `test_weather_fixture.py`에 기록 형식 항목 조회와 null 보존 테스트 추가
+    - _Requirements: 4.6, 4.10, 4.15_
+
+  - [x] 19.16 사진 manifest를 174장으로 갱신 (`data/demo/photos.manifest.json`)
+    - `126_…`~`140_…` 15장을 포함한 174장 전체를 `rights_confirmed: true`, `license`는 "프로젝트 소유자가 ex_img/ 174장의 데모 사용 권한을 확인함"
+    - 이후 새로 생기는 `ex_img/` 파일은 `rights_confirmed: false`로 두고 사용자에게 확인한다
+    - _Requirements: 15.2, 15.3_
+
+  - [ ] 19.17 사진 복사 스크립트 수정 후 실행 (`scripts/prepare_demo_photos.py`)
+    - manifest의 174장을 `shutil.copyfile`로 바이트 그대로 복사(이전 159장 복사본 덮어쓰기), 사이드카 템플릿 생성 제거, 복사 후 각 사진을 `read_embedded_metadata`로 확인하고 실패하면 종료 코드 1
+    - 스크립트를 실행해 `data/demo/photos/`를 174장(약 325MB)으로 채운다
+    - _Requirements: 2.1, 15.2, 15.3_
+
+  - [ ] 19.18 `clothing_tags.json` 가져오기 스크립트 작성 후 실행 (`scripts/import_clothing_tags.py`)
+    - design "의류 태그 fixture" 절대로 파일 이름으로 연결, `ClothingTags` 검증, 키는 `data/demo/photos` 파일 바이트 전체의 SHA-256, 원래 `sha256`은 `vision.sources.json`의 `source_sha256`으로 기록. 누락·검증 실패 시 파일을 쓰지 않고 종료 코드 1
+    - 실행해 `data/demo/fixtures/vision.json`을 174개 키로 교체. `build_fixtures.py`의 태그 작성 경로는 이 스크립트를 쓰도록 바꾸거나 제거
+    - _Requirements: 3.3, 15.8, 15.12, 15.13_
+
+  - [ ] 19.19 날씨 기록 스크립트 작성 후 실행 (`scripts/record_fixture_weather.py`)
+    - 각 사진의 내장 메타데이터로 `(날짜, 좌표)` 묶음마다 Archive API 요청 1건(OpenMeteoWeatherProvider와 같은 파라미터), `map_archive_response`로 변환, 실패 시 값을 지어내지 않고 종료 코드 1, 성공 시 `recorded` 블록과 함께 원자적 교체
+    - 순수 부분(묶기, 항목 생성)에 대한 단위 테스트를 respx로 작성(네트워크 없음). pytest는 스크립트 본체를 실행하지 않는다
+    - 개발자 환경에서 한 번 실행해 `data/demo/fixtures/weather.json`을 174건의 기록값으로 교체한다(네트워크 필요)
+    - _Requirements: 4.11, 4.12, 4.13, 4.14, 4.15_
+
+  - [ ] 19.20 시나리오 선택·검사와 시드 투표 구현 후 실행 (`backend/app/demo_scenarios.py`, `scripts/select_scenarios.py`)
+    - 순수 함수 `choose_scenarios(T)`, `check_scenarios(scenarios, T)`, `assign_seed_votes(...)`를 design의 S1~S4, V1~V4 규칙대로 구현. Non_Outfit_Photo는 T와 투표에서 제외
+    - 스크립트: `scenarios.json` 기온(소수 첫째 자리), `weather.json`의 `today_default`(S1과 같은 기온), 시드 투표 사이드카(기존 `*.metadata.json` 삭제 후 투표 있는 사진에만 작성), `data/demo/scenario_expectations.json` 작성 후 `check_scenarios`. 위반 시 종료 코드 1. `--check`는 쓰기 없이 검사만
+    - 실행해 데이터 파일을 갱신한다
+    - _Requirements: 2.6, 5.2, 15.9, 15.10, 15.11_
+
+  - [ ]* 19.21 시나리오 선택 property test 작성 (`backend/tests/test_demo_scenarios_props.py`, `strategies.py`에 `recorded_temps()` 추가)
+    - **Property 35: 시나리오 선택은 규칙 S1~S4를 만족한다**
+    - **Validates: Requirements 15.9, 15.10, 15.11**
+
+  - [ ] 19.22 플레이스홀더 스크립트에 내장 메타데이터 추가 (`scripts/make_placeholders.py`)
+    - 생성 PNG마다 UserComment JSON(`synthetic: true`, 서로 다른 시각, 서울 좌표)을 EXIF로 기록하고, 사이드카 대신 `weather.json` 항목(계절 공식 값, `recorded.source="placeholder"`)과 vision fixture를 만든다. 확인된 사진이 0장일 때만 쓰는 경로다
+    - _Requirements: 15.7_
+
+  - [ ] 19.23 데모 데이터·통합 테스트 기대값 갱신 (`backend/tests/test_demo_data.py`, `test_integration.py`, `test_demo_scripts.py`)
+    - `test_demo_data_layout`: 174장, 모든 사진의 내장 메타데이터 읽기, vision 키 = 현재 해시이고 태그가 `clothing_tags.json`과 같음, `weather.json`의 `recorded` 블록과 174건, 사이드카는 `thermal_vote`만 담고 Non_Outfit_Photo에는 없음
+    - `test_demo_scenarios_satisfy_rules`(실제 데이터에 `check_scenarios`), `test_demo_scenarios_cover_cases`를 S1~S4 조건 + `scenario_expectations.json` 비교로 교체(고정값 `081`, `076`, 9.0/−12.0/30.0/38.0 제거), `test_five_minute_demo_walkthrough`와 `test_fixture_mode_end_to_end_deterministic`의 기대값도 맞춘다
+    - 사진이 없는 환경에서는 기존처럼 skip
+    - _Requirements: 15.1, 15.2, 15.9, 15.10, 15.11, 15.12, 17.2, 17.5_
+
+  - [x] 19.24 프론트엔드 라벨과 타입 갱신 (`frontend/src/api/schema.d.ts`, `src/lib/format.ts`, `src/lib/strings.ts`, `src/pages/OutfitDetailPage.tsx`, `scripts/check-bundle.mjs`)
+    - `scripts/export_openapi.py` + `openapi-typescript`로 `schema.d.ts` 재생성(`source: "exif" | "demo_sidecar"`, `metadata_synthetic`)
+    - `provenance().meta = metadata_synthetic`, `metadataSourceLabel()` 추가, 상세 화면에 "촬영 정보: 사진 내장 메타데이터/사이드카 파일" 표시, 문구는 `strings.ts`에 추가
+    - `check-bundle.mjs`: `GEMINI` 문자열 검사에 더해, 환경 변수나 루트 `.env`의 `GEMINI_API_KEY` 값(8자 이상)이 `dist/`에 있으면 실패(값은 출력하지 않음)
+    - `format.unit.test.ts` 등 기존 테스트의 `source: "demo_sidecar"` 기반 라벨 기대값을 고친다
+    - _Requirements: 10.7, 12.5, 15.4, 16.6_
+
+  - [ ]* 19.25 fixture 라벨 property test 갱신 (`frontend/src/lib/format.test.ts`)
+    - **Property 33: fixture/가상 데이터 라벨은 fixture 출처에만 붙는다**
+    - **Validates: Requirements 15.4, 4.9, 12.5**
+
+  - [ ] 19.26 README 갱신 (`README.md`)
+    - API 키 절: `GEMINI_API_KEY`에 Agent Platform express mode 키(express mode 콘솔 APIs & Services > Credentials), AI Studio 키는 동작하지 않음, 프로젝트·위치 불필요
+    - `GEMINI_MODEL` 기본값 `gemini-4-hydrogen`이 2026-11-14 기준 express mode 지원 모델 표에 없다는 점, `check_gemini_model.py`로 확인하고 실패하면 `gemini-3-flash-preview`를 쓰라는 안내와 출처 URL
+    - 명시 사항 교체: 촬영 시각·위치는 사진 내장 합성 EXIF(UserComment JSON, JPG는 표준 EXIF), 사이드카는 대체 수단과 시드 투표, Gemini 전송 전 EXIF·위치 제거, fixture 날씨는 Open-Meteo 기록 재분석값(기록 날짜는 `weather.json`), Non_Outfit_Photo는 추천에서 제외, rule_based_v1 후보 선택 변경, 사진 174장
+    - 데모 데이터 준비 명령 순서(prepare → import_clothing_tags → record_fixture_weather(네트워크) → select_scenarios), 5분 데모 절차의 시나리오 기온을 `scenarios.json` 값으로 갱신, Phase 2 목록에서 EXIF 항목 제거(실제 갤러리 접근은 유지), 테스트 영역 (g) 추가
+    - _Requirements: 16.1, 17.1, 17.2, 17.3, 17.4, 17.8, 17.9, 17.10_
+
+- [ ] 20. Final checkpoint - Phase 1 변경 확인
+  - 백엔드 `cd backend && python -m pytest -q`, 프론트엔드 `npx vitest --run`, `npm run typecheck`, `npm run check:bundle`, `scripts/select_scenarios.py --check`가 외부 API 호출 없이 모두 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
+
 ## Notes
 
 - `*`가 붙은 sub-task는 선택 항목이며 빠른 MVP를 위해 건너뛸 수 있다. 대부분의 property test(Hypothesis, fast-check)와 UI 테스트가 여기에 속한다.
@@ -460,6 +602,9 @@
 - 4.3의 Gemini 모델 ID 확인은 첫 live Vision 호출 전에 끝내야 한다. 확인 스크립트는 API 키가 있을 때 사용자가 수동으로 실행하며 pytest에 포함하지 않는다.
 - 다음 항목은 코딩 작업이 아니어서 태스크에 넣지 않았다: 360/390/430px 뷰포트 가로 스크롤 수동 확인(Req 11.6), `strings.ts` 한국어 문구 검수(Req 11.5), 발표 전 5분 데모 리허설.
 - 각 태스크는 추적을 위해 requirements.md의 세부 기준 번호를 참조한다. Property 번호는 design.md의 Correctness Properties 절을 따른다.
+- 19번은 Phase 1 구현 후 사용자 결정(Agent Platform express mode, 사진 내장 메타데이터, Open-Meteo 기록 날씨, `ex_img/` 174장과 `clothing_tags.json`)을 반영한다. 사용자 결정에 따라 키 변수 이름 `GEMINI_API_KEY`는 바꾸지 않는다.
+- 19.19는 Open-Meteo 네트워크가 필요한 유일한 작업이다. 테스트는 계속 외부 연결 없이 돈다.
+- 19.2의 DB 버전 처리로 기존 `data/weatherwear.db`는 백업 이름으로 옮겨지고 새로 만들어진다. 이전 DB의 사용자 피드백은 백업 파일에 남는다.
 
 ## Task Dependency Graph
 
@@ -479,7 +624,15 @@
     { "id": 10, "tasks": ["9.9", "10.6", "10.8"] },
     { "id": 11, "tasks": ["10.9", "17.1", "17.2"] },
     { "id": 12, "tasks": ["17.3"] },
-    { "id": 13, "tasks": ["17.4"] }
+    { "id": 13, "tasks": ["17.4"] },
+    { "id": 14, "tasks": ["19.1", "19.2", "19.9", "19.13", "19.15", "19.16"] },
+    { "id": 15, "tasks": ["19.3", "19.10", "19.12", "19.14", "19.24"] },
+    { "id": 16, "tasks": ["19.4", "19.7", "19.8", "19.11", "19.22", "19.25"] },
+    { "id": 17, "tasks": ["19.5", "19.17"] },
+    { "id": 18, "tasks": ["19.6", "19.18", "19.19"] },
+    { "id": 19, "tasks": ["19.20"] },
+    { "id": 20, "tasks": ["19.21", "19.23"] },
+    { "id": 21, "tasks": ["19.26"] }
   ]
 }
 ```

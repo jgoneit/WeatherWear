@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import logging
+import re
+import sqlite3
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -14,6 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.db import (
+    SCHEMA_VERSION,
     Feedback,
     Outfit,
     WeatherSnapshot,
@@ -154,6 +158,72 @@ def test_check_constraints(engine, model: str, field: str, bad: str) -> None:
                 row = make_outfit(sha="c" * 64)
             setattr(row, field, bad)
             session.add(row)
+
+
+def test_outfit_source_check_allows_exif(engine) -> None:  # Req 2.7, 2.15
+    exif_id = add_outfit(engine, sha="d" * 64, source="exif", metadata_synthetic=False)
+    sidecar_id = add_outfit(engine, sha="e" * 64)
+    with Session(engine) as session:
+        exif_row = session.get(Outfit, exif_id)
+        sidecar_row = session.get(Outfit, sidecar_id)
+    assert (exif_row.source, exif_row.metadata_synthetic) == ("exif", False)
+    assert (sidecar_row.source, sidecar_row.metadata_synthetic) == ("demo_sidecar", True)
+    with engine.connect() as conn:  # column default for rows inserted without the flag
+        conn.execute(text(
+            "INSERT INTO outfits (sha256, file_name, captured_at, captured_at_utc, latitude, longitude,"
+            " source, upper_type, outer_type, lower_type, colors_json, layers_visible,"
+            " vision_confidence, vision_provider, created_at) VALUES"
+            " (:sha, 'x.png', :t, :t, 0, 0, 'exif', 'a', 'b', 'c', '[]', 0, 0.5, 'fixture', :t)"
+        ), {"sha": "f" * 64, "t": NOW})
+        assert conn.execute(text(
+            "SELECT metadata_synthetic FROM outfits WHERE sha256 = :sha"), {"sha": "f" * 64}
+        ).scalar() == 1
+        conn.rollback()
+
+
+def test_new_db_has_schema_version(engine) -> None:
+    with engine.connect() as conn:
+        assert conn.execute(text("PRAGMA user_version")).scalar() == SCHEMA_VERSION == 2
+
+
+def test_old_schema_db_is_backed_up_and_recreated(tmp_path: Path, caplog) -> None:
+    db_path = tmp_path / "weatherwear.db"
+    old = sqlite3.connect(db_path)
+    old.execute("CREATE TABLE outfits (id INTEGER PRIMARY KEY, source TEXT CHECK (source IN ('demo_sidecar')))")
+    old.execute("INSERT INTO outfits (source) VALUES ('demo_sidecar')")
+    old.commit()
+    old.close()
+    # Leftover side files must move with the main file.
+    (tmp_path / "weatherwear.db-wal").touch(exist_ok=True)
+    (tmp_path / "weatherwear.db-shm").touch(exist_ok=True)
+
+    with caplog.at_level(logging.WARNING, logger="app.db"):
+        eng = create_db_engine(f"sqlite:///{db_path}")
+    try:
+        backups = sorted(p.name for p in tmp_path.iterdir() if ".v1-backup-" in p.name)
+        assert len(backups) == 3
+        main = next(b for b in backups if not b.endswith(("-wal", "-shm")))
+        assert re.fullmatch(r"weatherwear\.db\.v1-backup-\d{14}", main)
+        assert {main + "-wal", main + "-shm"} <= set(backups)
+        backup = sqlite3.connect(tmp_path / main)  # old data kept, not deleted
+        assert backup.execute("SELECT COUNT(*) FROM outfits").fetchone()[0] == 1
+        backup.close()
+        assert any(r.levelno == logging.WARNING and main in r.getMessage() for r in caplog.records)
+
+        add_outfit(eng, sha="9" * 64, source="exif", metadata_synthetic=False)  # new schema
+        with eng.connect() as conn:
+            assert conn.execute(text("PRAGMA user_version")).scalar() == SCHEMA_VERSION
+    finally:
+        eng.dispose()
+
+    # A current-version file is reused as is.
+    eng = create_db_engine(f"sqlite:///{db_path}")
+    try:
+        with Session(eng) as session:
+            assert len(session.exec(select(Outfit)).all()) == 1
+        assert sum(".v1-backup-" in p.name for p in tmp_path.iterdir()) == 3
+    finally:
+        eng.dispose()
 
 
 def test_session_scope_rolls_back_whole_bundle(engine) -> None:  # Req 1.10, 2.6

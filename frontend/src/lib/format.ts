@@ -111,7 +111,7 @@ export interface Provenance {
   tags: boolean;
   /** 날씨에 "fixture" 배지를 붙일지 (weather.is_fixture가 true일 때). */
   weather: boolean;
-  /** 촬영 시각·위치에 "가상 데이터" 라벨을 붙일지 (source가 demo_sidecar일 때). */
+  /** 촬영 시각·위치에 "가상 데이터" 라벨을 붙일지 (metadata_synthetic이 true일 때). */
   meta: boolean;
 }
 
@@ -120,13 +120,20 @@ export interface Provenance {
  * 날씨가 없으면 날씨 라벨은 false다.
  */
 export function provenance(
-  outfit: Pick<Outfit, "vision_provider" | "source"> & {
+  outfit: Pick<Outfit, "vision_provider" | "metadata_synthetic"> & {
     weather: Pick<NonNullable<Outfit["weather"]>, "is_fixture"> | null;
   },
 ): Provenance {
   return {
     tags: outfit.vision_provider === "fixture",
     weather: outfit.weather?.is_fixture === true,
-    meta: outfit.source === "demo_sidecar",
+    meta: outfit.metadata_synthetic === true,
   };
+}
+
+/** 촬영 시각·위치 출처 표기 (Req 12.5). */
+export function metadataSourceLabel(
+  source: Outfit["source"],
+): "사진 내장 메타데이터" | "사이드카 파일" {
+  return source === "exif" ? STRINGS.detail.metadataSourceLabel.exif : STRINGS.detail.metadataSourceLabel.demo_sidecar;
 }

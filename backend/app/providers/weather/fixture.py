@@ -10,8 +10,14 @@ Lookup order for ``get_weather(at, latitude, longitude)``:
    back to when the Archive API has no value for today (Req 4.7, 5.8).
 3. ``seasonal_temp(month, hour)``: a fixed formula with no randomness.
 
-Every result has ``provider='fixture'``, ``is_fixture=True`` and
-``observed_at`` = ``at`` in ``APP_TIMEZONE`` truncated to the hour.
+Every result has ``provider='fixture'`` and ``is_fixture=True``, even when the
+entry was recorded from Open-Meteo (Req 4.15). ``observed_at`` is the entry's
+recorded ``observed_at`` when present (recorded format written by
+``scripts/record_fixture_weather.py``); otherwise ``at`` in ``APP_TIMEZONE``
+truncated to the hour. Null fields in an entry are returned as null.
+
+The file may carry a ``recorded`` provenance block; it is kept for display only
+and does not change lookups. Files without it (older format) still load.
 """
 
 from __future__ import annotations
@@ -76,24 +82,42 @@ class _WeatherValues(BaseModel):
     weather_code: int | None = None
 
 
-class _FixtureEntry(_WeatherValues):
+class _RecordedValues(_WeatherValues):
+    """An entry's weather values plus the recorded observation hour, if any."""
+
+    observed_at: AwareDatetime | None = None
+
+
+class _FixtureEntry(_RecordedValues):
     captured_at: AwareDatetime
     latitude: float
     longitude: float
 
 
-def _load_fixture_file(path: Path) -> tuple[dict[WeatherKey, _WeatherValues], _WeatherValues | None]:
-    """Read weather.json. A missing or broken file yields no entries (seasonal only)."""
+_FixtureFile = tuple[dict[WeatherKey, _RecordedValues], _WeatherValues | None, dict | None]
+
+
+def _load_fixture_file(path: Path) -> _FixtureFile:
+    """Read weather.json. A missing or broken file yields no entries (seasonal only).
+
+    Accepts both the recorded format (``recorded`` provenance block, entries with
+    ``file`` and ``observed_at``) and the older format without them.
+    """
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         logger.warning("Weather fixture file could not be read (%s): %s", path.name, type(exc).__name__)
-        return {}, None
+        return {}, None, None
     if not isinstance(payload, dict):
         logger.warning("Weather fixture file %s is not a JSON object", path.name)
-        return {}, None
+        return {}, None, None
 
-    entries: dict[WeatherKey, _WeatherValues] = {}
+    recorded = payload.get("recorded")
+    if recorded is not None and not isinstance(recorded, dict):
+        logger.warning("Ignoring weather fixture 'recorded' block that is not an object")
+        recorded = None
+
+    entries: dict[WeatherKey, _RecordedValues] = {}
     raw_entries = payload.get("entries", [])
     for index, raw in enumerate(raw_entries if isinstance(raw_entries, list) else []):
         try:
@@ -105,7 +129,7 @@ def _load_fixture_file(path: Path) -> tuple[dict[WeatherKey, _WeatherValues], _W
         if key in entries:
             logger.warning("Skipping duplicate weather fixture entry #%d", index)
             continue
-        entries[key] = _WeatherValues.model_validate(entry.model_dump())
+        entries[key] = _RecordedValues.model_validate(entry.model_dump())
 
     today_default: _WeatherValues | None = None
     raw_today = payload.get("today_default")
@@ -114,7 +138,7 @@ def _load_fixture_file(path: Path) -> tuple[dict[WeatherKey, _WeatherValues], _W
             today_default = _WeatherValues.model_validate(raw_today)
         except ValidationError:
             logger.warning("Ignoring invalid weather fixture today_default")
-    return entries, today_default
+    return entries, today_default, recorded
 
 
 class FixtureWeatherProvider:
@@ -130,11 +154,16 @@ class FixtureWeatherProvider:
     ) -> None:
         self._tz = tz or ZoneInfo("Asia/Seoul")
         self._now = now or (lambda: datetime.now(UTC))
-        self._entries, self._today_default = _load_fixture_file(Path(path))
+        self._entries, self._today_default, self._recorded = _load_fixture_file(Path(path))
 
     @property
     def entry_count(self) -> int:
         return len(self._entries)
+
+    @property
+    def recorded(self) -> dict | None:
+        """Provenance block of a recorded fixture file (source, endpoint, ...), if present."""
+        return dict(self._recorded) if self._recorded is not None else None
 
     def _today(self) -> date:
         return self._now().astimezone(self._tz).date()
@@ -145,7 +174,11 @@ class FixtureWeatherProvider:
         local = at.astimezone(self._tz)
         observed_at = local.replace(minute=0, second=0, microsecond=0)
 
-        values = self._entries.get(fixture_key(at, latitude, longitude))
+        values: _WeatherValues | None = self._entries.get(fixture_key(at, latitude, longitude))
+        if isinstance(values, _RecordedValues) and values.observed_at is not None:
+            # Recorded entries keep their own observation hour (same instant,
+            # expressed in APP_TIMEZONE).
+            observed_at = values.observed_at.astimezone(self._tz)
         if values is None and self._today_default is not None and local.date() == self._today():
             values = self._today_default
         if values is None:

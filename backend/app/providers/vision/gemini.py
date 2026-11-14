@@ -1,4 +1,13 @@
-"""GeminiVisionProvider (design.md §4, Req 3.2, 3.4, 3.5, 3.6, 3.7).
+"""GeminiVisionProvider (design.md §4, Req 3.2, 3.4, 3.5, 3.6, 3.7, 3.10, 16.10).
+
+Calls Gemini through the Google Cloud Agent Platform API (formerly Vertex AI)
+in express mode: ``genai.Client(enterprise=True, api_key=...)`` with no
+project or location. ``GEMINI_API_KEY`` holds an express-mode key; a Google AI
+Studio key does not work here.
+
+``GEMINI_MODEL`` may be a short ID (``gemini-3-flash-preview``) or a full
+resource path (``projects/<n>/locations/global/publishers/google/models/<id>``).
+A full path pins the client to the global endpoint; see ``build_client``.
 
 One ``generate_content`` call per image with exactly two parts: the image
 bytes with EXIF and every other metadata block removed, and the fixed
@@ -46,7 +55,7 @@ PROMPT = (
     "- colors: 착장의 주요 색상을 영어 소문자로 최대 5개.\n"
     "- layers_visible: 겉으로 보이는 옷 겹 수(0~5 정수).\n"
     "- confidence: 분석 전체에 대한 확신도(0.0~1.0).\n"
-    "사진에 사람이 없거나 착장을 볼 수 없으면 세 종류 필드를 모두 'unknown', colors는 빈 목록, "
+    "사진에 인물이나 착장이 없거나 착장을 볼 수 없으면 세 종류 필드를 모두 'unknown', colors는 빈 목록, "
     "layers_visible은 0, confidence는 0.0으로 답하라."
 )
 
@@ -116,17 +125,63 @@ def strip_metadata(image: bytes, mime_type: str) -> bytes:
     return out.getvalue()
 
 
-def _build_client(api_key: SecretStr) -> Any:
+GLOBAL_BASE_URL = "https://aiplatform.googleapis.com/"
+GLOBAL_API_VERSION = "v1"
+
+
+def is_resource_path(model: str) -> bool:
+    """True for a full model resource path such as
+    ``projects/<n>/locations/global/publishers/google/models/gemini-4-hydrogen``."""
+    return model.startswith("projects/")
+
+
+def model_id(model: str) -> str:
+    """Short model ID: the last path segment of a resource path, else ``model``."""
+    return model.rstrip("/").rsplit("/", 1)[-1]
+
+
+def build_client(api_key: SecretStr | str, model: str | None = None) -> Any:
+    """Agent Platform (formerly Vertex AI) express-mode client (Req 3.2, 16.10).
+
+    ``enterprise=True`` + ``api_key`` puts the key in the ``x-goog-api-key``
+    header. No ``project``/``location``/credentials are passed, and the legacy
+    ``vertexai`` flag is not passed alongside ``enterprise`` (same flag; the
+    SDK raises ``ValueError`` when the two differ).
+
+    When ``model`` is a full resource path (``projects/...``), the client is
+    pinned to the global endpoint ``https://aiplatform.googleapis.com/`` with
+    ``api_version="v1"`` and the caller passes the full path as the model.
+    Some models (e.g. ``gemini-4-hydrogen``) are served only from ``global``;
+    a short ID can resolve to a regional location and return 404.
+    Short IDs (e.g. ``gemini-3-flash-preview``) keep the SDK defaults.
+
+    Shared by ``GeminiVisionProvider`` and ``scripts/check_gemini_model.py``.
+    """
     from google import genai  # noqa: PLC0415  (fixture mode never imports the SDK)
     from google.genai import types  # noqa: PLC0415
 
-    return genai.Client(
-        api_key=api_key.get_secret_value(),
-        http_options=types.HttpOptions(
-            timeout=int(TIMEOUT_SECONDS * 1000),  # milliseconds
-            retry_options=types.HttpRetryOptions(attempts=1),  # 1 attempt = no retries
-        ),
-    )
+    key = api_key.get_secret_value() if isinstance(api_key, SecretStr) else api_key
+    http_kwargs: dict[str, Any] = {
+        "timeout": int(TIMEOUT_SECONDS * 1000),  # milliseconds
+        "retry_options": types.HttpRetryOptions(attempts=1),  # 1 attempt = no retries
+    }
+    if model is not None and is_resource_path(model):
+        http_kwargs["base_url"] = GLOBAL_BASE_URL
+        http_kwargs["api_version"] = GLOBAL_API_VERSION
+    return genai.Client(enterprise=True, api_key=key, http_options=types.HttpOptions(**http_kwargs))
+
+
+_build_client = build_client  # backward-compatible name
+
+
+def uses_thinking_level(model: str) -> bool:
+    """Gemini 3/4 models get ``thinking_level=LOW`` so a call fits in 30 s.
+
+    Gemini 4 Hydrogen defaults to ``HIGH`` and rejects ``MINIMAL`` with 400.
+    Gemini 2.5 models use ``thinking_budget`` instead, so they get nothing.
+    A full resource path is judged by its last segment (the model ID).
+    """
+    return model_id(model).startswith(("gemini-3", "gemini-4"))
 
 
 def _is_timeout(exc: BaseException) -> bool:
@@ -154,7 +209,7 @@ class GeminiVisionProvider:
         self._timeout = timeout_seconds
         key = api_key if isinstance(api_key, SecretStr) else SecretStr(api_key)
         # ``client`` lets tests inject a fake with ``models.generate_content``.
-        self._client = client if client is not None else _build_client(key)
+        self._client = client if client is not None else build_client(key, model)
 
     def __repr__(self) -> str:
         return f"GeminiVisionProvider(model={self.model!r})"
@@ -164,14 +219,17 @@ class GeminiVisionProvider:
         from google.genai import types  # noqa: PLC0415
 
         clean = strip_metadata(image, mime_type)
+        config: dict[str, Any] = {
+            "response_mime_type": "application/json",
+            "response_schema": RESPONSE_SCHEMA,  # derived from ClothingTags
+            "temperature": 0,  # ignored by Gemini 4 Hydrogen, kept for other models
+        }
+        if uses_thinking_level(self.model):
+            config["thinking_config"] = types.ThinkingConfig(thinking_level="LOW")
         return {
             "model": self.model,
             "contents": [types.Part.from_bytes(data=clean, mime_type=mime_type), PROMPT],
-            "config": types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=RESPONSE_SCHEMA,  # derived from ClothingTags
-                temperature=0,
-            ),
+            "config": types.GenerateContentConfig(**config),
         }
 
     def analyze(self, image: bytes, mime_type: str, sha256: str | None = None) -> ClothingTags:
@@ -191,9 +249,15 @@ class GeminiVisionProvider:
                 logger.warning("Gemini 분석 시간 초과 (%.0f초)", self._timeout)
                 raise VisionError("timeout", f"Gemini 응답이 {self._timeout:.0f}초 안에 오지 않았습니다.") from None
             status = getattr(exc, "code", None)
-            status_text = f", status={status}" if isinstance(status, int) else ""
-            logger.warning("Gemini API 오류: %s%s", type(exc).__name__, status_text)
-            raise VisionError("api_error", f"Gemini API 오류 ({type(exc).__name__}{status_text})") from None
+            if isinstance(status, int) and not isinstance(status, bool):
+                # HTTP error from Agent Platform (4xx incl. unsupported model,
+                # or 5xx). Log only the model ID and status code (Req 3.10).
+                logger.warning("Gemini API 오류: model=%s, status=%d", self.model, status)
+                raise VisionError("api_error", f"Gemini API 오류 (HTTP {status})") from None
+            # Transport or unexpected error: no status code; the class name
+            # carries no request data, the message text is never logged.
+            logger.warning("Gemini API 오류: model=%s, error=%s", self.model, type(exc).__name__)
+            raise VisionError("api_error", f"Gemini API 오류 ({type(exc).__name__})") from None
         finally:
             # Do not wait for a hung call; the worker thread ends when the SDK
             # timeout fires.

@@ -172,4 +172,15 @@ def test_openapi_marks_nullable_fields_required() -> None:
     assert client.get("/outfit").json()["weather"] is None
     schema = client.get("/openapi.json").json()["components"]["schemas"]
     outfit_schema = next(v for k, v in schema.items() if k.startswith("OutfitOut"))
-    assert {"weather", "effective_vote", "captured_at"} <= set(outfit_schema["required"])
+    assert {"weather", "effective_vote", "captured_at", "source", "metadata_synthetic"} <= set(
+        outfit_schema["required"]
+    )
+    assert set(outfit_schema["properties"]["source"]["enum"]) == {"exif", "demo_sidecar"}
+
+
+def test_outfit_out_metadata_fields() -> None:  # Req 2.7, 2.15
+    data = json.loads(make_outfit().model_copy(update={"source": "exif", "metadata_synthetic": False}).model_dump_json())
+    assert data["source"] == "exif" and data["metadata_synthetic"] is False
+    assert json.loads(make_outfit().model_dump_json())["metadata_synthetic"] is True
+    with pytest.raises(ValidationError):
+        OutfitOut(**{**make_outfit().model_dump(), "source": "upload"})

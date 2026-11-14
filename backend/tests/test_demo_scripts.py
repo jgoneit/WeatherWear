@@ -110,27 +110,47 @@ def test_placeholders_refuse_when_photos_confirmed(layout, tmp_path):
     assert not dest.exists()
 
 
-def test_placeholders_generate_eight_valid_photos(tmp_path):
+@pytest.mark.parametrize("confirmed", [False, True])
+def test_placeholders_generate_eight_photos_with_embedded_metadata(tmp_path, confirmed):
+    from app.ingestion.metadata import read_embedded_metadata
+    from app.providers.weather.fixture import FixtureWeatherProvider
+
     manifest = tmp_path / "manifest.json"
-    manifest.write_text(json.dumps({"photos": [_entry("126_unconfirmed.png", False)]}), encoding="utf-8")
-    dest, vision = tmp_path / "photos", tmp_path / "fixtures" / "vision.json"
-    args = ["--manifest", str(manifest), "--dest", str(dest), "--vision-fixture", str(vision)]
+    manifest.write_text(json.dumps({"photos": [_entry("126_x.png", confirmed)]}), encoding="utf-8")
+    dest = tmp_path / "photos"
+    vision, weather = tmp_path / "fixtures" / "vision.json", tmp_path / "fixtures" / "weather.json"
+    args = ["--manifest", str(manifest), "--dest", str(dest), "--vision-fixture", str(vision),
+            "--weather-fixture", str(weather)] + (["--force"] if confirmed else [])
 
     assert placeholders_mod.main(args) == 0
     pngs = sorted(dest.glob("*.png"))
     first_bytes = [p.read_bytes() for p in pngs]
+    first_weather = weather.read_text(encoding="utf-8")
     assert placeholders_mod.main(args) == 0  # deterministic rerun
 
     assert len(pngs) == 8
     assert [p.read_bytes() for p in pngs] == first_bytes
+    assert weather.read_text(encoding="utf-8") == first_weather
+    assert not list(dest.glob("*.metadata.json"))
     fixture = json.loads(vision.read_text(encoding="utf-8"))
     assert set(fixture) == {hashlib.sha256(b).hexdigest() for b in first_bytes}
+
+    weather_data = json.loads(first_weather)
+    assert weather_data["recorded"]["source"] == "placeholder"
+    assert len(weather_data["entries"]) == 8
+    provider = FixtureWeatherProvider(weather)
+    assert provider.entry_count == 8
     captured = set()
-    for png in pngs:
+    for png, data, entry in zip(pngs, first_bytes, weather_data["entries"], strict=True):
         with Image.open(png) as image:
             assert image.format == "PNG" and image.size == (512, 640)
-        sidecar = json.loads(png.with_name(png.stem + ".metadata.json").read_text(encoding="utf-8"))
-        assert sidecar["captured_at"].endswith("+09:00")
-        assert sidecar.get("thermal_vote") in {None, "cold", "comfortable", "hot"}
-        captured.add(sidecar["captured_at"])
+        meta = read_embedded_metadata(data)
+        assert meta is not None and meta.origin == "user_comment"
+        assert meta.synthetic is True
+        assert meta.captured_at.utcoffset().total_seconds() == 9 * 3600
+        assert (meta.latitude, meta.longitude) == (37.5665, 126.978)
+        assert entry["file"] == png.name
+        reading = provider.get_weather(meta.captured_at, meta.latitude, meta.longitude)
+        assert reading.actual_temperature_c == entry["actual_temperature_c"]
+        captured.add(meta.captured_at)
     assert len(captured) == 8

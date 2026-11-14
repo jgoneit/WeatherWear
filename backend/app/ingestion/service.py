@@ -10,7 +10,9 @@ Per-file pipeline. The first failing step stops the file, records one
    failed in this scan is not in the set, so a later file is processed again;
    this is also why a rescan retries failed files (Req 1.7).
 4. ``check_image``: Pillow decode + extension/format match (Req 1.8)
-5. sidecar read and validation (Req 2.1, 2.10)
+5. capture metadata: embedded EXIF (UserComment JSON, then standard EXIF),
+   then the optional sidecar, combined by ``resolve_capture_metadata``
+   (Req 2.1, 2.10, 2.12, 2.16). Failures use ``METADATA_*``/``SIDECAR_*`` codes.
 6. ``vision.analyze`` exactly once, no retry (Req 3.1, 3.5)
 7. ``weather.get_weather`` (Req 4.1; Open-Meteo falls back to fixture internally)
 8. ``repo.create_outfit_bundle`` in one transaction (Req 1.10)
@@ -28,9 +30,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from app.domain import ClothingTags, SidecarMetadata, WeatherReading
+from app.domain import CaptureMetadata, ClothingTags, ThermalVote, WeatherReading
 from app.ingestion.image_check import check_image, is_too_large, list_image_files, mime_type_for
-from app.ingestion.sidecar import SidecarError, read_sidecar
+from app.ingestion.metadata import (
+    ScanFailure,
+    metadata_source,
+    read_embedded_metadata,
+    resolve_capture_metadata,
+)
+from app.ingestion.sidecar import read_sidecar
 from app.providers.vision.base import VisionError, VisionProvider
 from app.providers.weather.base import WeatherProvider
 from app.repository import OutfitCreate, OutfitRepository
@@ -182,30 +190,47 @@ class ImageIngestionService:
         if format_error is not None:
             raise _FileFailed("validation", format_error.code, format_error.message)
 
-        metadata = read_sidecar(image)
-        if isinstance(metadata, SidecarError):
-            raise _FileFailed("validation", metadata.code, metadata.message)
+        capture, seed_vote = self._capture_metadata(image, data)
 
         tags = self._analyze(image, data, sha256)
-        reading = self._get_weather(image, metadata)
+        reading = self._get_weather(image, capture)
 
         outfit = OutfitCreate(
             sha256=sha256,
             file_name=image.name,
-            captured_at=metadata.captured_at,
-            latitude=metadata.latitude,
-            longitude=metadata.longitude,
+            captured_at=capture.captured_at,
+            latitude=capture.latitude,
+            longitude=capture.longitude,
             tags=tags,
             vision_provider=self._vision.name,
+            source=metadata_source(capture),
+            metadata_synthetic=capture.synthetic,
         )
         try:
-            self._repo.create_outfit_bundle(outfit, reading, metadata.thermal_vote)
+            self._repo.create_outfit_bundle(outfit, reading, seed_vote)
         except Exception as exc:  # repository already rolled back
             logger.warning("저장 실패: %s (%s)", image.name, type(exc).__name__)
             raise _FileFailed(
                 "storage", "STORAGE_ERROR", "착장 기록을 저장하지 못했습니다."
             ) from None
         return sha256
+
+    def _capture_metadata(
+        self, image: Path, data: bytes
+    ) -> tuple[CaptureMetadata, ThermalVote | None]:
+        """Capture time/location and seed vote (Req 2.1, 2.12, 2.16).
+
+        Embedded EXIF first; the optional sidecar supplies the seed vote and,
+        only when the embedded metadata is missing or invalid, the location.
+        """
+        embedded = read_embedded_metadata(data)
+        sidecar = read_sidecar(
+            image, require_location=not isinstance(embedded, CaptureMetadata)
+        )
+        resolved = resolve_capture_metadata(embedded, sidecar)
+        if isinstance(resolved, ScanFailure):
+            raise _FileFailed("validation", resolved.code, resolved.message)
+        return resolved
 
     def _read_bytes(self, image: Path) -> bytes:
         try:
@@ -239,7 +264,7 @@ class ImageIngestionService:
             code = "VISION_API_ERROR"
         raise _FileFailed("analysis", code, _VISION_MESSAGES[code])
 
-    def _get_weather(self, image: Path, metadata: SidecarMetadata) -> WeatherReading:
+    def _get_weather(self, image: Path, metadata: CaptureMetadata) -> WeatherReading:
         """Weather at capture time (Req 4.1).
 
         Providers are expected not to raise (Open-Meteo falls back to fixture).

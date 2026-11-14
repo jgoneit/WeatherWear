@@ -329,9 +329,14 @@ export interface components {
             longitude: number;
             /**
              * Source
-             * @constant
+             * @enum {string}
              */
-            source: "demo_sidecar";
+            source: "exif" | "demo_sidecar";
+            /**
+             * Metadata Synthetic
+             * @default true
+             */
+            metadata_synthetic: boolean;
             /** Photo Url */
             photo_url: string;
             tags: components["schemas"]["ClothingTags"];

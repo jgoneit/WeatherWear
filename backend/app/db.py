@@ -15,6 +15,8 @@ Constraints that back the requirements:
 
 from __future__ import annotations
 
+import logging
+import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -24,6 +26,8 @@ from typing import Any
 from sqlalchemy import CheckConstraint, Index, event, text
 from sqlalchemy.engine import Engine, make_url
 from sqlmodel import Field, Session, SQLModel, create_engine
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # ISO 8601 TEXT helpers
@@ -65,7 +69,8 @@ class Outfit(SQLModel, table=True):
     __tablename__ = "outfits"
     __table_args__ = (
         CheckConstraint("length(sha256) = 64", name="ck_outfits_sha256_len"),
-        CheckConstraint("source IN ('demo_sidecar')", name="ck_outfits_source"),
+        CheckConstraint("source IN ('demo_sidecar','exif')", name="ck_outfits_source"),
+        CheckConstraint("metadata_synthetic IN (0, 1)", name="ck_outfits_metadata_synthetic"),
         CheckConstraint("vision_provider IN ('gemini','fixture')", name="ck_outfits_vision_provider"),
         CheckConstraint("layers_visible BETWEEN 0 AND 5", name="ck_outfits_layers_visible"),
         CheckConstraint(
@@ -82,7 +87,10 @@ class Outfit(SQLModel, table=True):
     captured_at_utc: str  # to_utc_iso(captured_at), for ordering
     latitude: float
     longitude: float
-    source: str = "demo_sidecar"
+    source: str = "demo_sidecar"  # 'exif' | 'demo_sidecar' (Req 2.7)
+    metadata_synthetic: bool = Field(
+        default=True, sa_column_kwargs={"server_default": text("1")}
+    )  # INTEGER NOT NULL DEFAULT 1 (Req 2.15)
     upper_type: str
     outer_type: str
     lower_type: str
@@ -156,16 +164,61 @@ def _set_sqlite_pragmas(dbapi_connection: Any, _connection_record: Any) -> None:
         cursor.close()
 
 
+SCHEMA_VERSION = 2  # PRAGMA user_version of the current table layout
+_SQLITE_SIDE_FILES = ("-wal", "-shm")
+
+
+def _read_user_version(path: Path) -> int:
+    conn = sqlite3.connect(path)
+    try:
+        return int(conn.execute("PRAGMA user_version").fetchone()[0])
+    finally:
+        conn.close()
+
+
+def backup_outdated_db(path: Path, *, now: datetime | None = None) -> Path | None:
+    """Rename an old-schema SQLite file out of the way before tables are created.
+
+    ``create_all()`` cannot change existing CHECK constraints or add columns,
+    so a file with ``user_version < SCHEMA_VERSION`` is renamed (together with
+    its ``-wal``/``-shm`` files) to ``<name>.v1-backup-<UTC yyyymmddHHMMSS>``.
+    Nothing is deleted. Returns the backup path, or None if no backup was needed.
+    """
+    if not path.is_file() or path.stat().st_size == 0:
+        return None
+    if _read_user_version(path) >= SCHEMA_VERSION:
+        return None
+    stamp = (now or datetime.now(UTC)).astimezone(UTC).strftime("%Y%m%d%H%M%S")
+    backup = path.with_name(f"{path.name}.v1-backup-{stamp}")
+    n = 1
+    while backup.exists():
+        backup = path.with_name(f"{path.name}.v1-backup-{stamp}-{n}")
+        n += 1
+    path.rename(backup)
+    for suffix in _SQLITE_SIDE_FILES:
+        side = path.with_name(path.name + suffix)
+        if side.exists():
+            side.rename(backup.with_name(backup.name + suffix))
+    logger.warning(
+        "Database schema is older than version %d; moved it to %s and creating a new one",
+        SCHEMA_VERSION,
+        backup.name,
+    )
+    return backup
+
+
 def create_db_engine(database_url: str) -> Engine:
     """Create the engine, its parent directory, the pragmas and all tables.
 
     Every new connection runs ``PRAGMA foreign_keys=ON`` and
     ``PRAGMA journal_mode=WAL``. Tables are created with ``create_all()``;
-    there is no migration tool in Phase 1.
+    there is no migration tool in Phase 1. An existing file with an older
+    ``PRAGMA user_version`` is backed up first (``backup_outdated_db``).
     """
     file_path = _sqlite_file_path(database_url)
     if file_path is not None:
         file_path.parent.mkdir(parents=True, exist_ok=True)
+        backup_outdated_db(file_path)
 
     is_sqlite = make_url(database_url).drivername.startswith("sqlite")
     connect_args = {"check_same_thread": False} if is_sqlite else {}
@@ -178,8 +231,11 @@ def create_db_engine(database_url: str) -> Engine:
 
 
 def init_db(engine: Engine) -> None:
-    """Create all WeatherWear tables if they do not exist."""
+    """Create all WeatherWear tables if they do not exist and mark the schema version."""
     SQLModel.metadata.create_all(engine)
+    if engine.dialect.name == "sqlite":
+        with engine.begin() as conn:
+            conn.execute(text(f"PRAGMA user_version = {SCHEMA_VERSION}"))
 
 
 @contextmanager

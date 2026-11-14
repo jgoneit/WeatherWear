@@ -21,6 +21,7 @@ import pytest
 from app.config import resolve_config
 from app.db import create_db_engine
 from app.domain import (
+    UNKNOWN_TAGS,
     ClothingTags,
     OutfitWithWeatherAndFeedback,
     ThermalVote,
@@ -220,6 +221,26 @@ def test_missing_today_temperature_raises() -> None:
         _recommend(None, [_outfit(1, 9.0)])
     with pytest.raises(MissingTodayTemperature):
         _recommend(None, [])
+
+
+# --- Non-outfit photos (Req 6.10, 15.13) ------------------------------------
+
+
+def test_non_outfit_photo_excluded_from_candidates() -> None:
+    outcome = _recommend(9.0, [_outfit(1, 9.0, "comfortable", UNKNOWN_TAGS), _outfit(2, 10.0)])
+    assert _ids(outcome) == [2]
+    assert outcome.fallback is False
+
+    only_non_outfit = _recommend(9.0, [_outfit(1, 9.0, tags=UNKNOWN_TAGS)])
+    assert only_non_outfit.results == [] and only_non_outfit.fallback is True
+
+
+def test_non_outfit_photo_does_not_prevent_fallback() -> None:
+    # The non-outfit photo is within 3.0, but only the 4.0 diff outfit counts.
+    outcome = _recommend(9.0, [_outfit(1, 9.5, tags=UNKNOWN_TAGS), _outfit(2, 13.0)])
+    assert _ids(outcome) == [2]
+    assert outcome.fallback is True
+    assert outcome.applied_tolerance_c == FALLBACK_TOLERANCE_C
 
 
 # --- Structure (Req 7.13) and explanation length (Req 8.1) ------------------

@@ -51,6 +51,8 @@ export const STRINGS = {
     photoAlt: (tags: string) => `착장 사진: ${tags}`,
     capturedAt: "촬영 시각",
     location: "촬영 위치",
+    metadataSource: (label: string) => `촬영 정보: ${label}`,
+    metadataSourceLabel: { exif: "사진 내장 메타데이터", demo_sidecar: "사이드카 파일" },
     tagsTitle: "의류 태그",
     upperType: "상의",
     outerType: "겉옷",

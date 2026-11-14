@@ -22,6 +22,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstrai
 from app.domain import (
     ClothingTags,
     ConfidenceLevel,
+    MetadataSource,
     ThermalVote,
     VisionProviderName,
     WeatherProviderName,
@@ -159,11 +160,17 @@ class WeatherSnapshotOut(BaseModel):
 
 
 class OutfitOut(BaseModel):
+    # Fields with defaults are still listed as required in the response schema.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
     id: int
-    captured_at: AwareDatetime  # original sidecar offset
+    captured_at: AwareDatetime  # original offset of the photo metadata
     latitude: float
     longitude: float
-    source: Literal["demo_sidecar"]
+    source: MetadataSource  # where capture time/location came from (Req 2.7)
+    # Virtual (synthetic) capture metadata (Req 2.15, 15.4). The default only
+    # keeps older builders working; it is always serialized.
+    metadata_synthetic: bool = True
     photo_url: str  # "/api/outfits/{id}/photo"
     tags: ClothingTags
     vision_provider: VisionProviderName

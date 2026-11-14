@@ -4,7 +4,8 @@
 - ``create_outfit_bundle`` stores Outfit + Weather_Snapshot + an optional
   ``demo_seed`` feedback in one transaction; any exception rolls the whole
   bundle back and is re-raised unchanged (Req 1.10, 2.6).
-- ``captured_at`` keeps the sidecar's original UTC offset; ``captured_at_utc``
+- ``captured_at`` keeps the original UTC offset of the photo metadata;
+  ``captured_at_utc``
   and feedback ``created_at`` are fixed-width UTC text used for ordering (Req 2.2).
 - Feedback is insert-only. There is no update or delete path (Req 9.5).
 - Effective_Vote is computed by ``app.feedback.effective_vote`` (Req 9.4).
@@ -15,7 +16,6 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from datetime import UTC, datetime
-from typing import Literal
 
 from pydantic import AwareDatetime, BaseModel
 from sqlalchemy import func
@@ -26,14 +26,13 @@ from app.db import Feedback, Outfit, WeatherSnapshot, from_iso, session_scope, t
 from app.domain import (
     ClothingTags,
     FeedbackSource,
+    MetadataSource,
     OutfitWithWeatherAndFeedback,
     ThermalVote,
     VisionProviderName,
     WeatherReading,
 )
 from app.feedback import effective_vote
-
-OUTFIT_SOURCE: Literal["demo_sidecar"] = "demo_sidecar"
 
 
 class OutfitCreate(BaseModel):
@@ -46,6 +45,9 @@ class OutfitCreate(BaseModel):
     longitude: float
     tags: ClothingTags
     vision_provider: VisionProviderName
+    # Defaults match the sidecar-only ingestion path until it reads embedded EXIF.
+    source: MetadataSource = "demo_sidecar"  # Req 2.7
+    metadata_synthetic: bool = True  # Req 2.15
 
 
 class FeedbackRecord(BaseModel):
@@ -65,7 +67,8 @@ class OutfitRecord(BaseModel):
     captured_at: AwareDatetime  # original offset
     latitude: float
     longitude: float
-    source: Literal["demo_sidecar"]
+    source: MetadataSource
+    metadata_synthetic: bool
     tags: ClothingTags
     vision_provider: VisionProviderName
     created_at: AwareDatetime
@@ -123,6 +126,7 @@ def _outfit_record(
         latitude=row.latitude,
         longitude=row.longitude,
         source=row.source,
+        metadata_synthetic=bool(row.metadata_synthetic),
         tags=_tags(row),
         vision_provider=row.vision_provider,
         created_at=from_iso(row.created_at),
@@ -160,7 +164,8 @@ class OutfitRepository:
                 captured_at_utc=to_utc_iso(outfit.captured_at),
                 latitude=outfit.latitude,
                 longitude=outfit.longitude,
-                source=OUTFIT_SOURCE,
+                source=outfit.source,
+                metadata_synthetic=outfit.metadata_synthetic,
                 upper_type=tags.upper_type,
                 outer_type=tags.outer_type,
                 lower_type=tags.lower_type,

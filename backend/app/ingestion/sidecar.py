@@ -1,9 +1,15 @@
-"""Sidecar metadata parsing (design.md §3, Req 2.1, 2.3~2.5, 2.8, 2.9, 2.11).
+"""Optional sidecar metadata parsing (design.md §3, Req 2.3~2.6, 2.9, 2.11, 2.16).
+
+Capture time and location normally come from the photo's embedded EXIF
+(``app.ingestion.metadata``). A sidecar file is optional and serves two
+purposes: it carries a demo seed ``thermal_vote``, and it can supply
+``captured_at``/``latitude``/``longitude`` for photos without valid embedded
+metadata.
 
 ``parse_sidecar_text`` is a pure function: it takes the sidecar file text and
 returns either a validated ``SidecarMetadata`` or a ``SidecarError``. It never
-raises for bad input. ``read_sidecar`` is the thin I/O wrapper that adds the
-"file not found" case.
+raises for bad input. ``read_sidecar`` is the thin I/O wrapper; it returns
+``None`` when there is no sidecar file.
 
 Sidecar format (``<image stem>.metadata.json``)::
 
@@ -14,6 +20,10 @@ Sidecar format (``<image stem>.metadata.json``)::
       "thermal_vote": "comfortable",                # optional: cold | comfortable | hot
       "note": "..."                                 # any other key is ignored
     }
+
+The three location fields are required only with ``require_location=True``
+(the photo has no valid embedded metadata). When present they are always
+validated.
 """
 
 from __future__ import annotations
@@ -30,7 +40,6 @@ from app.domain import SidecarMetadata
 SIDECAR_SUFFIX = ".metadata.json"
 
 SidecarErrorCode = Literal[
-    "SIDECAR_NOT_FOUND",
     "SIDECAR_PARSE_ERROR",
     "SIDECAR_MISSING_FIELD",
     "SIDECAR_CAPTURED_AT_INVALID",
@@ -56,7 +65,7 @@ class SidecarError:
 
 
 def sidecar_path_for(image: Path) -> Path:
-    """``001_front.png`` → ``001_front.metadata.json`` in the same folder (Req 2.1)."""
+    """``001_front.png`` → ``001_front.metadata.json`` in the same folder."""
     return image.with_name(image.stem + SIDECAR_SUFFIX)
 
 
@@ -88,8 +97,14 @@ def _parse_coordinate(value: object, low: int, high: int) -> float | None:
     return float(value)  # type: ignore[arg-type]
 
 
-def parse_sidecar_text(text: str | bytes) -> SidecarMetadata | SidecarError:
-    """Parse and validate sidecar JSON text. Pure; never raises for bad input."""
+def parse_sidecar_text(
+    text: str | bytes, *, require_location: bool = True
+) -> SidecarMetadata | SidecarError:
+    """Parse and validate sidecar JSON text. Pure; never raises for bad input.
+
+    ``require_location=False`` (valid embedded metadata) allows a sidecar that
+    holds only ``thermal_vote``.
+    """
     try:
         data = json.loads(text)
     except (ValueError, TypeError, RecursionError):
@@ -97,25 +112,31 @@ def parse_sidecar_text(text: str | bytes) -> SidecarMetadata | SidecarError:
     if not isinstance(data, dict):
         return SidecarError("SIDECAR_PARSE_ERROR", "사이드카 최상위 값은 JSON 객체여야 합니다.")
 
-    # Req 2.3: missing or null required field.
-    for name in REQUIRED_FIELDS:
-        if data.get(name) is None:
-            return SidecarError(
-                "SIDECAR_MISSING_FIELD", f"사이드카에 필수 필드 {name}이(가) 없습니다.", name
-            )
+    # Req 2.3: missing or null required field (only when it is the location source).
+    if require_location:
+        for name in REQUIRED_FIELDS:
+            if data.get(name) is None:
+                return SidecarError(
+                    "SIDECAR_MISSING_FIELD", f"사이드카에 필수 필드 {name}이(가) 없습니다.", name
+                )
 
     # Req 2.4: ISO 8601 with an explicit offset.
-    captured_at = _parse_captured_at(data["captured_at"])
-    if captured_at is None:
-        return SidecarError(
-            "SIDECAR_CAPTURED_AT_INVALID",
-            "captured_at은 타임존 오프셋이 있는 ISO 8601 시각이어야 합니다.",
-            "captured_at",
-        )
+    captured_at: datetime | None = None
+    if data.get("captured_at") is not None:
+        captured_at = _parse_captured_at(data["captured_at"])
+        if captured_at is None:
+            return SidecarError(
+                "SIDECAR_CAPTURED_AT_INVALID",
+                "captured_at은 타임존 오프셋이 있는 ISO 8601 시각이어야 합니다.",
+                "captured_at",
+            )
 
     # Req 2.5: numbers only (no strings or booleans), within range.
-    coords: dict[str, float] = {}
+    coords: dict[str, float | None] = {}
     for name, (low, high) in COORDINATE_RANGES.items():
+        if data.get(name) is None:
+            coords[name] = None
+            continue
         value = _parse_coordinate(data[name], low, high)
         if value is None:
             return SidecarError(
@@ -143,19 +164,21 @@ def parse_sidecar_text(text: str | bytes) -> SidecarMetadata | SidecarError:
     )
 
 
-def read_sidecar(image: Path) -> SidecarMetadata | SidecarError:
-    """Read the sidecar next to ``image``. Missing or non-file → SIDECAR_NOT_FOUND (Req 2.3)."""
+def read_sidecar(
+    image: Path, *, require_location: bool = True
+) -> SidecarMetadata | SidecarError | None:
+    """Read the optional sidecar next to ``image``. No sidecar file → ``None``."""
     path = sidecar_path_for(image)
     if not path.is_file():
-        return SidecarError("SIDECAR_NOT_FOUND", "사이드카 메타데이터 파일이 없습니다.")
+        return None
     try:
         raw = path.read_bytes()
     except FileNotFoundError:
-        return SidecarError("SIDECAR_NOT_FOUND", "사이드카 메타데이터 파일이 없습니다.")
+        return None
     except OSError:
         return SidecarError("SIDECAR_PARSE_ERROR", "사이드카 파일을 읽을 수 없습니다.")
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
         return SidecarError("SIDECAR_PARSE_ERROR", "사이드카 파일이 UTF-8 텍스트가 아닙니다.")
-    return parse_sidecar_text(text)
+    return parse_sidecar_text(text, require_location=require_location)

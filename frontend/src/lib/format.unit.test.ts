@@ -4,6 +4,7 @@ import {
   formatDate,
   formatHumidity,
   formatTemp,
+  metadataSourceLabel,
   provenance,
   voteLabel,
 } from "./format";
@@ -99,18 +100,25 @@ describe("displayTags", () => {
 });
 
 describe("provenance", () => {
-  it("labels only fixture or demo sources", () => {
+  it("labels only fixture or synthetic sources", () => {
     expect(
-      provenance({ vision_provider: "fixture", source: "demo_sidecar", weather: { is_fixture: true } }),
+      provenance({ vision_provider: "fixture", metadata_synthetic: true, weather: { is_fixture: true } }),
     ).toEqual({ tags: true, weather: true, meta: true });
     expect(
-      provenance({ vision_provider: "gemini", source: "demo_sidecar", weather: { is_fixture: false } }),
-    ).toEqual({ tags: false, weather: false, meta: true });
+      provenance({ vision_provider: "gemini", metadata_synthetic: false, weather: { is_fixture: false } }),
+    ).toEqual({ tags: false, weather: false, meta: false });
   });
 
   it("does not label weather when there is none", () => {
-    expect(provenance({ vision_provider: "gemini", source: "demo_sidecar", weather: null }).weather).toBe(
+    expect(provenance({ vision_provider: "gemini", metadata_synthetic: true, weather: null }).weather).toBe(
       false,
     );
+  });
+});
+
+describe("metadataSourceLabel", () => {
+  it("maps each metadata source to its Korean label", () => {
+    expect(metadataSourceLabel("exif")).toBe("사진 내장 메타데이터");
+    expect(metadataSourceLabel("demo_sidecar")).toBe("사이드카 파일");
   });
 });

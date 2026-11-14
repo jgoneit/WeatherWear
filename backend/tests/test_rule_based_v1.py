@@ -15,6 +15,7 @@ from hypothesis import given, settings
 
 from app.domain import (
     UNKNOWN_TAGS,
+    ClothingTags,
     OutfitWithWeatherAndFeedback,
     ThermalVote,
     WeatherContext,
@@ -30,12 +31,16 @@ from app.recommendation.rule_based_v1 import (
     TEMP_SCORE_BASE,
     TEMP_WEIGHT_PER_C,
     RuleBasedTemperatureStrategy,
+    is_non_outfit,
     temperature_diff,
 )
 from tests.strategies import recommendation_cases
 
 KST = timezone(timedelta(hours=9))
 AT = datetime(2025, 11, 20, 8, 30, tzinfo=KST)
+COAT = ClothingTags(
+    upper_type="knit", outer_type="coat", lower_type="slacks", colors=["navy"], layers_visible=2, confidence=0.9
+)
 
 
 def today(
@@ -83,7 +88,7 @@ def outfit(
             is_fixture=True,
         )
     return OutfitWithWeatherAndFeedback(
-        outfit_id=outfit_id, captured_at=AT, tags=UNKNOWN_TAGS, weather=weather, effective_vote=vote
+        outfit_id=outfit_id, captured_at=AT, tags=COAT, weather=weather, effective_vote=vote
     )
 
 
@@ -139,6 +144,14 @@ def test_missing_weather_or_temperature_excluded() -> None:
     no_temp.weather = WeatherReading.model_construct(**{**no_temp.weather.__dict__, "actual_temperature_c": None})
     results = strategy().recommend(today(9.0), [outfit(1, 9.5), outfit(2, None), no_temp])
     assert [r.outfit_id for r in results] == [1]
+
+
+def test_is_non_outfit_requires_all_unknown_and_zero_confidence() -> None:
+    assert is_non_outfit(UNKNOWN_TAGS)
+    assert not is_non_outfit(COAT)
+    assert not is_non_outfit(UNKNOWN_TAGS.model_copy(update={"confidence": 0.1}))
+    assert not is_non_outfit(UNKNOWN_TAGS.model_copy(update={"outer_type": "none"}))
+    assert not is_non_outfit(UNKNOWN_TAGS.model_copy(update={"upper_type": "knit"}))
 
 
 def test_missing_today_temperature_raises() -> None:

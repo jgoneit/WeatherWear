@@ -136,17 +136,34 @@ def test_invalid_thermal_vote(vote: object) -> None:
     assert_error(parse(with_(thermal_vote=vote)), "SIDECAR_THERMAL_VOTE_INVALID", "thermal_vote")
 
 
-def test_read_sidecar_not_found_and_ok(tmp_path: Path) -> None:
+def test_vote_only_sidecar_allowed_without_location_requirement() -> None:
+    result = parse_sidecar_text(
+        json.dumps({"thermal_vote": "hot", "note": "x"}), require_location=False
+    )
+    assert result == SidecarMetadata(thermal_vote="hot")
+    assert_error(
+        parse_sidecar_text(json.dumps({"thermal_vote": "hot"})),
+        "SIDECAR_MISSING_FIELD",
+        "captured_at",
+    )
+
+
+def test_present_location_still_validated_without_requirement() -> None:
+    text = json.dumps({"thermal_vote": "cold", "latitude": 200})
+    assert_error(parse_sidecar_text(text, require_location=False), "SIDECAR_OUT_OF_RANGE", "latitude")
+
+
+def test_read_sidecar_missing_is_none_and_ok(tmp_path: Path) -> None:
     image = tmp_path / "001_front.png"
-    assert_error(read_sidecar(image), "SIDECAR_NOT_FOUND")
+    assert read_sidecar(image) is None
 
     (tmp_path / "001_front.metadata.json").write_text(json.dumps(VALID), encoding="utf-8-sig")
     assert isinstance(read_sidecar(image), SidecarMetadata)
 
 
-def test_read_sidecar_directory_is_not_found(tmp_path: Path) -> None:
+def test_read_sidecar_directory_is_none(tmp_path: Path) -> None:
     (tmp_path / "x.metadata.json").mkdir()
-    assert_error(read_sidecar(tmp_path / "x.png"), "SIDECAR_NOT_FOUND")
+    assert read_sidecar(tmp_path / "x.png") is None
 
 
 def test_read_sidecar_non_utf8_is_parse_error(tmp_path: Path) -> None:

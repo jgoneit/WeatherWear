@@ -189,3 +189,46 @@ def test_redacting_filter_with_empty_secret_is_noop():
     record = logging.LogRecord("x", logging.INFO, __file__, 1, "hello %s", ("world",), None)
     assert flt.filter(record) is True
     assert record.getMessage() == "hello world"
+
+
+ENV_EXAMPLE = Path(__file__).resolve().parents[2] / ".env.example"
+DOCUMENTED_VARS = ALL_VARS + ("VITE_API_BASE_URL",)
+
+
+def _env_example_assignments() -> dict[str, str]:
+    values: dict[str, str] = {}
+    for line in ENV_EXAMPLE.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            name, value = stripped.split("=", 1)
+            values[name.strip()] = value.strip()
+    return values
+
+
+def test_env_example_lists_exactly_twelve_vars_with_empty_key():
+    values = _env_example_assignments()
+    assert set(values) == set(DOCUMENTED_VARS)
+    assert len(values) == 12
+    assert values["GEMINI_API_KEY"] == ""
+    assert values["GEMINI_MODEL"] == "gemini-4-hydrogen"
+    # Express mode needs no project ID or location variable (Req 16.10).
+    assert not any("PROJECT" in name or "LOCATION" in name for name in values)
+
+
+def test_env_example_describes_agent_platform_express_mode_key():
+    lines = ENV_EXAMPLE.read_text(encoding="utf-8").splitlines()
+    key_index = next(i for i, line in enumerate(lines) if line.startswith("GEMINI_API_KEY="))
+    comment = []
+    for line in reversed(lines[:key_index]):
+        if not line.startswith("#"):
+            break
+        comment.append(line)
+    description = "\n".join(comment)
+    assert "Agent Platform" in description
+    assert "express mode" in description
+    assert "AI Studio 키로는 동작하지 않는다" in description
+
+
+def test_raw_settings_declares_same_backend_vars_and_model_default():
+    assert set(RawSettings.model_fields) == set(ALL_VARS)
+    assert RawSettings.model_fields["GEMINI_MODEL"].default == "gemini-4-hydrogen"

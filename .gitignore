@@ -1,0 +1,25 @@
+# Secrets
+.env
+!.env.example
+
+# Local database
+data/weatherwear.db*
+
+# Photos (not published; prepare locally with scripts/prepare_demo_photos.py)
+ex_img/
+data/demo/photos/
+
+# Python
+backend/.venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.hypothesis/
+
+# Node / build
+node_modules/
+dist/
+
+# OS
+.DS_Store

@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/*
+ * Soft Glass + Bento 디자인 토큰 (design.md 13절).
+ * 폰트는 main.tsx에서 npm `pretendard` 패키지의 CSS를 import해 자체 호스팅한다.
+ */
+@theme {
+  --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif;
+
+  /* 기온 구간 색 (체감 피드백·선택 버튼 채움색) */
+  --color-cold: #5b8def;
+  --color-mild: #3fa37a;
+  --color-warm: #f28c45;
+  --color-hot: #e5533d;
+
+  /* 기온 적응형 메시 그라디언트 정지점 */
+  --color-bg-icy-from: #a5c8ff;
+  --color-bg-icy-to: #e8f0ff;
+  --color-bg-sage-from: #bfe3d0;
+  --color-bg-sage-to: #f3efe6;
+  --color-bg-peach-from: #ffd3b0;
+  --color-bg-peach-to: #fff4e8;
+  --color-bg-coral-from: #ff9f8a;
+  --color-bg-coral-to: #ffe1c7;
+
+  --radius-card: 1.5rem;
+
+  --shadow-glass: 0 8px 32px rgba(15, 23, 42, 0.08);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-width: 0;
+    overflow-x: clip;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    color: var(--color-slate-900);
+    background: linear-gradient(160deg, var(--color-bg-sage-from), var(--color-bg-sage-to));
+    background-attachment: fixed;
+  }
+
+  img,
+  video {
+    max-width: 100%;
+  }
+}
+
+/* 글래스 표면. backdrop-filter 미지원 브라우저에서는 불투명 배경으로 대체한다. */
+@utility glass {
+  background-color: rgb(255 255 255 / 0.9);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  box-shadow: var(--shadow-glass);
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: rgb(255 255 255 / 0.55);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+  }
+}
+
+/*
+ * 기온 적응형 메시 그라디언트 (AppShell 배경 레이어).
+ * 같은 구간의 두 색으로 radial 그라디언트 3개를 겹쳐 메시처럼 보이게 한다.
+ */
+@utility mesh-icy {
+  background-color: var(--color-bg-icy-to);
+  background-image:
+    radial-gradient(at 12% 8%, var(--color-bg-icy-from) 0, transparent 55%),
+    radial-gradient(at 88% 30%, color-mix(in srgb, var(--color-bg-icy-from) 70%, white) 0, transparent 50%),
+    radial-gradient(at 40% 100%, var(--color-bg-icy-from) 0, transparent 60%),
+    linear-gradient(160deg, var(--color-bg-icy-from), var(--color-bg-icy-to));
+}
+
+@utility mesh-sage {
+  background-color: var(--color-bg-sage-to);
+  background-image:
+    radial-gradient(at 12% 8%, var(--color-bg-sage-from) 0, transparent 55%),
+    radial-gradient(at 88% 30%, color-mix(in srgb, var(--color-bg-sage-from) 70%, white) 0, transparent 50%),
+    radial-gradient(at 40% 100%, var(--color-bg-sage-from) 0, transparent 60%),
+    linear-gradient(160deg, var(--color-bg-sage-from), var(--color-bg-sage-to));
+}
+
+@utility mesh-peach {
+  background-color: var(--color-bg-peach-to);
+  background-image:
+    radial-gradient(at 12% 8%, var(--color-bg-peach-from) 0, transparent 55%),
+    radial-gradient(at 88% 30%, color-mix(in srgb, var(--color-bg-peach-from) 70%, white) 0, transparent 50%),
+    radial-gradient(at 40% 100%, var(--color-bg-peach-from) 0, transparent 60%),
+    linear-gradient(160deg, var(--color-bg-peach-from), var(--color-bg-peach-to));
+}
+
+@utility mesh-coral {
+  background-color: var(--color-bg-coral-to);
+  background-image:
+    radial-gradient(at 12% 8%, var(--color-bg-coral-from) 0, transparent 55%),
+    radial-gradient(at 88% 30%, color-mix(in srgb, var(--color-bg-coral-from) 70%, white) 0, transparent 50%),
+    radial-gradient(at 40% 100%, var(--color-bg-coral-from) 0, transparent 60%),
+    linear-gradient(160deg, var(--color-bg-coral-from), var(--color-bg-coral-to));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

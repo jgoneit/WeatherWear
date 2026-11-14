@@ -1,0 +1,645 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 저장소 골격, 의존성 고정 초안, 테스트 하네스 만들기": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011881
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629540415
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629750455
+      }
+    ],
+    "1.2 Config_Loader 구현 (`backend/app/config.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011884
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629789160
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794630282570
+      }
+    ],
+    "1.4 도메인 값 객체 구현 (`backend/app/domain.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011889
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629789386
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794630282584
+      }
+    ],
+    "1.7 SQLite 테이블과 엔진 구현 (`backend/app/db.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011892
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794630558349
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631021261
+      }
+    ],
+    "1.8 API 스키마 구현 (`backend/app/schemas.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011897
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794630558572
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631022227
+      }
+    ],
+    "1.9 Hypothesis 생성기 작성 (`backend/tests/strategies.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011899
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794630559680
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631023448
+      }
+    ],
+    "2.1 `ex_img/` 사진 사용 권한 확인 후 manifest 작성 (`data/demo/photos.manifest.json`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011902
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629541019
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629751170
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794630283492
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794630339354
+      }
+    ],
+    "2.2 사진 복사 스크립트와 placeholder fallback 구현": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011905
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794630349409
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794630552011
+      }
+    ],
+    "2.3 사이드카, 시나리오, fixture 파일 작성": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011907
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794630560873
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631024648
+      }
+    ],
+    "3.1 사이드카 파서 구현 (`backend/app/ingestion/sidecar.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011911
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794630561682
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631025772
+      }
+    ],
+    "3.4 이미지 파일 검사 구현 (`backend/app/ingestion/image_check.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011913
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631031289
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631217636
+      }
+    ],
+    "4.1 Vision 인터페이스, Fixture 구현, 팩토리 작성 (`backend/app/providers/vision/base.py`, `fixture.py`, `factory.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011915
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631032489
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631218852
+      }
+    ],
+    "4.3 Gemini 모델 ID 확인 (첫 live Vision 호출 전)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011918
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631034086
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631220039
+      }
+    ],
+    "4.4 GeminiVisionProvider 구현 (`backend/app/providers/vision/gemini.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011920
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631232886
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631524250
+      }
+    ],
+    "5.1 Weather 인터페이스와 정규화 순수 함수 구현 (`backend/app/providers/weather/base.py`, `normalize.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011924
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631035294
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631221638
+      }
+    ],
+    "5.4 FixtureWeatherProvider 구현 (`backend/app/providers/weather/fixture.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011927
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631036355
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631222713
+      }
+    ],
+    "5.6 OpenMeteoWeatherProvider와 팩토리 구현 (`backend/app/providers/weather/open_meteo.py`, `factory.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011930
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631234508
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631525391
+      }
+    ],
+    "5.9 날씨 정규화 단위 테스트 작성 (`backend/tests/test_weather.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011932
+      }
+    ],
+    "6.1 OutfitRepository와 유효 피드백 함수 구현 (`backend/app/repository.py`, `backend/app/feedback.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011934
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631235682
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631526512
+      }
+    ],
+    "6.4 ImageIngestionService 구현 (`backend/app/ingestion/service.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011937
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631760094
+      }
+    ],
+    "6.7 수집·중복 제거 단위 테스트 작성 (`backend/tests/test_ingestion.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011940
+      }
+    ],
+    "7. Checkpoint - 수집 슬라이스 확인": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011943
+      }
+    ],
+    "8.1 FeedbackService 구현 (`backend/app/feedback.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011946
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631761095
+      }
+    ],
+    "8.3 TodayWeatherService와 ScenarioStore 구현 (`backend/app/today_weather.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011949
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631236890
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631527704
+      }
+    ],
+    "8.6 피드백 갱신 단위 테스트 작성 (`backend/tests/test_feedback.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011955
+      }
+    ],
+    "9.1 추천 전략 구현 (`backend/app/recommendation/base.py`, `rule_based_v1.py`, `factory.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011957
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631238154
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631528992
+      }
+    ],
+    "9.7 설명 생성 구현 후 전략에 연결 (`backend/app/recommendation/explain.py`, `rule_based_v1.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011959
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631762713
+      }
+    ],
+    "9.10 RecommendationService 구현 (`backend/app/recommendation/service.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011963
+      }
+    ],
+    "9.11 허용 오차 경계·데이터 부족·구조 단위 테스트 작성 (`backend/tests/test_recommendation.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011967
+      }
+    ],
+    "10.1 앱 생성과 의존성 주입 구현 (`backend/app/deps.py`, `backend/app/main.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011976
+      }
+    ],
+    "10.2 착장 라우터 구현 (`backend/app/api/outfits.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011989
+      }
+    ],
+    "10.3 데모·날씨·추천·메타 라우터 구현 (`backend/app/api/demo.py`, `weather.py`, `recommendations.py`, `meta.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629011996
+      }
+    ],
+    "10.4 라우터 등록과 OpenAPI 타입 재생성": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012000
+      }
+    ],
+    "10.10 API 상태 코드 단위 테스트 작성 (`backend/tests/test_api.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012005
+      }
+    ],
+    "11. Checkpoint - 백엔드 전체 확인": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012014
+      }
+    ],
+    "12.1 Vite + React + TypeScript + Tailwind v4 골격 만들기 (`frontend/`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012025
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629541886
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629750482
+      }
+    ],
+    "12.2 API 클라이언트 작성 (`frontend/src/api/schema.d.ts`, `client.ts`, `src/lib/useAsync.ts`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012032
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631541003
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631754746
+      }
+    ],
+    "12.3 표시 형식 순수 함수 구현 (`frontend/src/lib/format.ts`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012036
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631763915
+      }
+    ],
+    "13.1 레이아웃 셸 구현 (`frontend/src/components/layout/`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012042
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631764643
+      }
+    ],
+    "13.2 날씨·추천 공용 컴포넌트 구현 (`frontend/src/components/`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012049
+      }
+    ],
+    "13.3 NotificationCard와 FeedbackButtons 구현 (`frontend/src/components/NotificationCard.tsx`, `FeedbackButtons.tsx`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012060
+      }
+    ],
+    "13.5 HomePage 구현 (`frontend/src/pages/HomePage.tsx`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012072
+      }
+    ],
+    "14.1 HistoryPage 구현 (`frontend/src/pages/HistoryPage.tsx`, `components/OutfitGridItem.tsx`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012076
+      }
+    ],
+    "14.2 OutfitDetailPage 구현 (`frontend/src/pages/OutfitDetailPage.tsx`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012081
+      }
+    ],
+    "15.1 DemoPage 구현 (`frontend/src/pages/DemoPage.tsx`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012088
+      }
+    ],
+    "15.3 번들 비밀값 검사 스크립트 작성 (`frontend/scripts/check-bundle.mjs`, `package.json`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012090
+      }
+    ],
+    "16. Checkpoint - 프론트엔드 확인": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012093
+      }
+    ],
+    "17.1 Fixture 모드 통합 테스트 작성 (`backend/tests/test_integration.py`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012096
+      }
+    ],
+    "17.3 의존성 버전 최종 고정": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012099
+      }
+    ],
+    "17.4 README 작성 (`README.md`)": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012101
+      }
+    ],
+    "18. Final checkpoint - 전체 테스트 통과 확인": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794629012103
+      }
+    ],
+    "1. 공유 계약과 프로젝트 골격": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631023453
+      }
+    ],
+    "2. 데모 데이터 준비": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631024650
+      }
+    ],
+    "3. 사이드카 파싱과 이미지 검증": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631217639
+      }
+    ],
+    "4. Vision Provider": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794631524259
+      }
+    ]
+  }
+}

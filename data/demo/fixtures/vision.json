@@ -1,0 +1,1753 @@
+{
+  "7e72dcf5395dba03ad1b1c7fe12b2ed393fb6ae2d38f2b29d40c7a8c3dbdb1d8": {
+    "upper_type": "shirt",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "white"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.6
+  },
+  "5d566296249e20a558e0f01e4c8873ece9c0fc5566923a0ce908c133b7dc593a": {
+    "upper_type": "t-shirt",
+    "outer_type": "cardigan",
+    "lower_type": "unknown",
+    "colors": [
+      "beige",
+      "white"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.7
+  },
+  "e6f4a790478c2205d58addf2d0a230a82b4adcb4218f204293a040a991672ea7": {
+    "upper_type": "knit top",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "green"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.6
+  },
+  "95aeddb2b63db9719456790cb5bb6e3e9609326c95432766ff5dcff076d5a495": {
+    "upper_type": "knit top",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "rust"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.6
+  },
+  "b6fa18f03850036413bdd3f1a25851c88b4bebb7e5d731b81c6efe4b58c59fad": {
+    "upper_type": "sweater",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "navy"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.6
+  },
+  "f4ba745454f977522423d2c42884094d9f98daad3d8cf7c1ee8d8f0721637b0f": {
+    "upper_type": "sweater",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "grey"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.6
+  },
+  "7deefd7f927742f610bd0f2095af5e237b3f5586c6201a352c1295b0593d2c7b": {
+    "upper_type": "top",
+    "outer_type": "denim shirt",
+    "lower_type": "unknown",
+    "colors": [
+      "blue",
+      "white"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.6
+  },
+  "003bcacbe4b6f38147c5fcf5cfab660311075e652c115b35195942a065f2822b": {
+    "upper_type": "knit top",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "black"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.6
+  },
+  "85ef584c210910d44cd6ec5e505b45295469fe9d51cdd8b4e380d0a8a4fa6634": {
+    "upper_type": "sweater",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "cream"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.6
+  },
+  "56025105b3b1eca4296a596522802aef96ec0b1e7e5115add133e618cad6c116": {
+    "upper_type": "shirt",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "black"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.6
+  },
+  "cfb3e45791572f340800d4ec1ef3b439498d176fec0299670a43361f774286e4": {
+    "upper_type": "shirt",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "white"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.6
+  },
+  "6435709c93154c70ff007863022b1cf0eba8bf818e3ae75677be03e0911da2d1": {
+    "upper_type": "blouse",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "sage"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.6
+  },
+  "b8c60390241c0e70dc96f7ac36d74ef75cb825fe373a7708ccd428e0842f9a89": {
+    "upper_type": "t-shirt",
+    "outer_type": "blazer",
+    "lower_type": "unknown",
+    "colors": [
+      "grey",
+      "white"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.7
+  },
+  "e9d12b1201b3b7a2e019892b96a29438b0e70cab49eb66be1b0417c6c27f8efd": {
+    "upper_type": "shirt",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "navy"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.6
+  },
+  "1fcd7ede06fb0dea5da978c5815aaa738ee38ce423a41e0d6f3e51198ca7f007": {
+    "upper_type": "sweater",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "cream"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.7
+  },
+  "2be7d65940a72d0b46e50d5bf03dc346a95121befe3166b4c2c771a897b76975": {
+    "upper_type": "t-shirt",
+    "outer_type": "cardigan",
+    "lower_type": "jeans",
+    "colors": [
+      "light blue",
+      "white",
+      "blue"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.65
+  },
+  "400557e02b2a36189f1c206912e2947776bf0908920eb91e3c4ba5b18e77a6d5": {
+    "upper_type": "t-shirt",
+    "outer_type": "denim jacket",
+    "lower_type": "chinos",
+    "colors": [
+      "blue",
+      "white",
+      "beige"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "6293bbb70b20984cce567e21ffcad65c40fae233c7ccff396d5194001e4e1291": {
+    "upper_type": "t-shirt",
+    "outer_type": "none",
+    "lower_type": "jeans",
+    "colors": [
+      "white",
+      "blue"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.8
+  },
+  "ac1cc2f30f6581ca1f755fe2b6a8d146ca1517c40b758a028ab08beef5677cd1": {
+    "upper_type": "shirt",
+    "outer_type": "none",
+    "lower_type": "wide trousers",
+    "colors": [
+      "olive",
+      "cream"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "34a47311dd1d5c0cf3a0eb2ea83bd0801b56512aa84587b5798d211659b92fdf": {
+    "upper_type": "knit top",
+    "outer_type": "none",
+    "lower_type": "skirt",
+    "colors": [
+      "black",
+      "charcoal"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.75
+  },
+  "2d0784949e48080012e87d6f55bbc31037ffc39bba10df363cfcfc607464a015": {
+    "upper_type": "striped long-sleeve top",
+    "outer_type": "none",
+    "lower_type": "jeans",
+    "colors": [
+      "navy",
+      "white",
+      "light blue"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "9e4c72dff0b37e5259d77c41ce40ad6de78851ab117f66122e8bc8031619e32b": {
+    "upper_type": "top",
+    "outer_type": "cardigan",
+    "lower_type": "unknown",
+    "colors": [
+      "beige",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.65
+  },
+  "56f5b14ea8ffaad4025912813be3cbf85f174874596b2666c5c4ad370d39e632": {
+    "upper_type": "oxford shirt",
+    "outer_type": "none",
+    "lower_type": "trousers",
+    "colors": [
+      "light blue",
+      "black"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.75
+  },
+  "e0967c4a0f62f42f5487bcc2b8cc3389b28c58e3bc9dae1ad806e97a46c68d0a": {
+    "upper_type": "hoodie",
+    "outer_type": "none",
+    "lower_type": "track pants",
+    "colors": [
+      "grey",
+      "black"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "5325838f275ddfc630a7a7554f9faf616dadb52148a5cca491050f00e0120aa8": {
+    "upper_type": "tank top",
+    "outer_type": "shirt jacket",
+    "lower_type": "jeans",
+    "colors": [
+      "tan",
+      "white",
+      "navy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.8
+  },
+  "7921adcc8ce97789aab6e546c3d6799f69f64dc0942994e5258d1eba3b97309e": {
+    "upper_type": "t-shirt",
+    "outer_type": "cardigan",
+    "lower_type": "wide trousers",
+    "colors": [
+      "navy",
+      "white",
+      "beige"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "c3f3d53d2b04fbbf98b3ef45bc0d2137e23f535c68663f7ef7c3ee8b97d31003": {
+    "upper_type": "sweater",
+    "outer_type": "none",
+    "lower_type": "trousers",
+    "colors": [
+      "sage",
+      "cream"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.65
+  },
+  "c28acfdadb5ee658cb4dbce7e116e23dea58e7d49c751e2d04e9a4a48aeb05d2": {
+    "upper_type": "blouse",
+    "outer_type": "none",
+    "lower_type": "jeans",
+    "colors": [
+      "white",
+      "blue"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.75
+  },
+  "8e20cfa801549f075976e15be35785799f46d56d176ad490ded9849569146c5f": {
+    "upper_type": "tank top",
+    "outer_type": "shirt",
+    "lower_type": "wide trousers",
+    "colors": [
+      "light blue",
+      "white",
+      "cream"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.75
+  },
+  "7907d03ec757e1015fa7a1e287bb790b71eb12b8b40a175ae956bb575b6df564": {
+    "upper_type": "tank top",
+    "outer_type": "jacket",
+    "lower_type": "cargo trousers",
+    "colors": [
+      "beige",
+      "white",
+      "olive"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "6ba262c2b78a285456e460c17fc60f628728e04b7356e3d9211079eb93e4546b": {
+    "upper_type": "t-shirt",
+    "outer_type": "cardigan",
+    "lower_type": "unknown",
+    "colors": [
+      "rust",
+      "cream"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.7
+  },
+  "55d58d6c614f53dbf9e2e2d94a4746d9397928cf95956920cc7295db9bd51373": {
+    "upper_type": "t-shirt",
+    "outer_type": "none",
+    "lower_type": "jeans",
+    "colors": [
+      "black",
+      "blue"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.7
+  },
+  "ae4b150ab2692b179d32ff3e60a9336a7c84f5ae07999e0b85c4c021fe7d1811": {
+    "upper_type": "striped long-sleeve top",
+    "outer_type": "none",
+    "lower_type": "trousers",
+    "colors": [
+      "cream",
+      "navy",
+      "brown"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.75
+  },
+  "e19c5050de63041eff251e2a2cdbdeaaff8b024feba51f9a8b36daa3cf8b1f08": {
+    "upper_type": "t-shirt",
+    "outer_type": "rain jacket",
+    "lower_type": "jeans",
+    "colors": [
+      "ochre",
+      "white",
+      "blue"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "3c59791739383f59c8e20c2135cf35c0f0e5e51e6ecaad1ea481441456d17eb4": {
+    "upper_type": "t-shirt",
+    "outer_type": "blazer",
+    "lower_type": "trousers",
+    "colors": [
+      "taupe",
+      "white",
+      "charcoal"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "8823a54d714e786eaec1dcc973da9feaaefcc3789a370d6068e42f8d44099ef4": {
+    "upper_type": "blouse",
+    "outer_type": "none",
+    "lower_type": "pencil skirt",
+    "colors": [
+      "white",
+      "navy"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "9b561aeb07a3f93a5379a44f73605a8ff5a475cb9139e706c09dff00420a867e": {
+    "upper_type": "turtleneck",
+    "outer_type": "none",
+    "lower_type": "jeans",
+    "colors": [
+      "black",
+      "blue"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "fa78b2d90e47b94f466c6e149107da81a68f2eb14e8f07022527acf692ea1ac3": {
+    "upper_type": "t-shirt",
+    "outer_type": "cardigan",
+    "lower_type": "pleated midi skirt",
+    "colors": [
+      "olive",
+      "white",
+      "cream"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "8963efc42e5004dfc6f597e75c21c3b2651dfa8493117975c3640fd454e9f783": {
+    "upper_type": "knit dress",
+    "outer_type": "none",
+    "lower_type": "none",
+    "colors": [
+      "navy"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "376bf84c95dfd9cdf2c45f3ccf76f5ed6257269f54012114cf01830b34c62f22": {
+    "upper_type": "sleeveless dress",
+    "outer_type": "none",
+    "lower_type": "none",
+    "colors": [
+      "black"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "a17cd6e60e3856b7394a2a05b69e156af9be26f6e2e6ee15bbc93e4b7bf28937": {
+    "upper_type": "tank top",
+    "outer_type": "trench coat",
+    "lower_type": "wide trousers",
+    "colors": [
+      "beige",
+      "cream",
+      "brown"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "14625b9e6476cf869a1f7c01d7b385180e1714e88eb0d2bc48f94fa0793ffd08": {
+    "upper_type": "t-shirt",
+    "outer_type": "none",
+    "lower_type": "leggings",
+    "colors": [
+      "charcoal",
+      "navy"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "8efbf0b3df9a86195ef6dc543c2fd4a711395854e5633c6b15fedc917739a70f": {
+    "upper_type": "unknown",
+    "outer_type": "running jacket",
+    "lower_type": "leggings",
+    "colors": [
+      "sage",
+      "black"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "3226c4bdb230ea0ded381827f2fd143dca32456f1de0998d20405d2f5c0942f3": {
+    "upper_type": "t-shirt",
+    "outer_type": "denim shirt",
+    "lower_type": "jeans",
+    "colors": [
+      "blue",
+      "white"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "ac7d722ebbf89943d36445ade81682e2b5ba35c806774d5841be6afcbfe3e72e": {
+    "upper_type": "shirt",
+    "outer_type": "none",
+    "lower_type": "linen trousers",
+    "colors": [
+      "ivory",
+      "beige"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "c97678554be15204b485dd4df6db4d14303225f3dc188974df3c89a54b97a44d": {
+    "upper_type": "sweater",
+    "outer_type": "none",
+    "lower_type": "midi skirt",
+    "colors": [
+      "burgundy",
+      "charcoal"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "c02a1b201519a63f250924cc0fabf78d1d41eefc2cb1a1920ca01f552b9c8fb4": {
+    "upper_type": "knit top",
+    "outer_type": "blazer",
+    "lower_type": "trousers",
+    "colors": [
+      "camel",
+      "light blue",
+      "charcoal"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "4d2c1e9d69bdc50b34b9123789626348869614cc133b2907a80ce3b4b0863e1e": {
+    "upper_type": "t-shirt",
+    "outer_type": "none",
+    "lower_type": "denim skirt",
+    "colors": [
+      "white",
+      "blue"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "92cfc9a278b12a5881944bdfa3ca3ff109d5572365b7b2b823cccf88c9d316b2": {
+    "upper_type": "knit top",
+    "outer_type": "none",
+    "lower_type": "linen trousers",
+    "colors": [
+      "light blue",
+      "ivory"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "e382405fbfcc9e355b5f569830c5b823e03c1d467770d20b0a480aa2bbddfdf5": {
+    "upper_type": "short-sleeve dress",
+    "outer_type": "none",
+    "lower_type": "none",
+    "colors": [
+      "forest green"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "da010dd345d59482d9ce3bc91a49c63bfb834f178bca79b2a3fecb3a30e01e30": {
+    "upper_type": "unknown",
+    "outer_type": "sport jacket",
+    "lower_type": "trousers",
+    "colors": [
+      "black",
+      "charcoal"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.75
+  },
+  "89402ece78b29bf0da888d5fd50a69025e3b40937da73ed73dcc99da87247d6a": {
+    "upper_type": "blouse",
+    "outer_type": "none",
+    "lower_type": "trousers",
+    "colors": [
+      "ivory",
+      "charcoal"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.7
+  },
+  "409f6f5fb3c1689ab47864933c84d4f71424883a2dc314a0cc5fd8cd5c0095cf": {
+    "upper_type": "turtleneck",
+    "outer_type": "none",
+    "lower_type": "unknown",
+    "colors": [
+      "charcoal"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.65
+  },
+  "9a3bae2e150fc8c7b88a890916469ab828c026f821b1046bc3da7a4626876f41": {
+    "upper_type": "t-shirt",
+    "outer_type": "cardigan",
+    "lower_type": "unknown",
+    "colors": [
+      "navy",
+      "grey"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.7
+  },
+  "470ff640b41e1a663bb66ae4400a2bd7a6332c2e4fde6b876c35cc2f00d85472": {
+    "upper_type": "shirt",
+    "outer_type": "trench coat",
+    "lower_type": "midi skirt",
+    "colors": [
+      "beige",
+      "light blue",
+      "navy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "d98fa697f1438c37af49adb67f79583b7e00896588f7f8c7b30b1b428c2333c1": {
+    "upper_type": "t-shirt",
+    "outer_type": "cardigan",
+    "lower_type": "wide trousers",
+    "colors": [
+      "olive",
+      "white",
+      "cream"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "82a612476a2edb341c34be6af6fcd613fd5cf11a6aa054607e2f08c6d597e72b": {
+    "upper_type": "t-shirt",
+    "outer_type": "light jacket",
+    "lower_type": "jeans",
+    "colors": [
+      "lavender",
+      "white",
+      "navy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "4ad9f647206fafb8ad65fa67449cd31aa6066e5628c6c845fb3e3c5426244262": {
+    "upper_type": "short-sleeve blouse",
+    "outer_type": "none",
+    "lower_type": "linen trousers",
+    "colors": [
+      "cream",
+      "beige"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "39f97829b50ea459b70400b3c20b44b9b17e49af8d3fb34777db69ef7c630605": {
+    "upper_type": "striped t-shirt",
+    "outer_type": "none",
+    "lower_type": "midi skirt",
+    "colors": [
+      "navy",
+      "white",
+      "blue"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "04824d685d46264e1c361f9ba33b21551a2c79faf7ce818614d98a198706a025": {
+    "upper_type": "knit top",
+    "outer_type": "suede jacket",
+    "lower_type": "jeans",
+    "colors": [
+      "brown",
+      "cream",
+      "navy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "bc9b868dfef191f36cb5e20b90ea3452e5d1336bd93b0127550b47b34d6b0e7d": {
+    "upper_type": "blouse",
+    "outer_type": "cardigan",
+    "lower_type": "pleated midi skirt",
+    "colors": [
+      "burgundy",
+      "cream",
+      "camel"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "8d43c4ebad36dfbe2bab2eb21bfac53fd8f67e14c43ecdc2eceba4b0c210c1d7": {
+    "upper_type": "hoodie",
+    "outer_type": "utility jacket",
+    "lower_type": "cargo trousers",
+    "colors": [
+      "olive",
+      "grey",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "ceafaba0fd9ba37286d42b1f16ed5fc31202ec5dca18f569412b6648ca0c8e61": {
+    "upper_type": "knit top",
+    "outer_type": "wool coat",
+    "lower_type": "skirt",
+    "colors": [
+      "charcoal",
+      "grey",
+      "cream"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.8
+  },
+  "6d80d363d965cded739c59c3d92d906a2e8044ac88c664d7869e183abfc4fe61": {
+    "upper_type": "knit top",
+    "outer_type": "puffer jacket",
+    "lower_type": "jeans",
+    "colors": [
+      "grey",
+      "light blue",
+      "charcoal"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "8062a7c883b2ae015fa4d52d374365acb747ea04092891934a3819284cf4cc0d": {
+    "upper_type": "unknown",
+    "outer_type": "long puffer coat",
+    "lower_type": "skirt",
+    "colors": [
+      "cream",
+      "brown",
+      "charcoal"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.75
+  },
+  "ef2a88a3b13052c62fb9bf1166c19e440f024319059bed788f5002c9256ecd2c": {
+    "upper_type": "turtleneck",
+    "outer_type": "puffer jacket",
+    "lower_type": "wide trousers",
+    "colors": [
+      "forest green",
+      "beige",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "46acef66100f22a5a8e2e102a6a9a84afb4f1713ad0e5131e3ac948f76596d1f": {
+    "upper_type": "hoodie",
+    "outer_type": "puffer jacket",
+    "lower_type": "pleated skirt",
+    "colors": [
+      "light blue",
+      "grey",
+      "charcoal"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "e6f75104086879fe3089e4890618750633145815ca3279d1658fedf3b84e27cd": {
+    "upper_type": "turtleneck",
+    "outer_type": "puffer jacket",
+    "lower_type": "midi skirt",
+    "colors": [
+      "burgundy",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "3fbec646556ad8fa22f0a307492cff9380c7f68c3b6562ba9d29a741a1c25b68": {
+    "upper_type": "knit top",
+    "outer_type": "cropped puffer jacket",
+    "lower_type": "corduroy trousers",
+    "colors": [
+      "beige",
+      "cream",
+      "brown"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "6079acf934858c2cb8dda641f228f616b253fd298d5502797620af69b28ac0a6": {
+    "upper_type": "unknown",
+    "outer_type": "long parka",
+    "lower_type": "trousers",
+    "colors": [
+      "navy",
+      "lavender",
+      "charcoal"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.8
+  },
+  "849e300ddef72d27da8af1d7c254c0f9d1210b3b4fa994261d3f6b038a3ca70e": {
+    "upper_type": "t-shirt",
+    "outer_type": "denim jacket",
+    "lower_type": "wide trousers",
+    "colors": [
+      "blue",
+      "yellow",
+      "cream"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "da00d47fb828e2bd68200893244412d4d38e92d33c1c8b28428c29608b186dbe": {
+    "upper_type": "short-sleeve dress",
+    "outer_type": "none",
+    "lower_type": "none",
+    "colors": [
+      "sage"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "5b8819b6359b6ec1401491e979705b2ba83ac889bdac075d53305b47c05f1faf": {
+    "upper_type": "t-shirt",
+    "outer_type": "denim shirt",
+    "lower_type": "corduroy trousers",
+    "colors": [
+      "blue",
+      "white",
+      "rust"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "0ab935b533c5762cce52f80346086a43e4cd778ea6d2c154de29f65c0fb9adf4": {
+    "upper_type": "striped top",
+    "outer_type": "trench coat",
+    "lower_type": "jeans",
+    "colors": [
+      "olive",
+      "navy",
+      "white",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "0a60ebd9f15b7746c40de63675033df6ae24187f90a5abd5923b926723fa2662": {
+    "upper_type": "t-shirt",
+    "outer_type": "varsity jacket",
+    "lower_type": "baggy jeans",
+    "colors": [
+      "burgundy",
+      "cream",
+      "white",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "6a2946c3d64d6f4766c1bea2b88fdc7043fc60d21f4cc51fbd4a869befe804ee": {
+    "upper_type": "top",
+    "outer_type": "leather jacket",
+    "lower_type": "plaid midi skirt",
+    "colors": [
+      "black",
+      "burgundy",
+      "charcoal"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "98bf94c6edebcdc2f4b1b952c8aa5e6e362d991dfb880ecdf42d0db7ad25d295": {
+    "upper_type": "hoodie",
+    "outer_type": "shell jacket",
+    "lower_type": "cargo trousers",
+    "colors": [
+      "black",
+      "grey"
+    ],
+    "layers_visible": 3,
+    "confidence": 0.8
+  },
+  "d31791cb7fc7fe57379810cbda57e6e4b419df3317f33646de8bd2e93af7aed9": {
+    "upper_type": "t-shirt",
+    "outer_type": "flannel shirt",
+    "lower_type": "baggy jeans",
+    "colors": [
+      "green",
+      "white",
+      "light blue"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "cd2dff2739dc3fadc326a2aed7eb67a26f28b3486acab4117bc6a4668e157f7b": {
+    "upper_type": "tank top",
+    "outer_type": "denim jacket",
+    "lower_type": "parachute pants",
+    "colors": [
+      "navy",
+      "white",
+      "silver"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "3cb6079a4f98bfbc56bdaa426fdadc9f716b0ed9cd61b8b6cc6c76feea64bef6": {
+    "upper_type": "t-shirt",
+    "outer_type": "track jacket",
+    "lower_type": "track pants",
+    "colors": [
+      "teal",
+      "cream",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "709243ff2fa1d9bde88c8c61d9cffc0e61ba06bd7229b17fccbceae4bcdd190f": {
+    "upper_type": "shirt",
+    "outer_type": "suit jacket",
+    "lower_type": "suit trousers",
+    "colors": [
+      "navy",
+      "white"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "c3745273596204bb90093b423683b4b5ef294e68d25d3d151735ebd8cc6cec9b": {
+    "upper_type": "shirt",
+    "outer_type": "cable-knit cardigan",
+    "lower_type": "pleated midi skirt",
+    "colors": [
+      "cream",
+      "light blue",
+      "navy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "29fa6163c93df4954a04009c0694a092c0ea42027392e7287e42fb21ae72c2dd": {
+    "upper_type": "knit top",
+    "outer_type": "blazer",
+    "lower_type": "trousers",
+    "colors": [
+      "camel",
+      "cream",
+      "brown"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "034afceaaf27120bd47bde3c2ef8324ec6efdb93c756b115c8e7f317a6138277": {
+    "upper_type": "top",
+    "outer_type": "blazer",
+    "lower_type": "wide trousers",
+    "colors": [
+      "charcoal",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "742fdcb7d9faf092c0ae3aeac156464ddf206c094a4670b8a06ae456b227368a": {
+    "upper_type": "shirt dress",
+    "outer_type": "cardigan",
+    "lower_type": "none",
+    "colors": [
+      "dusty pink",
+      "beige"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "a69daa5f67f579f93fb95bff579f7314401e51f8edbb334bd8940c8257e02041": {
+    "upper_type": "turtleneck",
+    "outer_type": "none",
+    "lower_type": "plaid midi skirt",
+    "colors": [
+      "rust",
+      "brown"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "b5ad9e6c411af4865ba9590c0313afeacf7d11e3fdcacc06daefd2a49d87aa23": {
+    "upper_type": "floral blouse",
+    "outer_type": "none",
+    "lower_type": "tiered maxi skirt",
+    "colors": [
+      "beige",
+      "olive",
+      "cream"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "f437c31f48119c2cfbf3aab813762a58353be786b45773583a8c4cf189f7f3e0": {
+    "upper_type": "knit dress",
+    "outer_type": "long coat",
+    "lower_type": "none",
+    "colors": [
+      "forest green",
+      "charcoal"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "de38612ec7cfe4ff50df7e84a9ff0a358850601b0132b7ad080ee8950e7c1e1d": {
+    "upper_type": "t-shirt",
+    "outer_type": "denim shirt",
+    "lower_type": "jeans",
+    "colors": [
+      "blue",
+      "white"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "384e99489dfe415da336acc228f2c24b7678e3e3e850f13c3f08003713c8c254": {
+    "upper_type": "t-shirt",
+    "outer_type": "fleece jacket",
+    "lower_type": "cargo trousers",
+    "colors": [
+      "rust",
+      "black",
+      "olive"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "d91e87adb635757a001819f20acf308b669f9dfc507fe2afc0fb3800dcc38072": {
+    "upper_type": "t-shirt",
+    "outer_type": "windbreaker",
+    "lower_type": "leggings",
+    "colors": [
+      "cobalt blue",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "402d8eb6625a0b5bfc10622456edae277f6f4f4f4de3d2ea5c9176984c45abbc": {
+    "upper_type": "striped t-shirt",
+    "outer_type": "utility jacket",
+    "lower_type": "chinos",
+    "colors": [
+      "olive",
+      "khaki",
+      "navy",
+      "white"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "c18b232cf4e87eaf605c801e52769c095db67a696b87511a5298fedb0322cc2b": {
+    "upper_type": "satin slip dress",
+    "outer_type": "velvet blazer",
+    "lower_type": "none",
+    "colors": [
+      "champagne",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "25b872fc38d8d3254814a061823e4397b8d6c17a50b6ba6d2c15e8522c9c5377": {
+    "upper_type": "tank top",
+    "outer_type": "shirt",
+    "lower_type": "wide trousers",
+    "colors": [
+      "light blue",
+      "white",
+      "rust"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "8d8939e2afbe7276563ce039aab25f017e2a8b5b4d7b6b1defb9dee9d462c3c1": {
+    "upper_type": "t-shirt",
+    "outer_type": "track jacket",
+    "lower_type": "track pants",
+    "colors": [
+      "navy",
+      "red",
+      "cream",
+      "white"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "7e5d179529ca44263b86867e7a593046c2fc27f5e2b170dd292146ca2dbe1a21": {
+    "upper_type": "wrap cardigan",
+    "outer_type": "none",
+    "lower_type": "pleated midi skirt",
+    "colors": [
+      "dusty pink",
+      "taupe"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.8
+  },
+  "3c0b3ae65f92e957fbf36b92a795c69db2a989effe93bf2fd769d6351dc3c75e": {
+    "upper_type": "gingham dress",
+    "outer_type": "cardigan",
+    "lower_type": "none",
+    "colors": [
+      "grey",
+      "white",
+      "beige"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "9fabe36d5037384aab91287155f17fd1dd76759985c26750dac4ef54fe72ea85": {
+    "upper_type": "t-shirt",
+    "outer_type": "plaid blazer",
+    "lower_type": "tartan trousers",
+    "colors": [
+      "charcoal",
+      "black",
+      "burgundy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "95d34ac7a5605cefe4f1f24720d3fa842d01937d26e3a5cfd3dd5837337c03ef": {
+    "upper_type": "blouse",
+    "outer_type": "long vest",
+    "lower_type": "trousers",
+    "colors": [
+      "taupe",
+      "cream",
+      "teal"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "3b6ebe0af5dc987bf24580e63dfa1c484efca3944aa7f416b924e7a8c59b62f8": {
+    "upper_type": "knit top",
+    "outer_type": "blazer",
+    "lower_type": "wide trousers",
+    "colors": [
+      "magenta",
+      "cobalt blue",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "d9ee293e5c7787ff0e309455c94ce3b988e94107aa81ff5276e5aa27d2d5b785": {
+    "upper_type": "striped top",
+    "outer_type": "trench coat",
+    "lower_type": "jeans",
+    "colors": [
+      "sage",
+      "navy",
+      "white",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "8a4343db34ac3fac3444b116707e9af2c5b2a49fbe278824c67fd05e255f6d18": {
+    "upper_type": "striped t-shirt",
+    "outer_type": "cardigan",
+    "lower_type": "wide trousers",
+    "colors": [
+      "mustard",
+      "burgundy",
+      "navy",
+      "white"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "dbb78475de4ccf5d27475f0e5fee2312f0f2569348dd11779f7fdcf0a5856e45": {
+    "upper_type": "jumpsuit",
+    "outer_type": "none",
+    "lower_type": "none",
+    "colors": [
+      "forest green"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "8ef7ab3f6644f0b2def3c87cf93e6df01945293207817661e56a76a41d1499e8": {
+    "upper_type": "sweatshirt",
+    "outer_type": "none",
+    "lower_type": "denim maxi skirt",
+    "colors": [
+      "charcoal",
+      "navy"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "e9310300ede4bddef4baa138d9fb9e9abb5ef47fedd115834aed3fc72cd31e42": {
+    "upper_type": "t-shirt",
+    "outer_type": "bomber jacket",
+    "lower_type": "cargo trousers",
+    "colors": [
+      "green",
+      "rust",
+      "white",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "1e9c4db1047e5b2f2a357c8f422cd91e7ef0269e6b4b2a5372de7bf1ab95598d": {
+    "upper_type": "blouse",
+    "outer_type": "suit jacket",
+    "lower_type": "suit trousers",
+    "colors": [
+      "navy",
+      "cream"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "6fec7999bfa341d0e11789336bbc626769fa742b7e99e9f55ca9f3e4df9822de": {
+    "upper_type": "striped top",
+    "outer_type": "trench coat",
+    "lower_type": "jeans",
+    "colors": [
+      "sage",
+      "navy",
+      "white"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "9d97c1f083b2175c5b2b7fae9314894b1ef0f2d5f8b4ab097310f55be9774d38": {
+    "upper_type": "t-shirt",
+    "outer_type": "denim shirt",
+    "lower_type": "wide trousers",
+    "colors": [
+      "blue",
+      "white",
+      "cream"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "9725335427060ff6937680b40134a761a6f200ea74255ac50f7fb4e834d19a58": {
+    "upper_type": "blouse",
+    "outer_type": "cardigan",
+    "lower_type": "pleated midi skirt",
+    "colors": [
+      "yellow",
+      "cream",
+      "lavender"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "08b5bbe3b5dc1dc8949fba4308fd3d2d31b7a2282e9436b286d5e0b94acf0c83": {
+    "upper_type": "unknown",
+    "outer_type": "shell jacket",
+    "lower_type": "cargo trousers",
+    "colors": [
+      "black",
+      "charcoal"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.8
+  },
+  "7e92266b83db7afd0b4d4d0cd60f194a5399205e166af87e49fad91ce93bbeeb": {
+    "upper_type": "unknown",
+    "outer_type": "fleece jacket",
+    "lower_type": "cargo trousers",
+    "colors": [
+      "rust",
+      "olive"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.8
+  },
+  "4d9c12d11c3dd69d4e964d99e2c7d5829c504dbab18c70545500367809d67e52": {
+    "upper_type": "shirt",
+    "outer_type": "cable-knit cardigan",
+    "lower_type": "pleated mini skirt",
+    "colors": [
+      "cream",
+      "light blue",
+      "navy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "81c59bcb3d3adbc0a864421772ca66f5d5ecbc7601e130184952c1e70fe1fd99": {
+    "upper_type": "top",
+    "outer_type": "leather jacket",
+    "lower_type": "plaid midi skirt",
+    "colors": [
+      "black",
+      "burgundy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "3d49fd8d0f866640e578eec58c8b5b73413a4fb41d334e13ed46fe398af40541": {
+    "upper_type": "tank top",
+    "outer_type": "shirt",
+    "lower_type": "linen trousers",
+    "colors": [
+      "mint",
+      "white",
+      "cream"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "c70deb94926e7e8865f8671dd5d007c2155ddb70e096a51d429e4f534769cc57": {
+    "upper_type": "hoodie",
+    "outer_type": "denim jacket",
+    "lower_type": "cargo trousers",
+    "colors": [
+      "blue",
+      "lime",
+      "burgundy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "beb120e6253d7e1a0332ac4904f2ecbfe9101c6b2082e389eb249f6e03adbbc2": {
+    "upper_type": "rugby shirt",
+    "outer_type": "none",
+    "lower_type": "baggy jeans",
+    "colors": [
+      "purple",
+      "cream",
+      "light blue"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "789e91ee68cd3fc8cdbc68de2b1cb60b45b81d577e3b6ef86e182f4806fdf572": {
+    "upper_type": "fleece top",
+    "outer_type": "shell jacket",
+    "lower_type": "cargo trousers",
+    "colors": [
+      "orange",
+      "teal",
+      "olive"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "b784b009bf47c2b6c0a68dd2c4e1a750f49964b3c899a10862771ee184c701ca": {
+    "upper_type": "t-shirt",
+    "outer_type": "patchwork cardigan",
+    "lower_type": "baggy jeans",
+    "colors": [
+      "mustard",
+      "green",
+      "burgundy",
+      "black",
+      "blue"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "cdeba003d9cc26bc517ebcb29994e1847670094e1aaef2de0324ac81e19e54c7": {
+    "upper_type": "hoodie",
+    "outer_type": "vest",
+    "lower_type": "cargo trousers",
+    "colors": [
+      "red",
+      "black",
+      "charcoal"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "bcf59bf7035a5cc000e54f1fa6bc30f4bdca496a2491e058f4268759445c7a08": {
+    "upper_type": "unknown",
+    "outer_type": "puffer coat",
+    "lower_type": "jeans",
+    "colors": [
+      "black",
+      "beige",
+      "navy"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.8
+  },
+  "eebc39d2c6da6b98bfbfc6d25ce42472efa4bf684a6a7f7359ca044ed319c6e2": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "0121db7ea6aff0a913215bb6a1189986053bf64a7fff12082c5214ff9e48e16f": {
+    "upper_type": "unknown",
+    "outer_type": "puffer jacket",
+    "lower_type": "jeans",
+    "colors": [
+      "cream",
+      "grey",
+      "charcoal"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.8
+  },
+  "a63831c527cc6988cb9e4383a8a0b87b568b9d3dad41165ba50ea1c2c92287ea": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "435211a79e7fd0b124e241f383f7b656b66675b08994838835d98da2b91b0935": {
+    "upper_type": "turtleneck",
+    "outer_type": "puffer coat",
+    "lower_type": "jeans",
+    "colors": [
+      "black",
+      "grey",
+      "navy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "a9393ef676e1515bfc269a6e6a926e53030c2657dea0e947fca471b687f2933c": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "84808b2807abab8caba56655f2fddeab9139ea1c6fa4d9ebf10e9815c5e35b53": {
+    "upper_type": "knit top",
+    "outer_type": "wool coat",
+    "lower_type": "jeans",
+    "colors": [
+      "charcoal",
+      "cream",
+      "navy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "c5437d6a041eb9675d63143170daeefe08be4742ac3b977180eeda21bd834a42": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "39103f7c09abbc678bd852892d30971050044a195dfc25ac35f2b926f0e08fed": {
+    "upper_type": "knit top",
+    "outer_type": "trench coat",
+    "lower_type": "jeans",
+    "colors": [
+      "beige",
+      "navy",
+      "blue"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "ed9cc03b9b743fd318ffc57f061f323b4e9bd4d4ea23264c17557776fd452138": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "6ad012297517ed694db3a023fb7dd5fc2ca52f788564665ad19f824fccf59be4": {
+    "upper_type": "t-shirt",
+    "outer_type": "denim jacket",
+    "lower_type": "trousers",
+    "colors": [
+      "blue",
+      "white",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "74574a7018ae681d9fbb7069373ad19f12e2837e989644e7859f87513f8a0129": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "5776b1506d9e3d65ae9e76d05b95a973ea0b5474a7d40e61809b806e8fb34e95": {
+    "upper_type": "t-shirt",
+    "outer_type": "cardigan",
+    "lower_type": "jeans",
+    "colors": [
+      "grey",
+      "white",
+      "navy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "6f45f8eb8851f08f81012b2f69b7052fb3223e3843008aa67dd284e7d49aee0f": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "1cc5c5b5ac6986766d42ae643abbf0e33db75be6a8591903502c3fd9306e10bc": {
+    "upper_type": "shirt",
+    "outer_type": "none",
+    "lower_type": "chinos",
+    "colors": [
+      "light blue",
+      "cream"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "d0e2ad1542d87ac1dbc8625bcb5d854f7d8c5a752d0157631a509d47c3dfea3c": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "fce153154f7edb9bb60da8be8dcfbb45015a037c8625afcf0693f58d11a5e2e9": {
+    "upper_type": "t-shirt",
+    "outer_type": "none",
+    "lower_type": "jeans",
+    "colors": [
+      "white",
+      "blue"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "225f0fcdbc0f8e8f60d4d804937d99792b95a91435509d3fa9790de479ba8065": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "ef1d1999ccd606ee502d148dc1abe240101bac71961a94f9f5d363395d8321bf": {
+    "upper_type": "t-shirt",
+    "outer_type": "none",
+    "lower_type": "linen trousers",
+    "colors": [
+      "navy",
+      "beige"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "6f89911bb070da6ad8e39f5cd19a30e0a5ce898e84eeee28d3b580996ce12eb2": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "6d81a9d31c8e6238149745f69ea27326c878dc566b3744ddc6d6d7b38196f6e4": {
+    "upper_type": "t-shirt",
+    "outer_type": "none",
+    "lower_type": "shorts",
+    "colors": [
+      "white",
+      "black"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "c343d34ca137324959ec4cfa4877cff27cc2be2ec5514cf7691fbd9c32260267": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "072c39008fd2298736abe75d7d62b1ee50b9ee25c27be32717dfef38a03bf1c2": {
+    "upper_type": "t-shirt",
+    "outer_type": "none",
+    "lower_type": "denim shorts",
+    "colors": [
+      "grey",
+      "blue"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "7cdcef14bfac0e0c8ea74ed4d5632569e678f96a54537d8a639c3f5dbb2fa348": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "3b0b950df2832bf3d91ab443e430bb373c43eede4a310156a0a8d90af9b65c71": {
+    "upper_type": "t-shirt",
+    "outer_type": "none",
+    "lower_type": "linen trousers",
+    "colors": [
+      "navy",
+      "beige"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "7c77ce87183b4a6a2e3ffa524e2e411a1b5e27336385ac8b58659a229615a24c": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "aed70342b465283a7c965c5113c143e452ca509a202175b39985847b6c7d093d": {
+    "upper_type": "t-shirt",
+    "outer_type": "none",
+    "lower_type": "shorts",
+    "colors": [
+      "white",
+      "beige"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "11b345d6c1832644c014b9252e521dbb9774c81e350a512657d8c43583b162a1": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "51c8eefec588b5485ad268d12cfaf7af8ed68912b5980c7a7bc1e39d58eeae98": {
+    "upper_type": "short-sleeve shirt",
+    "outer_type": "none",
+    "lower_type": "trousers",
+    "colors": [
+      "light blue",
+      "black"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "cacfd28ac7852ddcc64f945b1474157c17df257d460bb2bb0a8796d7804d975d": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "dfb08076eb3b10113443153218a6216944307518189f122282449501e3add584": {
+    "upper_type": "t-shirt",
+    "outer_type": "cardigan",
+    "lower_type": "jeans",
+    "colors": [
+      "grey",
+      "white",
+      "navy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.9
+  },
+  "c5370d99f1624488d57617c068e98853edc8e29bda50f254334e4a7066ee414d": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "a2f7a33bebf85a6a45bc34e13afc5706f934531d4c184bc328ecd3150bfbad8b": {
+    "upper_type": "sweater",
+    "outer_type": "none",
+    "lower_type": "jeans",
+    "colors": [
+      "cream",
+      "navy"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.9
+  },
+  "6a731276f274d34118da61391c2af36c0c7e8e7b37fe8c9b8acebd8e74a35fba": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "2e1c9e5e787bf0894befda5ea0de66503713944b180fcd9c7ce8235bebd98410": {
+    "upper_type": "knit top",
+    "outer_type": "trench coat",
+    "lower_type": "trousers",
+    "colors": [
+      "beige",
+      "navy",
+      "black"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "f79568c75b82874ebc9dc82a8be19f5e7f33f573e528fdd540fd551cc215d043": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "587f924efbe243736511f9de79afb16bea3b13a55a318c16d7805f3402dacf3a": {
+    "upper_type": "knit top",
+    "outer_type": "wool coat",
+    "lower_type": "jeans",
+    "colors": [
+      "charcoal",
+      "beige",
+      "grey",
+      "navy"
+    ],
+    "layers_visible": 2,
+    "confidence": 0.85
+  },
+  "b2436f4717fc036155af02767c0e692349a0c5f6d966b5eb4a5ca685be6736d1": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  },
+  "7e1a8603af2d909449921dc80395dde26f7fdaa146e43f55e798b08b124fe3e8": {
+    "upper_type": "unknown",
+    "outer_type": "puffer coat",
+    "lower_type": "trousers",
+    "colors": [
+      "black",
+      "beige",
+      "charcoal"
+    ],
+    "layers_visible": 1,
+    "confidence": 0.85
+  },
+  "492b9dab79488f22f691d4363fa0912fbdba0ce65eb11bdbb2786fba824671b5": {
+    "upper_type": "unknown",
+    "outer_type": "unknown",
+    "lower_type": "unknown",
+    "colors": [],
+    "layers_visible": 0,
+    "confidence": 0.0
+  }
+}

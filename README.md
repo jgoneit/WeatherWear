@@ -3,6 +3,8 @@
 > **"14°C에 뭐 입었더라?"**
 > 예전에 비슷한 기온에서 내가 실제로 입은 옷과 그날의 체감(🥶 추웠어 / 😊 적당했어 / 🥵 더웠어)을 보여 주는 착장 추천 웹 앱
 
+**배포 링크:** [WeatherWear 바로 사용하기](https://cdna-kong-depending-atmosphere.trycloudflare.com)
+
 **Demo:** [전체 데모 영상 보기 (48초)](docs/demo/WeatherWear-demo-edited.mp4)
 
 [![WeatherWear 데모 미리보기 — 클릭하면 전체 영상 열기](docs/demo/WeatherWear-demo-preview.gif)](docs/demo/WeatherWear-demo-edited.mp4)

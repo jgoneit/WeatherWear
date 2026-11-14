@@ -85,13 +85,13 @@ class Placeholder:
 
 PLACEHOLDERS: tuple[Placeholder, ...] = (
     Placeholder("ph_01_navy_parka", -9.0, "2025-01-10T08:00:00+09:00", "parka", "knit", "jeans", ("navy", "grey"), "comfortable"),
-    Placeholder("ph_02_wool_coat", 1.0, "2025-02-03T08:30:00+09:00", "wool_coat", "turtleneck", "slacks", ("camel", "black")),
-    Placeholder("ph_03_cream_sweater", 8.0, "2025-11-20T08:30:00+09:00", "none", "sweater", "slacks", ("cream", "brown"), "comfortable"),
+    Placeholder("ph_02_wool_coat", 1.0, "2025-02-03T08:30:00+09:00", "coat", "turtleneck", "slacks", ("camel", "black")),
+    Placeholder("ph_03_cream_sweater", 8.0, "2025-11-20T08:30:00+09:00", "none", "knit", "slacks", ("cream", "brown"), "comfortable"),
     Placeholder("ph_04_varsity_jacket", 9.0, "2025-11-05T09:00:00+09:00", "varsity_jacket", "hoodie", "jeans", ("green", "white", "blue"), "comfortable"),
-    Placeholder("ph_05_sage_sweater", 9.0, "2025-03-12T09:00:00+09:00", "none", "sweater", "jeans", ("sage", "blue"), "cold"),
+    Placeholder("ph_05_sage_sweater", 9.0, "2025-03-12T09:00:00+09:00", "none", "knit", "jeans", ("sage", "blue"), "cold"),
     Placeholder("ph_06_beige_trench", 14.0, "2025-04-08T08:00:00+09:00", "trench_coat", "shirt", "slacks", ("beige", "white", "navy")),
     Placeholder("ph_07_oxford_shirt", 19.0, "2025-05-20T08:30:00+09:00", "none", "shirt", "chinos", ("blue", "tan"), "hot"),
-    Placeholder("ph_08_linen_tee", 25.0, "2025-07-15T08:00:00+09:00", "none", "t_shirt", "linen_trousers", ("white", "ivory")),
+    Placeholder("ph_08_linen_tee", 25.0, "2025-07-15T08:00:00+09:00", "none", "t_shirt", "trousers", ("white", "ivory")),
 )
 
 

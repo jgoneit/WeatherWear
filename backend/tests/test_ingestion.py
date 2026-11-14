@@ -300,7 +300,7 @@ def test_vision_provider_stored(photo_dir: Path, repo, provider_name: str) -> No
     data = png_bytes((9, 9, 9))
     write_photo(photo_dir, "a.png", data)
     tags = ClothingTags(
-        upper_type="니트", outer_type="코트", lower_type="슬랙스",
+        upper_type="knit", outer_type="coat", lower_type="slacks",
         colors=["navy", "cream"], layers_visible=2, confidence=0.9,
     )
     vision = CountingVision(name=provider_name, tags={hashlib.sha256(data).hexdigest(): tags})

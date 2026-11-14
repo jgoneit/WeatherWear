@@ -36,7 +36,7 @@ def add_outfit(repo: OutfitRepository, sha: str = "a" * 64, seed_vote=None) -> i
         latitude=37.5665,
         longitude=126.9780,
         tags=ClothingTags(
-            upper_type="sweater", outer_type="none", lower_type="slacks",
+            upper_type="knit", outer_type="none", lower_type="slacks",
             colors=["cream"], layers_visible=1, confidence=0.8,
         ),
         vision_provider="fixture",

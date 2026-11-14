@@ -275,11 +275,23 @@ ThermalVote = Literal["cold", "comfortable", "hot"]
 FeedbackSource = Literal["user_action", "demo_seed"]
 WeatherProviderName = Literal["open_meteo", "fixture"]
 
+UpperType = Literal["unknown", "t_shirt", "long_sleeve_t_shirt", "shirt", "blouse", "knit",
+                    "turtleneck", "sweatshirt", "hoodie", "sleeveless_top", "cardigan",
+                    "fleece", "jersey", "dress", "jumpsuit", "coveralls"]
+OuterType = Literal["unknown", "none", "long_puffer", "short_puffer", "puffer_jacket",
+                    "parka", "coat", "trench_coat", "jacket", "blazer", "cardigan",
+                    "denim_jacket", "leather_jacket", "bomber_jacket", "fleece_jacket",
+                    "rain_jacket", "windbreaker", "track_jacket", "utility_jacket",
+                    "shirt_jacket", "varsity_jacket", "vest", "jersey"]
+LowerType = Literal["unknown", "none", "jeans", "trousers", "slacks", "chinos",
+                    "cargo_pants", "corduroy_pants", "leggings", "shorts", "skirt",
+                    "track_pants", "jogger_pants", "parachute_pants"]
+
 class ClothingTags(BaseModel):            # Req 3.1, 3.6
     model_config = ConfigDict(extra="forbid")
-    upper_type: constr(min_length=1, max_length=50)
-    outer_type: constr(min_length=1, max_length=50)    # 겉옷 없음: "none"
-    lower_type: constr(min_length=1, max_length=50)
+    upper_type: UpperType
+    outer_type: OuterType                  # 겉옷 없음: "none"
+    lower_type: LowerType
     colors: conlist(constr(min_length=1, max_length=30), min_length=0, max_length=5)
     layers_visible: conint(ge=0, le=5)
     confidence: confloat(ge=0.0, le=1.0)
@@ -574,7 +586,7 @@ def build_explanation(today_c: Decimal, past_c: Decimal, diff: Decimal, tags: li
 - 투표 없음 → `체감 피드백 기록 없음.`(Req 8.4)
 - `cold` → `체감: 추웠음 (과거에 추웠음, −15.0점).`, `hot` → `체감: 더웠음 (과거에 더웠음, −15.0점).`(Req 7.4)
 - fallback → 끝에 `기온 허용 범위를 5.0°C로 확장하여 선택되었습니다.` 추가(Req 8.3)
-- 300자를 넘으면 태그 문자열을 각 20자로 자른 뒤 다시 만든다. 태그 3개 × 50자 + 고정 문구로도 300자를 넘지 않도록 상한을 테스트로 확인한다(Req 8.1).
+- 300자를 넘으면 태그 문자열을 각 20자로 자른 뒤 다시 만든다. canonical enum의 가장 긴 식별자를 포함해도 300자를 넘지 않는지 테스트로 확인한다(Req 8.1).
 
 ### 11. REST API (`app/api/`, 리드 소유)
 

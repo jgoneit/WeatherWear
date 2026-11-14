@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from app.config import resolve_config
-from app.domain import UNKNOWN_TAGS, ClothingTags
+from app.domain import LOWER_TYPES, OUTER_TYPES, UPPER_TYPES, UNKNOWN_TAGS, ClothingTags
 from app.providers.vision.base import VisionError, VisionProvider
 from app.providers.vision.factory import build_vision_provider
 from app.providers.vision.fixture import (
@@ -84,6 +84,17 @@ def test_load_skips_invalid_entries(tmp_path: Path) -> None:
     assert load_vision_fixture(path) == {good: TAGS}
 
 
+def test_real_fixture_uses_only_canonical_categories() -> None:
+    fixture = load_vision_fixture(DEFAULT_VISION_FIXTURE_PATH)
+    assert len(fixture) == 159
+    for tags in fixture.values():
+        assert tags.upper_type in UPPER_TYPES
+        assert tags.outer_type in OUTER_TYPES
+        assert tags.lower_type in LOWER_TYPES
+        assert " " not in tags.upper_type + tags.outer_type + tags.lower_type
+        assert "-" not in tags.upper_type + tags.outer_type + tags.lower_type
+
+
 @pytest.mark.parametrize("content", [None, "{broken", "[]"])
 def test_load_missing_or_broken_file_gives_empty_map(tmp_path: Path, content: str | None) -> None:
     path = tmp_path / "vision.json"
@@ -102,9 +113,9 @@ def test_real_demo_fixture_matches_demo_photo() -> None:
     data = DEMO_PHOTO.read_bytes()
     tags = provider.analyze(data, "image/png", hashlib.sha256(data).hexdigest())
     assert tags == ClothingTags(
-        upper_type="t-shirt",
-        outer_type="varsity jacket",
-        lower_type="baggy jeans",
+        upper_type="t_shirt",
+        outer_type="varsity_jacket",
+        lower_type="jeans",
         colors=["burgundy", "cream", "white", "black"],
         layers_visible=2,
         confidence=0.9,

@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from typing import get_args
 
 import pytest
 from pydantic import ValidationError
 
 from app.domain import (
+    LOWER_TYPES,
+    OUTER_TYPES,
+    UPPER_TYPES,
+    LowerType,
+    OuterType,
+    UpperType,
     UNKNOWN_TAGS,
     ClothingTags,
     RecommendationResult,
@@ -25,6 +32,12 @@ VALID_TAGS = {
 }
 
 KST = timezone(timedelta(hours=9))
+
+
+def test_taxonomy_constants_match_literal_types() -> None:
+    assert UPPER_TYPES == get_args(UpperType)
+    assert OUTER_TYPES == get_args(OuterType)
+    assert LOWER_TYPES == get_args(LowerType)
 
 
 def test_valid_clothing_tags() -> None:
@@ -60,15 +73,25 @@ def test_clothing_tags_requires_all_fields() -> None:
         ClothingTags(**data)
 
 
-def test_clothing_tags_boundaries_accepted() -> None:
+def test_clothing_tags_accepts_taxonomy_boundaries() -> None:
     ClothingTags(
-        upper_type="u" * 50,
-        outer_type="none",
-        lower_type="l",
+        upper_type="coveralls",
+        outer_type="long_puffer",
+        lower_type="parachute_pants",
         colors=["c" * 30] * 5,
         layers_visible=5,
         confidence=1.0,
     )
+
+
+def test_clothing_tags_rejects_noncanonical_spelling() -> None:
+    for field, value in (
+        ("upper_type", "t-shirt"),
+        ("outer_type", "puffer coat"),
+        ("lower_type", "baggy jeans"),
+    ):
+        with pytest.raises(ValidationError):
+            ClothingTags(**{**VALID_TAGS, field: value})
 
 
 def test_unknown_tags_default() -> None:

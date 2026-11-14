@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ClothingTags } from "../api/client";
 import {
   displayTags,
   formatDate,
@@ -74,7 +75,11 @@ describe("voteLabel", () => {
 });
 
 describe("displayTags", () => {
-  const tags = (outer: string, upper: string, lower: string) => ({
+  const tags = (
+    outer: ClothingTags["outer_type"],
+    upper: ClothingTags["upper_type"],
+    lower: ClothingTags["lower_type"],
+  ): ClothingTags => ({
     outer_type: outer,
     upper_type: upper,
     lower_type: lower,
@@ -84,17 +89,17 @@ describe("displayTags", () => {
   });
 
   it("orders outer, upper, lower", () => {
-    expect(displayTags(tags("코트", "니트", "슬랙스"))).toEqual(["코트", "니트", "슬랙스"]);
+    expect(displayTags(tags("coat", "knit", "slacks"))).toEqual(["coat", "knit", "slacks"]);
   });
 
   it("excludes none and unknown without filling from colors", () => {
-    expect(displayTags(tags("none", "니트", "unknown"))).toEqual(["니트"]);
+    expect(displayTags(tags("none", "knit", "unknown"))).toEqual(["knit"]);
     expect(displayTags(tags("unknown", "unknown", "unknown"))).toEqual([]);
   });
 
   it("respects the limit", () => {
-    expect(displayTags(tags("코트", "니트", "슬랙스"), 2)).toEqual(["코트", "니트"]);
-    expect(displayTags(tags("코트", "니트", "슬랙스"), 0)).toEqual([]);
+    expect(displayTags(tags("coat", "knit", "slacks"), 2)).toEqual(["coat", "knit"]);
+    expect(displayTags(tags("coat", "knit", "slacks"), 0)).toEqual([]);
   });
 });
 

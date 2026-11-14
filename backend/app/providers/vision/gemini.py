@@ -28,25 +28,31 @@ import httpx
 from PIL import Image, ImageOps
 from pydantic import SecretStr, ValidationError
 
-from app.domain import ClothingTags
+from app.domain import LOWER_TYPES, OUTER_TYPES, UPPER_TYPES, ClothingTags
 from app.providers.vision.base import VisionError
 
 logger = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 30.0
 
-# Fixed analysis prompt (Req 3.6). Nothing per-image is ever added to it.
+# Fixed analysis prompt. Category lists are derived from the same constants as
+# the Pydantic schema, preventing prompt/schema drift.
 PROMPT = (
     "사진 속 인물의 착장만 분석하라. 결과는 주어진 JSON 스키마의 6개 필드로만 답하라.\n"
-    "- upper_type: 상의 종류, outer_type: 겉옷 종류, lower_type: 하의 종류. 짧은 영어 소문자 명사로 적어라 "
-    "(예: knit, t_shirt, coat, padded_jacket, jeans, slacks, skirt).\n"
-    "- 겉옷을 입지 않았으면 outer_type은 'none'이다.\n"
-    "- 사진에서 보이지 않거나 판단할 수 없는 속성은 추측하지 말고 'unknown'으로 답하라.\n"
-    "- 원단 두께, 보온성, 속옷은 판단하지 마라.\n"
-    "- colors: 착장의 주요 색상을 영어 소문자로 최대 5개.\n"
+    "- 사진에서 실제로 보이는 의류만 분류하고 보이지 않는 옷은 추측하지 마라.\n"
+    f"- upper_type 허용값: {', '.join(UPPER_TYPES)}.\n"
+    f"- outer_type 허용값: {', '.join(OUTER_TYPES)}.\n"
+    f"- lower_type 허용값: {', '.join(LOWER_TYPES)}.\n"
+    "- 롱패딩은 long_puffer, 짧은 패딩은 short_puffer, 길이를 확정할 수 없는 패딩 재킷은 "
+    "puffer_jacket으로 분류하라.\n"
+    "- 겉옷을 입지 않았으면 outer_type은 none이다. 원피스·점프수트처럼 별도 하의가 없으면 "
+    "lower_type은 none이다.\n"
+    "- 사진에서 보이지 않거나 판단할 수 없는 위치는 unknown으로 답하라.\n"
+    "- 원단 두께, 보온성, 속옷, 브랜드는 판단하지 마라.\n"
+    "- colors: 착장의 주요 색상을 영어 소문자 최대 5개.\n"
     "- layers_visible: 겉으로 보이는 옷 겹 수(0~5 정수).\n"
     "- confidence: 분석 전체에 대한 확신도(0.0~1.0).\n"
-    "사진에 사람이 없거나 착장을 볼 수 없으면 세 종류 필드를 모두 'unknown', colors는 빈 목록, "
+    "사진에 사람이 없거나 착장을 볼 수 없으면 세 종류 필드를 모두 unknown, colors는 빈 목록, "
     "layers_visible은 0, confidence는 0.0으로 답하라."
 )
 

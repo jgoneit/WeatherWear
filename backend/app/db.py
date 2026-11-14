@@ -15,6 +15,7 @@ Constraints that back the requirements:
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -24,6 +25,10 @@ from typing import Any
 from sqlalchemy import CheckConstraint, Index, event, text
 from sqlalchemy.engine import Engine, make_url
 from sqlmodel import Field, Session, SQLModel, create_engine
+
+from app.domain import normalize_lower_type, normalize_outer_type, normalize_upper_type
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # ISO 8601 TEXT helpers
@@ -174,12 +179,49 @@ def create_db_engine(database_url: str) -> Engine:
         event.listen(engine, "connect", _set_sqlite_pragmas)
 
     init_db(engine)
+    migrate_legacy_garment_types(engine)
     return engine
 
 
 def init_db(engine: Engine) -> None:
     """Create all WeatherWear tables if they do not exist."""
     SQLModel.metadata.create_all(engine)
+
+
+def migrate_legacy_garment_types(engine: Engine) -> int:
+    """Normalize garment labels written before the canonical taxonomy.
+
+    Existing databases used free-form strings. Known aliases are mapped to a
+    canonical identifier and unrecognized values become ``unknown`` so a
+    legacy row cannot make history or recommendation reads fail validation.
+    The migration is idempotent and returns the number of changed Outfit rows.
+    """
+    changed = 0
+    with engine.begin() as connection:
+        rows = connection.execute(
+            text("SELECT id, upper_type, outer_type, lower_type FROM outfits")
+        ).mappings().all()
+        for row in rows:
+            upper = normalize_upper_type(row["upper_type"])
+            outer = normalize_outer_type(row["outer_type"])
+            lower = normalize_lower_type(row["lower_type"])
+            if (
+                upper == row["upper_type"]
+                and outer == row["outer_type"]
+                and lower == row["lower_type"]
+            ):
+                continue
+            connection.execute(
+                text(
+                    "UPDATE outfits SET upper_type = :upper, outer_type = :outer, "
+                    "lower_type = :lower WHERE id = :id"
+                ),
+                {"id": row["id"], "upper": upper, "outer": outer, "lower": lower},
+            )
+            changed += 1
+    if changed:
+        logger.info("기존 의류 카테고리를 canonical taxonomy로 변환했습니다: %d건", changed)
+    return changed
 
 
 @contextmanager

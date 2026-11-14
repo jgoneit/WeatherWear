@@ -182,15 +182,21 @@ def test_response_schema_matches_clothing_tags_without_additional_properties() -
     assert set(RESPONSE_SCHEMA["properties"]) == set(expected["properties"])
     assert RESPONSE_SCHEMA["properties"]["colors"]["maxItems"] == 5
     assert RESPONSE_SCHEMA["properties"]["confidence"]["maximum"] == 1.0
+    assert "long_puffer" in RESPONSE_SCHEMA["properties"]["outer_type"]["enum"]
+    assert "t_shirt" in RESPONSE_SCHEMA["properties"]["upper_type"]["enum"]
+    assert "shorts" in RESPONSE_SCHEMA["properties"]["lower_type"]["enum"]
     # The API rejects additional_properties with 400 INVALID_ARGUMENT.
     sdk_schema = _transformers.t_schema(_build_client(SecretStr(FAKE_KEY)), RESPONSE_SCHEMA)
     assert "additional_properties" not in json.dumps(sdk_schema.model_dump(exclude_none=True), default=str)
 
 
-def test_prompt_instructs_unknown_and_none() -> None:
+def test_prompt_instructs_canonical_categories_unknown_and_none() -> None:
     assert "unknown" in PROMPT
-    assert "'none'" in PROMPT
-    assert "추측하지 말고" in PROMPT
+    assert "none" in PROMPT
+    assert "long_puffer" in PROMPT
+    assert "t_shirt" in PROMPT
+    assert "shorts" in PROMPT
+    assert "추측하지 마라" in PROMPT
 
 
 # --- response validation and failures (Req 3.4, 3.5) ---
@@ -209,6 +215,7 @@ def test_valid_response_returns_tags() -> None:
         "not json",
         json.dumps({**VALID_TAGS, "confidence": 1.5}),
         json.dumps({**VALID_TAGS, "colors": ["a", "b", "c", "d", "e", "f"]}),
+        json.dumps({**VALID_TAGS, "outer_type": "puffer coat"}),
         json.dumps({k: v for k, v in VALID_TAGS.items() if k != "lower_type"}),
         json.dumps({**VALID_TAGS, "fabric": "wool"}),
     ],

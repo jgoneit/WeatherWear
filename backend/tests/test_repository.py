@@ -39,7 +39,7 @@ def make_outfit(sha: str = "a" * 64, captured_at: datetime | None = None, **over
         latitude=37.5665,
         longitude=126.9780,
         tags=ClothingTags(
-            upper_type="sweater", outer_type="none", lower_type="slacks",
+            upper_type="knit", outer_type="none", lower_type="slacks",
             colors=["크림", "navy"], layers_visible=1, confidence=0.8,
         ),
         vision_provider="fixture",

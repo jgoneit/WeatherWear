@@ -97,7 +97,7 @@ MVP 구성: 지정 폴더 스캔 + JSON 사이드카 가상 메타데이터, Gem
 
 #### Acceptance Criteria
 
-1. WHEN Ingestion_Service가 신규 이미지(기존 Outfit과 SHA-256 해시가 일치하지 않는 이미지)를 수집하면, THE Vision_Provider SHALL 한 번의 스캔에서 이미지 1장당 정확히 1회 분석을 수행하고, 다음 6개 필드를 모두 가진 의류 태그 JSON을 반환한다: upper_type(문자열, 1~50자), outer_type(문자열, 1~50자, 겉옷이 없으면 `none`), lower_type(문자열, 1~50자), colors(문자열 0~5개 목록, 각 1~30자), layers_visible(0 이상 5 이하 정수), confidence(0.0 이상 1.0 이하 실수)
+1. WHEN Ingestion_Service가 신규 이미지(기존 Outfit과 SHA-256 해시가 일치하지 않는 이미지)를 수집하면, THE Vision_Provider SHALL 한 번의 스캔에서 이미지 1장당 정확히 1회 분석을 수행하고, 다음 6개 필드를 모두 가진 의류 태그 JSON을 반환한다: upper_type(정의된 UpperType enum), outer_type(정의된 OuterType enum, 겉옷이 없으면 `none`), lower_type(정의된 LowerType enum), colors(문자열 0~5개 목록, 각 1~30자), layers_visible(0 이상 5 이하 정수), confidence(0.0 이상 1.0 이하 실수). 세 의류 타입은 snake_case canonical 식별자만 허용하며 최소한 `long_puffer`, `short_puffer`, `t_shirt`, `shorts`, `none`, `unknown`을 포함한다
 2. WHERE VISION_PROVIDER가 `gemini`로 설정되면, THE WeatherWear_System SHALL Gemini_Vision_Provider를 사용하고, Config_Loader가 읽은 GEMINI_MODEL 환경 변수의 모델 ID로 Gemini 공식 Python SDK를 호출한다
 3. WHERE VISION_PROVIDER가 `fixture`로 설정되면, THE WeatherWear_System SHALL Fixture_Vision_Provider를 사용하고, 외부 네트워크 호출을 0회 수행하며, 같은 이미지(같은 SHA-256 해시)에 대해 매번 같은 의류 태그 JSON을 반환한다
 4. WHEN Gemini_Vision_Provider가 응답을 받으면, THE Gemini_Vision_Provider SHALL 응답을 Pydantic 스키마로 검증하고, 6개 필수 필드가 모두 있으면서 기준 1의 타입과 범위를 모두 만족하는 구조화 JSON만 반환한다

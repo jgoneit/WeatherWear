@@ -225,18 +225,15 @@ export interface components {
         };
         /**
          * ClothingTags
-         * @description Clothing tags extracted from one photo (Req 3.1, 3.6).
-         *
-         *     ``outer_type`` is ``"none"`` when no outerwear is worn; any attribute that
-         *     cannot be determined from the photo is ``"unknown"``.
+         * @description Canonical clothing tags extracted from one photo. `unknown` means the position is not visible or cannot be classified. `outer_type=none` means no outerwear; `lower_type=none` is reserved for one-piece garments. `upper_type` has no `none` value.
          */
         ClothingTags: {
-            /** Upper Type */
-            upper_type: string;
-            /** Outer Type */
-            outer_type: string;
-            /** Lower Type */
-            lower_type: string;
+            /** @enum {string} */
+            upper_type: "unknown" | "t_shirt" | "long_sleeve_t_shirt" | "shirt" | "blouse" | "knit" | "turtleneck" | "sweatshirt" | "hoodie" | "sleeveless_top" | "cardigan" | "fleece" | "jersey" | "dress" | "jumpsuit" | "coveralls";
+            /** @enum {string} */
+            outer_type: "unknown" | "none" | "long_puffer" | "short_puffer" | "puffer_jacket" | "parka" | "coat" | "trench_coat" | "jacket" | "blazer" | "cardigan" | "denim_jacket" | "leather_jacket" | "bomber_jacket" | "fleece_jacket" | "rain_jacket" | "windbreaker" | "track_jacket" | "utility_jacket" | "shirt_jacket" | "varsity_jacket" | "vest" | "jersey";
+            /** @enum {string} */
+            lower_type: "unknown" | "none" | "jeans" | "trousers" | "slacks" | "chinos" | "cargo_pants" | "corduroy_pants" | "leggings" | "shorts" | "skirt" | "track_pants" | "jogger_pants" | "parachute_pants";
             /** Colors */
             colors: string[];
             /** Layers Visible */

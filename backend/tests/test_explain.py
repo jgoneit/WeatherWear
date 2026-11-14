@@ -30,9 +30,9 @@ AT = datetime(2025, 11, 20, 8, 30, tzinfo=KST)
 D = Decimal
 
 
-def tags(outer: str = "코트", upper: str = "니트", lower: str = "슬랙스") -> ClothingTags:
+def tags(outer: str = "coat", upper: str = "knit", lower: str = "slacks") -> ClothingTags:
     return ClothingTags(
-        upper_type=upper, outer_type=outer, lower_type=lower,
+        upper_type=upper, outer_type=outer, lower_type=lower,  # type: ignore[arg-type]
         colors=["navy"], layers_visible=2, confidence=0.9,
     )
 
@@ -42,11 +42,11 @@ def test_vote_ko_mapping() -> None:
 
 
 def test_display_tags_order_and_exclusions() -> None:
-    assert display_tags(tags()) == ["코트", "니트", "슬랙스"]
-    assert display_tags(tags(outer="none")) == ["니트", "슬랙스"]
-    assert display_tags(tags(outer="none", lower="unknown")) == ["니트"]
+    assert display_tags(tags()) == ["coat", "knit", "slacks"]
+    assert display_tags(tags(outer="none")) == ["knit", "slacks"]
+    assert display_tags(tags(outer="none", lower="unknown")) == ["knit"]
     assert display_tags(UNKNOWN_TAGS) == []  # colors never fill the list
-    assert display_tags(tags(), limit=2) == ["코트", "니트"]
+    assert display_tags(tags(), limit=2) == ["coat", "knit"]
 
 
 def test_format_celsius_one_decimal_no_negative_zero() -> None:
@@ -140,7 +140,7 @@ def test_strategy_fills_explanation_and_reasons() -> None:
     by_id = {r.outfit_id: r for r in results}
     assert by_id[1].explanation == (
         "오늘 9.0°C, 지난 8.0°C 기록과 기온 차이 1.0°C입니다. "
-        "당시 착장: 코트+니트+슬랙스. 체감: 적당함 (과거에 적당했음, +15.0점)."
+        "당시 착장: coat+knit+slacks. 체감: 적당함 (과거에 적당했음, +15.0점)."
     )
     assert by_id[1].reasons == ["과거에 적당했음 (+15.0점)"]
     assert "착장 태그 정보 없음" in by_id[2].explanation
@@ -153,7 +153,7 @@ def test_strategy_fallback_candidates_get_fallback_sentence() -> None:
     )
     assert r.selected_by_fallback
     assert "오늘 30.0°C, 지난 26.0°C 기록과 기온 차이 4.0°C입니다." in r.explanation
-    assert "당시 착장: 니트+슬랙스." in r.explanation
+    assert "당시 착장: knit+slacks." in r.explanation
     assert "체감: 더웠음 (과거에 더웠음, −15.0점)." in r.explanation
     assert r.explanation.endswith(FALLBACK_TEXT)
     assert r.reasons == ["과거에 더웠음 (−15.0점)", FALLBACK_TEXT]

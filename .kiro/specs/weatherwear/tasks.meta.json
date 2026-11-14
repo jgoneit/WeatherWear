@@ -550,6 +550,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012000
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794633416307
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794633589244
       }
     ],
     "10.10 API 상태 코드 단위 테스트 작성 (`backend/tests/test_api.py`)": [
@@ -724,6 +734,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012088
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794633147807
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794633408863
       }
     ],
     "15.3 번들 비밀값 검사 스크립트 작성 (`frontend/scripts/check-bundle.mjs`, `package.json`)": [
@@ -731,6 +751,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012090
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794633416617
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794633590530
       }
     ],
     "16. Checkpoint - 프론트엔드 확인": [
@@ -843,6 +873,13 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794633085343
+      }
+    ],
+    "15. 데모 관리 화면": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794633590532
       }
     ]
   }

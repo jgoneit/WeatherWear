@@ -300,7 +300,7 @@
     - `GET /api/weather/today`, `GET /api/recommendations/today`(503 `TODAY_TEMPERATURE_MISSING`), `GET /api/meta`
     - _Requirements: 1.2, 1.9, 1.11, 1.13, 5.1, 5.3, 5.5, 5.7, 6.8, 8.1, 8.7, 14.3, 16.5_
 
-  - [~] 10.4 라우터 등록과 OpenAPI 타입 재생성
+  - [x] 10.4 라우터 등록과 OpenAPI 타입 재생성
     - `main.py`에 4개 라우터 등록, `uvicorn app.main:app` 진입점 확인
     - `/openapi.json`을 덤프하는 스크립트(`scripts/export_openapi.py`)를 만들고 `openapi-typescript`로 `frontend/src/api/schema.d.ts`를 재생성해 커밋
     - _Requirements: 7.14, 10.6, 10.7_
@@ -406,8 +406,8 @@
     - 표시 항목, 404 오류 처리
     - _Requirements: 12.5, 12.7_
 
-- [ ] 15. 데모 관리 화면
-  - [~] 15.1 DemoPage 구현 (`frontend/src/pages/DemoPage.tsx`)
+- [x] 15. 데모 관리 화면
+  - [x] 15.1 DemoPage 구현 (`frontend/src/pages/DemoPage.tsx`)
     - DEV가 아니면 "데모 관리 화면은 개발 모드에서만 사용할 수 있습니다"만 표시
     - 폴더 스캔 버튼(결과 4개 숫자 Bento 타일 + 실패 파일명·사유, 0건이면 "실패 항목 없음"), 시나리오 선택 목록(현재 선택 표시) + 새로고침 버튼, 추천 재계산 버튼(`GET /api/recommendations/today` 재호출), provider·키 설정 여부("설정됨"/"미설정") 상태
     - 동작별 pending 비활성화, 실패/30초 초과 시 어느 동작이 실패했는지 표시하고 이전 결과·선택 유지, 성공 시 적용 시나리오 이름·기온과 완료 표시
@@ -417,7 +417,7 @@
     - DEV 플래그별 노출, 컨트롤 구성, 결과 표시, 중복 방지, 실패 처리, 적용 시나리오 표시
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7_
 
-  - [~] 15.3 번들 비밀값 검사 스크립트 작성 (`frontend/scripts/check-bundle.mjs`, `package.json`)
+  - [x] 15.3 번들 비밀값 검사 스크립트 작성 (`frontend/scripts/check-bundle.mjs`, `package.json`)
     - `npm run check:bundle`: `vite build` 후 `dist/`에 `GEMINI` 문자열이 없으면 종료 코드 0, 있으면 1
     - _Requirements: 16.6_
 

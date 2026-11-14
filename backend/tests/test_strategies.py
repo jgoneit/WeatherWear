@@ -74,7 +74,7 @@ def test_candidate_sets_reach_special_cases() -> None:
     seen: set[str] = set()
     seen_boundaries: set[float] = set()
 
-    @settings(max_examples=200, deadline=None, database=None)
+    @settings(max_examples=200, deadline=None, database=None, derandomize=True)
     @given(cs=s.candidate_sets(today_c=today, tolerance_c=Decimal("3.0")))
     def collect(cs) -> None:
         valid = _valid(cs)

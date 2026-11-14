@@ -1,6 +1,7 @@
-# WeatherWear
+# 👕 WeatherWear
 
-아침마다 "오늘 뭐 입지?"를 기온 숫자만 보고 고르다 춥거나 덥게 입는 사람에게, 내가 예전에 비슷한 기온에서 실제로 입었던 옷과 그날의 체감("추웠어 / 적당했어 / 더웠어")을 보여 주는 모바일 브라우저용 착장 추천 웹 앱이다.
+> **"14°C에 뭐 입었더라?"**
+> 예전에 비슷한 기온에서 내가 실제로 입은 옷과 그날의 체감(🥶 추웠어 / 😊 적당했어 / 🥵 더웠어)을 보여 주는 착장 추천 웹 앱
 
 **Demo:** TODO(팀): 데모 영상 링크
 
@@ -9,126 +10,137 @@
 ## 1. 문제 정의
 
 ### 대상 사용자
-날씨 앱의 기온을 보고 매일 아침 옷을 고르는 사람. 휴대폰 갤러리에 그날 입은 착장 사진(거울 셀카 등)이 쌓여 있지만, 그 사진을 옷 고르기에 다시 쓰지는 않는 사람.
+매일 아침 날씨 앱의 기온만 보고 옷을 고르는 사람. 갤러리에 착장 사진은 쌓여 있지만 옷 고를 때 다시 보지는 않는 사람.
 
 ### 문제 상황
-아침에 옷을 고를 때(상황) 날씨 앱은 "14°C"라는 숫자만 알려 주고, 내가 14°C에 무엇을 입었을 때 춥거나 더웠는지는 알려 주지 않는다. 그래서 같은 실수를 반복해 하루 종일 춥거나 덥게 지낸다(불편). 과거 착장 사진은 갤러리에 있지만 사진마다 그날 날씨가 붙어 있지 않아, 비슷한 기온의 날을 찾아볼 수 없다.
+- 날씨 앱은 **"14°C"라는 숫자만** 알려 준다.
+- 내가 14°C에 무엇을 입고 **추웠는지, 더웠는지는 모른다.**
+- 그래서 같은 실수를 반복하고 하루 종일 춥거나 덥게 지낸다.
 
 ### 기존 방식과 한계
-- 날씨 앱의 일반적인 기온별 옷차림 표: 모든 사람에게 같은 답이라 추위·더위를 타는 정도 같은 개인 차이를 반영하지 못한다.
-- 갤러리를 직접 넘겨 보기: 사진에 날씨 정보가 없어 "비슷한 기온이었던 날"을 찾을 수 없고, 그 옷이 그날 적당했는지도 기록되어 있지 않다.
-- 옷장 관리 앱: 옷을 하나씩 수동으로 등록해야 해서 계속 쓰기 번거롭다.
+
+| 기존 방식 | 한계 |
+|---|---|
+| 기온별 옷차림 표 | 모두에게 같은 답. 추위·더위를 타는 정도가 반영되지 않음 |
+| 갤러리 직접 넘겨 보기 | 사진에 날씨가 없어 "비슷한 기온의 날"을 찾을 수 없음 |
+| 옷장 관리 앱 | 옷을 하나씩 등록해야 해서 금방 안 쓰게 됨 |
 
 ### 근거
-- 레포에 사용자 설문이나 통계 자료는 없다. TODO(팀): 직접 조사한 근거(설문 응답 수, 인터뷰 등)가 있으면 숫자와 출처를 적는다.
-- 이 프로젝트가 검증하려는 가설(`.kiro/specs/weatherwear/requirements.md` Introduction): "머신러닝 없이도, 과거 실제 경험과 유사 기온 검색을 결합하면 일반적인 기온 기반 추천보다 유용하다."
+- 가설(`.kiro/specs/weatherwear/requirements.md`): **"머신러닝 없이도, 과거 실제 경험 + 유사 기온 검색이 일반적인 기온 기반 추천보다 유용하다."**
+- TODO(팀): 직접 조사한 근거(설문 응답 수, 인터뷰 등)가 있으면 숫자와 출처를 적는다.
 
 ### 목표
-- 이미 찍어 둔 착장 사진만으로, 오늘과 기온이 비슷했던 날(기본 ±3.0°C)의 내 착장과 그때의 체감을 한 화면에 보여 준다.
-- 사용자가 하는 일을 체감 피드백 버튼 한 번으로 줄인다. 옷 등록이나 날씨 입력은 하지 않는다.
-- (Phase 2 계획) 새 사진 감지와 아침 알림까지 자동으로 해서, 앱을 열지 않아도 추천을 받게 한다.
+- 이미 찍어 둔 사진만으로 **비슷한 기온(±3.0°C)의 내 착장 + 그날 체감**을 한 화면에 보여 준다.
+- 사용자가 하는 일은 **체감 버튼 한 번**뿐. 옷 등록, 날씨 입력은 없다.
 
 ---
 
 ## 2. 핵심 기능
 
-Phase 1(MVP)은 구현과 테스트를 마쳤다. Phase 2는 spec만 완료했고 구현 예정이다.
+✅ Phase 1 구현 완료 · 🗓️ Phase 2 계획(spec 완료, 구현 예정)
 
 | 기능 | 해결하는 불편 | 코드 위치 |
 |---|---|---|
-| 사진 폴더 스캔과 수집 (확장자·크기·디코딩 검증, SHA-256 중복 제거, 재스캔 멱등) | 갤러리 사진을 하나씩 등록하는 수고 | `backend/app/ingestion/service.py`, `backend/app/ingestion/image_check.py` |
-| 사진 분류 게이트 (착장 / 비착장 / 불확실, 신뢰도 0.70 미만은 불확실) | 음식·풍경 같은 착장 아닌 사진이 추천에 섞이는 문제 | `backend/app/providers/vision/`, `backend/app/ingestion/service.py` |
-| 의류 태그 추출 (Gemini Vision 또는 Fixture) | 옷 종류를 직접 입력하는 수고 | `backend/app/providers/vision/gemini.py`, `backend/app/providers/vision/fixture.py` |
-| 내장 EXIF 촬영 시각·위치 읽기 (사이드카 JSON은 선택적 대체) | 사진마다 언제·어디서 찍었는지 적는 수고 | `backend/app/ingestion/metadata.py`, `backend/app/ingestion/sidecar.py` |
-| 촬영 시점 날씨 연결 (Open-Meteo Archive 또는 기록된 Fixture) | 과거 사진에 그날 날씨가 없는 문제 | `backend/app/providers/weather/open_meteo.py`, `backend/app/providers/weather/fixture.py`, `backend/app/providers/weather/normalize.py` |
-| 오늘 날씨와 데모 시나리오 (쌀쌀한 아침, 기록적 한파, 때 이른 무더위, 기록적 폭염) | 오늘 기온 기준을 정하는 일 | `backend/app/today_weather.py`, `backend/app/api/weather.py` |
-| 유사 기온 추천 `rule_based_v1` (±3.0°C, 후보 부족 시 5.0°C 1회 확장, 피드백 가중 점수, 설명 문장, 신뢰도) | 숫자만 보고 옷을 고르는 문제 | `backend/app/recommendation/rule_based_v1.py`, `backend/app/recommendation/explain.py`, `backend/app/recommendation/service.py` |
-| 체감 피드백 원클릭 저장과 즉시 재추천 | 그 옷이 그날 적당했는지 기록이 없는 문제 | `backend/app/feedback.py`, `backend/app/api/outfits.py`, `frontend/src/components/FeedbackButtons.tsx`, `frontend/src/components/NotificationCard.tsx` |
-| 모바일 홈(오늘 날씨, 알림 카드, 추천), 기록 그리드, 상세 화면 | 과거 착장을 날씨와 함께 다시 보기 | `frontend/src/pages/HomePage.tsx`, `frontend/src/pages/HistoryPage.tsx`, `frontend/src/pages/OutfitDetailPage.tsx` |
-| 데모 관리 화면 (상태 확인, 폴더 스캔, 시나리오 선택) | 발표 중 데이터 준비 | `frontend/src/pages/DemoPage.tsx`, `backend/app/api/demo.py` |
-| Vision 정확도 평가 도구 (opt-in) | 분류·태그 품질을 숫자로 확인 | `backend/app/evaluation/`, `scripts/evaluate_vision.py`, `data/eval/`, `docs/evaluation.md` |
-| Docker Compose 실행 | 설치 없이 한 번에 실행 | `compose.yaml`, `backend/Dockerfile`, `frontend/Dockerfile` |
-| **계획(spec 완료, 구현 예정)** 새 사진 자동 감지: 갤러리 역할 폴더에 새 사진이 생기면 버튼 없이 분석·저장 | 사진을 찍을 때마다 스캔 버튼을 누르는 수고 | `.kiro/specs/weatherwear-automation/` (아직 코드 없음) |
-| **계획(spec 완료, 구현 예정)** 매일 위치 기반 Web Push 브리핑: 정해진 시각에 현재 위치의 기온·습도와 비슷했던 날의 착장·체감을 알림 | 앱을 열어야만 추천을 볼 수 있는 문제 | `.kiro/specs/weatherwear-automation/` (아직 코드 없음) |
+| ✅ 사진 폴더 스캔 | 사진을 하나씩 등록하는 수고 | `backend/app/ingestion/service.py` |
+| ✅ 착장 사진만 고르기 (착장 / 비착장 / 불확실) | 음식·풍경 사진이 추천에 섞임 | `backend/app/providers/vision/` |
+| ✅ 옷 종류 자동 태그 (Gemini Vision) | 옷 종류를 직접 입력하는 수고 | `backend/app/providers/vision/gemini.py` |
+| ✅ 사진 EXIF로 촬영 시각·위치 읽기 | 언제·어디서 찍었는지 적는 수고 | `backend/app/ingestion/metadata.py` |
+| ✅ 촬영 당일 날씨 붙이기 (Open-Meteo) | 과거 사진에 날씨가 없음 | `backend/app/providers/weather/` |
+| ✅ 비슷한 기온 착장 추천 (`rule_based_v1`) | 숫자만 보고 옷을 고름 | `backend/app/recommendation/` |
+| ✅ 체감 피드백 원클릭 저장 → 즉시 재추천 | 그 옷이 적당했는지 기록이 없음 | `backend/app/feedback.py`, `frontend/src/components/FeedbackButtons.tsx` |
+| ✅ 모바일 화면 (홈 · 기록 · 상세 · 데모) | 과거 착장을 날씨와 함께 다시 보기 | `frontend/src/pages/` |
+| ✅ Vision 정확도 평가 · Docker Compose | 품질 확인 · 한 번에 실행 | `backend/app/evaluation/`, `compose.yaml` |
+| 🗓️ 새 사진 자동 감지 | 찍을 때마다 스캔 버튼을 누르는 수고 | `.kiro/specs/weatherwear-automation/` |
+| 🗓️ 매일 아침 위치 기반 Web Push 브리핑 | 앱을 열어야만 추천이 보임 | `.kiro/specs/weatherwear-automation/` |
 
 ## 3. 사용 시나리오
 
-1. 사용자가 착장 사진이 든 폴더를 앱에 연결하고 "폴더 스캔"을 누른다. 앱은 착장 사진만 골라 옷 태그를 뽑고, 사진의 촬영 시각·위치로 그날 날씨를 붙여 기록한다(데모 사진 189장 기준: 착장 169, 비착장 20, 불확실 0).
-2. 아침에 홈 화면을 열면 오늘 기온(예: 쌀쌀한 아침 14.5°C)과 함께, 기온 차이 3.0°C 이내였던 날의 내 착장 추천 5개와 근거("과거에 적당했음" 등)가 보인다. 데모 기준 1순위는 과거 14.4°C에 "적당했어"를 남긴 `015_loose_hair_front_cream.png`(114.0점)다.
-3. 알림 카드에서 어제 입은 옷에 대해 "🥶 추웠어 / 😊 적당했어 / 🥵 더웠어" 중 하나를 누른다. 확인 단계 없이 저장된다.
-4. 추천이 새로고침 없이 다시 계산된다. "더웠어"를 받은 착장은 점수가 내려가 순위가 바뀐다.
-5. "기록" 탭에서 과거 착장을 촬영 시각 순으로 보고, 상세 화면에서 그날 날씨와 체감 기록을 확인한다.
-6. (Phase 2 계획) 새로 찍은 사진은 자동으로 기록에 들어가고, 매일 아침 정해진 시각에 "오늘 서울 14.5°C, 습도 55%. 비슷했던 14.4°C 날 크림 니트를 입고 '적당했어'라고 했어요" 같은 알림을 받는다.
+1. 📁 **폴더 스캔**: 착장 사진만 골라 옷 태그를 뽑고, 촬영 당일 날씨를 붙인다.
+   (데모 189장 → 착장 169 / 비착장 20)
+2. 🌤️ **아침에 홈 화면**: 오늘 14.5°C와 함께, 기온 차이 3.0°C 이내였던 날의 내 착장 5개와 근거가 보인다.
+   (1순위: 과거 14.4°C에 "적당했어"를 남긴 착장, 114.0점)
+3. 👆 **체감 버튼 한 번**: 🥶 / 😊 / 🥵 중 하나를 누르면 확인 없이 저장된다.
+4. 🔄 **추천이 바로 바뀐다**: 새로고침 없이 점수가 다시 계산된다.
+5. 🗂️ **기록 탭**: 과거 착장을 날짜순으로 보고, 그날 날씨와 체감을 확인한다.
+6. 🗓️ *(Phase 2)* 매일 아침 이런 알림을 받는다:
+   > "오늘 서울 14.5°C, 습도 55%. 비슷했던 14.4°C 날 크림 니트를 입고 '적당했어'라고 했어요"
 
 ## 4. 기대 효과
 
-아래는 측정 결과가 아니라 **목표와 가설**이다. 레포에 사용자 대상 측정 데이터는 없다.
+> 아래는 측정 결과가 아니라 **목표와 가설**이다. 사용자 대상 측정 데이터는 아직 없다.
 
-- (목표) 옷 고르기에 필요한 사용자 입력: 옷 등록 0건, 날씨 입력 0건, 체감 피드백 버튼 1회.
-- (가설) 개인의 과거 경험(유사 기온 착장 + 체감)을 쓰면, 모든 사람에게 같은 기온별 옷차림 표보다 춥거나 덥게 입는 날이 줄어든다.
-- (목표, Phase 2) 처음 한 번 알림·위치 권한을 허용하고 설정을 켠 뒤에는, 사진 등록과 추천 확인에 버튼을 누르지 않는다.
-- 레포로 확인할 수 있는 현재 수치: 데모 사진 189장(기존 159 + 126~140번 15 + 생성 착장 141~155번 15), vision fixture 189개(착장 169 / 비착장 20), 시드 체감 투표 66개, 유사 기온 허용 오차 ±3.0°C. 데모 시나리오 4개(`data/demo/scenarios.json`): 14.5°C 정상 추천 5건, −16.0°C 기온 차이 정확히 3.0°C인 후보 1건, 44.0°C 5.0°C 범위 확장(fallback), 48.0°C 데이터 부족.
-- TODO(팀): 사용자 테스트를 했다면 "춥거나 덥게 입은 날 비율" 같은 측정값을 숫자와 단위로 적는다.
+| 항목 | 내용 |
+|---|---|
+| 🎯 사용자 입력 (목표) | 옷 등록 **0건** · 날씨 입력 **0건** · 체감 버튼 **1회** |
+| 💡 가설 | 내 과거 경험을 쓰면 기온별 옷차림 표보다 춥거나 덥게 입는 날이 줄어든다 |
+| 🗓️ Phase 2 목표 | 처음 권한만 허용하면 그 뒤로는 버튼 없이 사진 등록과 아침 추천 |
+
+레포로 확인할 수 있는 수치:
+
+| 항목 | 값 |
+|---|---|
+| 데모 사진 | 189장 (착장 169 / 비착장 20) |
+| 시드 체감 투표 | 66개 |
+| 유사 기온 허용 오차 | ±3.0°C (후보가 없으면 ±5.0°C로 1회 확장) |
+| 데모 시나리오 | 14.5°C 정상 · −16.0°C 경계 · 44.0°C 범위 확장 · 48.0°C 데이터 부족 |
+| 테스트 | 백엔드 602 passed · 프론트엔드 92 passed |
+
+TODO(팀): 사용자 테스트를 했다면 "춥거나 덥게 입은 날 비율" 같은 측정값을 적는다.
 
 ## 5. 차별점
 
-- **내 사진, 내 체감 기준**: 일반적인 기온별 옷차림 표가 아니라, 내가 비슷한 기온에서 실제로 입었던 옷과 그날 남긴 체감으로 순위를 매긴다.
-- **입력 부담이 거의 없음**: 옷장 앱처럼 옷을 하나씩 등록하지 않는다. 이미 있는 사진의 EXIF와 기록 날씨(Open-Meteo Archive)로 자동으로 날씨를 붙인다.
-- **설명 가능한 규칙 기반 추천**: 머신러닝 없이 `rule_based_v1`로 점수와 근거 문장을 보여 준다. 추천 전략은 `RecommendationStrategy` 인터페이스로 분리되어 나중에 학습 기반 전략으로 바꿀 수 있다(`backend/app/recommendation/base.py`, `factory.py`).
-- **착장 사진만 고르는 분류 게이트**: 갤러리에 섞인 음식·풍경 사진을 추천에서 뺀다.
-- **API 키 없이 동작하는 Fixture 모드**: 외부 호출 0건으로 기동, 스캔, 추천, 피드백, 테스트가 모두 재현된다.
+- 🙋 **내 사진, 내 체감 기준**: 모두에게 같은 옷차림 표가 아니라 *내가* 입었던 옷으로 추천한다.
+- ✋ **입력이 거의 없다**: 옷을 등록하지 않는다. 사진 EXIF와 기록 날씨로 자동으로 날씨를 붙인다.
+- 🔍 **이유가 보이는 추천**: 머신러닝 없이 점수와 근거 문장을 보여 준다. 추천 전략은 교체 가능하게 분리했다.
+- 🧹 **착장 사진만**: 갤러리에 섞인 음식·풍경 사진은 자동으로 뺀다.
+- 🔌 **API 키 없이 바로 실행**: 기본 Fixture 모드에서 외부 호출 없이 전 기능이 동작한다.
 
 ---
 
 ## 6. 설치와 실행
 
-요구 환경: Python 3.10 이상, Node.js와 npm. 기본은 Fixture 모드라 API 키가 필요 없다. 자세한 설정은 아래 [부록](#부록)을 본다.
+> 필요: Python 3.10+, Node.js + npm. 기본 Fixture 모드라 **API 키가 필요 없다.**
 
 ```bash
 # 1. 의존성 설치
-cd backend
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-cd ../frontend
-npm ci
+cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+cd ../frontend && npm ci
 
 # 2. 실행 (터미널 두 개)
-# 백엔드: http://localhost:8000/api/meta, API 문서 http://localhost:8000/docs
 cd backend && .venv/bin/uvicorn app.main:app --port 8000
-# 프론트엔드: 브라우저에서 http://localhost:5173 (개발자 도구 기기 모드 360~430px 권장)
 cd frontend && VITE_API_BASE_URL=http://localhost:8000 npm run dev
 ```
 
-Docker Compose로 한 번에 실행할 수도 있다.
+브라우저에서 **http://localhost:5173** 을 연다. (휴대폰 화면은 개발자 도구 기기 모드 360~430px)
+
+🐳 Docker로 한 번에:
 
 ```bash
-docker compose up --build        # 백엔드 :8000, 프론트엔드 :5173
-docker compose ps                # 두 서비스가 (healthy)여야 한다
-docker compose down              # 종료. SQLite 볼륨(db-data)은 유지한다
+docker compose up --build    # 백엔드 :8000, 프론트엔드 :5173
+docker compose down
 ```
 
-- 설정은 루트 `.env`에서 읽는다. `.env.example`을 복사해 쓴다. Live 모드(`VISION_PROVIDER=gemini`, `WEATHER_PROVIDER=open_meteo`)와 API 키 설정은 부록을 본다.
-- 데모 사진: 저장소에 생성 착장 15장이 들어 있어 바로 한파·무더위·폭염 추천을 볼 수 있다. 전체 189장 준비 방법은 부록 "데모 사진 준비"를 본다.
+환경 변수, Live 모드, 데모 사진 준비는 아래 [부록](#부록)을 본다.
 
 ## 7. 테스트
 
 ```bash
-# 백엔드 (pytest)
+# 백엔드
 cd backend && .venv/bin/python -m pytest -q
 
-# 프론트엔드 (vitest, 타입 검사, 번들 비밀값 검사)
-cd frontend
-npx vitest --run
-npm run typecheck
-npm run check:bundle
+# 프론트엔드
+cd frontend && npx vitest --run && npm run typecheck && npm run check:bundle
 ```
 
-- 통과 기준: 모든 명령이 실패 0건으로 끝나고 종료 코드가 0이다.
-- 테스트는 API 키와 외부 네트워크 없이 돈다. Open-Meteo는 `respx`, Gemini는 가짜 클라이언트로 대체한다.
-- 최종 결과(PR #9 병합 커밋 `4e5719a`/`9a6da32` 기록, 데모 사진 189장 준비 상태): 백엔드 602 passed(skip 0), vitest 92 passed, typecheck 오류 0, check:bundle OK, `select_scenarios.py --check` 통과.
-- 데모 데이터 규칙 검사: `backend/.venv/bin/python scripts/select_scenarios.py --check` (파일을 쓰지 않는다).
-- 5분 데모 흐름은 `backend/tests/test_integration.py`의 `test_five_minute_demo_walkthrough`가 같은 순서로 API를 호출해 확인한다.
-- Vision 정확도 평가(opt-in): `python scripts/evaluate_vision.py`, 자세한 내용은 [docs/evaluation.md](docs/evaluation.md).
+| 검사 | 결과 (PR #9 병합 기록) |
+|---|---|
+| 백엔드 pytest | ✅ 602 passed (skip 0) |
+| 프론트엔드 vitest | ✅ 92 passed |
+| typecheck · check:bundle | ✅ 통과 |
+| 데모 데이터 규칙 `scripts/select_scenarios.py --check` | ✅ 통과 |
+
+- API 키와 외부 네트워크 없이 돈다.
+- 5분 데모 흐름은 `test_five_minute_demo_walkthrough`가 그대로 확인한다.
 
 ---
 
@@ -145,6 +157,10 @@ npm run check:bundle
 ---
 
 ## 부록
+
+<details>
+<summary><b>자세한 기술 문서 펼치기</b> (환경 변수, Live 모드, 데모 사진 준비, 5분 데모 절차, 데이터 출처, 기능 상태)</summary>
+
 
 아래는 기존 README의 자세한 기술 내용이다.
 
@@ -372,3 +388,5 @@ pytest 자동화 테스트 영역(Req 17.4)과 대표 테스트:
 - **Web Push 알림**: 지금의 앱 내부 알림 카드를 Web Push(FCM 등) 실제 알림으로 바꿔, 앱을 열지 않아도 아침에 추천과 체감 기록 버튼을 받게 한다.
 - **추천 엔진 교체**: `RecommendationStrategy` 인터페이스(`recommend(today, candidates)`)의 새 구현체를 만들고 팩토리(`build_strategy`)에서 고르면 API와 화면을 바꾸지 않고 학습 기반 추천 등으로 교체할 수 있다.
 - **SQLite에서 다른 저장소로 이전하는 조건**: 다중 사용자 계정, 여러 서버 프로세스나 워커가 동시에 쓰는 배포, 사용자당 수천 건 이상으로 늘어난 기록 중 하나라도 생기면 PostgreSQL 같은 서버형 DB로 옮긴다. 이전은 `OutfitRepository` 구현과 `DATABASE_URL`만 바꾸는 범위로 끝나도록 저장소 경계를 유지한다.
+
+</details>

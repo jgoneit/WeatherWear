@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import { Link } from "react-router";
 import { api, type RecommendationResponse } from "../api/client";
 import { ErrorRetry } from "../components/ErrorRetry";
+import { DemoWeatherPicker } from "../components/DemoWeatherPicker";
 import { FallbackNotice } from "../components/FallbackNotice";
 import { InsufficientDataState } from "../components/InsufficientDataState";
 import { useReportTodayTemperature } from "../components/layout/TodayTemperatureContext";
@@ -9,7 +10,7 @@ import { NotificationCard } from "../components/NotificationCard";
 import { RecommendationCard } from "../components/RecommendationCard";
 import { WeatherBento } from "../components/WeatherBento";
 import { WeatherHero } from "../components/WeatherHero";
-import { IS_DEV } from "../lib/env";
+import { IS_DEV, IS_PUBLIC_DEMO } from "../lib/env";
 import { FALLBACK_TIMEZONE, formatDate } from "../lib/format";
 import { STRINGS } from "../lib/strings";
 import { useAsync } from "../lib/useAsync";
@@ -59,6 +60,7 @@ export function HomePage({ isDev = IS_DEV }: HomePageProps) {
       {recommendations.error !== undefined ? <ErrorRetry onRetry={handleRetry} pending={recommendations.pending} /> : null}
       {data === undefined && recommendations.error === undefined ? <p role="status" className="glass rounded-3xl p-5">{STRINGS.home.loading}</p> : null}
       {data ? <>
+        {IS_PUBLIC_DEMO ? <DemoWeatherPicker selected={data.today.scenario_id} onChange={handleRetry} /> : null}
         <div className="home-dashboard">
           <div className="home-weather"><WeatherHero today={data.today} /></div>
           <div className="home-metrics"><WeatherBento weather={data.today} showNotice={false}/></div>

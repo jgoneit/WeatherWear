@@ -23,3 +23,16 @@ dist/
 
 # OS
 .DS_Store
+
+# Demo photos (people photos, ~290MB): copy to the deploy server separately.
+# ex_img/ also holds files whose usage rights are not confirmed.
+ex_img/
+data/demo/photos/
+
+# Not needed for deployment
+backend/tests/
+
+# Editor / logs
+.vscode/
+.idea/
+*.log

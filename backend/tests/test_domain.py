@@ -17,6 +17,7 @@ from app.domain import (
     UpperType,
     UNKNOWN_ANALYSIS,
     UNKNOWN_TAGS,
+    CaptureMetadata,
     ClothingTags,
     VisionAnalysis,
     RecommendationResult,
@@ -143,6 +144,25 @@ def test_sidecar_requires_offset_and_range() -> None:
         SidecarMetadata(
             captured_at="2025-01-15T08:30:00+09:00", latitude=0, longitude=0, thermal_vote="COLD"
         )
+
+
+def test_sidecar_location_fields_are_optional() -> None:  # Req 2.16
+    vote_only = SidecarMetadata(thermal_vote="comfortable")
+    assert vote_only.captured_at is None and vote_only.latitude is None and vote_only.longitude is None
+
+
+def test_capture_metadata_requires_offset_range_and_origin() -> None:  # Req 2.8, 2.15
+    ok = CaptureMetadata(
+        captured_at="2025-01-08T08:15:00+09:00", latitude=37.556, longitude=126.924,
+        synthetic=True, origin="user_comment",
+    )
+    assert ok.captured_at.utcoffset() == timedelta(hours=9) and ok.synthetic is True
+    base = dict(captured_at="2025-01-08T08:15:00+09:00", latitude=0, longitude=0,
+                synthetic=False, origin="exif_standard")
+    for bad in ({"captured_at": "2025-01-08T08:15:00"}, {"latitude": 90.5},
+                {"longitude": 181}, {"origin": "gps"}):
+        with pytest.raises(ValidationError):
+            CaptureMetadata(**{**base, **bad})
 
 
 def test_weather_reading_allows_null_optionals_and_checks_humidity() -> None:

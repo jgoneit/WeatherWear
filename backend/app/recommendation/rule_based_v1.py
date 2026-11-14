@@ -5,6 +5,13 @@ Selection (Req 6.1, 6.3, 6.5, 6.7, 6.9):
   are used; if there are none, the tolerance is expanded once to 5.0 and the
   fallback flag is set. Outfits without weather or temperature never qualify.
 
+Non-outfit photos (Req 6.10, 15.13; behaviour change after Phase 1):
+  A photo whose upper/outer/lower types are all ``"unknown"`` with confidence
+  0.0 (``is_non_outfit``, e.g. food or landscape shots) is not a candidate. It
+  is excluded before the tolerance search, so it never appears in the results
+  and never affects the "no candidates" or fallback decisions. The algorithm
+  version string stays ``rule_based_v1`` because the requirements fix it.
+
 Scoring and ranking (Req 7.1~7.8):
   score = 100 - 10 * diff + adj(vote), adj = +15 comfortable, -15 cold/hot, 0 none.
   Sort key (-score, tb(apparent), tb(humidity), tb(wind), tb(precip), outfit_id)
@@ -19,6 +26,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from app.domain import (
     ALGORITHM_VERSION,
+    ClothingTags,
     ConfidenceLevel,
     OutfitWithWeatherAndFeedback,
     RecommendationResult,
@@ -79,6 +87,16 @@ def confidence_level(has_vote: bool, within_default_tolerance: bool) -> Confiden
     return "low"
 
 
+def is_non_outfit(tags: ClothingTags) -> bool:
+    """True when all three clothing types are ``unknown`` and confidence is 0.0 (Req 6.10)."""
+    return (
+        tags.upper_type == "unknown"
+        and tags.outer_type == "unknown"
+        and tags.lower_type == "unknown"
+        and tags.confidence == 0.0
+    )
+
+
 def _tie_break(past: float | None, today: float | None) -> tuple[int, Decimal]:
     """Smaller difference first; a missing value on either side sorts last (Req 7.7, 7.8)."""
     if past is None or today is None:
@@ -107,10 +125,13 @@ class RuleBasedTemperatureStrategy:
         today_c = today.actual_temperature_c
 
         # Req 6.9: no weather, or weather without a temperature, never qualifies.
+        # Req 6.10: non-outfit photos never qualify either.
         scored: list[tuple[OutfitWithWeatherAndFeedback, Decimal]] = [
             (c, temperature_diff(c.weather.actual_temperature_c, today_c))
             for c in candidates
-            if c.weather is not None and c.weather.actual_temperature_c is not None
+            if c.weather is not None
+            and c.weather.actual_temperature_c is not None
+            and not is_non_outfit(c.tags)
         ]
 
         fallback = False

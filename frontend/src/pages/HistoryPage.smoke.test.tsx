@@ -11,7 +11,8 @@ function makeOutfit(id: number, capturedAt: string, overrides: Partial<Outfit> =
     captured_at: capturedAt,
     latitude: 37.5665,
     longitude: 126.978,
-    source: "demo_sidecar",
+    source: "exif",
+    metadata_synthetic: true,
     photo_url: `/api/outfits/${id}/photo`,
     tags: {
       upper_type: "knit",

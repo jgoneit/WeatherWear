@@ -144,7 +144,7 @@ def test_mixed_folder_reports_each_failure_stage_and_code(photo_dir: Path, repo)
     assert by_file == {
         "c_corrupt.png": ("validation", "INVALID_IMAGE_FORMAT"),
         "d_png_named_jpg.jpg": ("validation", "INVALID_IMAGE_FORMAT"),
-        "e_no_sidecar.png": ("validation", "SIDECAR_NOT_FOUND"),
+        "e_no_sidecar.png": ("validation", "METADATA_NOT_FOUND"),  # no EXIF, no sidecar
         "f_bad_vote.png": ("validation", "SIDECAR_THERMAL_VOTE_INVALID"),
     }
     assert len(vision.calls) == 4  # every decodable image is classified before sidecar validation

@@ -102,13 +102,23 @@ def test_bundle_round_trip_keeps_offset_tags_and_nulls(repo: OutfitRepository) -
     record = repo.get_outfit(outfit_id)
     assert record is not None
     assert record.captured_at == captured and record.captured_at.utcoffset() == captured.utcoffset()
-    assert record.source == "demo_sidecar"
+    assert record.source == "demo_sidecar" and record.metadata_synthetic is True  # defaults
     assert record.vision_provider == "fixture"
     assert record.tags == make_outfit().tags  # colors order preserved
     assert record.weather == make_weather()
     assert record.weather.apparent_temperature_c is None and record.weather.wind_speed_kmh is None
     assert record.effective_vote is None
     assert repo.counts() == {"outfits": 1, "weather_snapshots": 1, "feedback": 0}
+
+
+@pytest.mark.parametrize(("source", "synthetic"), [("exif", True), ("exif", False), ("demo_sidecar", True)])
+def test_metadata_source_and_synthetic_round_trip(repo: OutfitRepository, source, synthetic) -> None:
+    outfit_id = repo.create_outfit_bundle(
+        make_outfit(source=source, metadata_synthetic=synthetic), make_weather(), None
+    )
+    record = repo.get_outfit(outfit_id)
+    assert (record.source, record.metadata_synthetic) == (source, synthetic)
+    assert [(r.source, r.metadata_synthetic) for r in repo.list_outfits()] == [(source, synthetic)]
 
 
 def test_vision_provider_gemini_stored(repo: OutfitRepository) -> None:

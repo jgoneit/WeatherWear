@@ -48,6 +48,7 @@ def outfit_out(record: OutfitRecord) -> OutfitOut:
         latitude=record.latitude,
         longitude=record.longitude,
         source=record.source,
+        metadata_synthetic=record.metadata_synthetic,
         photo_url=photo_url(record.id),
         tags=record.tags,
         vision_provider=record.vision_provider,

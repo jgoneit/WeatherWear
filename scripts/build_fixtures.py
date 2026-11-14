@@ -12,9 +12,9 @@ What it writes (design.md "데모 데이터 파일"):
 - ``fixtures/weather.json``: one entry per photo with the temperature from the
   design table ``TEMPERATURES`` plus derived apparent temperature, humidity,
   wind and precipitation, and ``today_default`` (9.0°C).
-- ``fixtures/vision.json``: ``{sha256: ClothingTags}`` for every photo. Tag values
-  were written by looking at each photo (``TAGS``). The 20 non-outfit JPGs get
-  the same value as ``UNKNOWN_TAGS``.
+- ``fixtures/vision.json``: written by ``scripts/import_clothing_tags.py`` from
+  ``ex_img/clothing_tags.json``. The hand-written ``TAGS`` table below is no
+  longer used.
 
 ``--check`` validates the written files instead of building them: sidecars
 against ``SidecarMetadata``, vision entries against ``ClothingTags``, the
@@ -577,13 +577,12 @@ def build(photo_dir: Path, fixtures_dir: Path) -> None:
     _write_json(fixtures_dir / "weather.json",
                 {"entries": entries, "today_default": TODAY_DEFAULT})
 
-    vision = {}
-    for photo in photos:
-        digest = sha256_of(photo)
-        if digest in vision:
-            raise SystemExit(f"duplicate SHA-256 for {photo.name}")
-        vision[digest] = tags_for(photo.stem)
-    _write_json(fixtures_dir / "vision.json", vision)
+    # Clothing tags now come from ex_img/clothing_tags.json (design "의류 태그 fixture").
+    import import_clothing_tags  # noqa: PLC0415
+
+    if import_clothing_tags.run(import_clothing_tags.DEFAULT_SOURCE, photo_dir, fixtures_dir):
+        raise SystemExit("import_clothing_tags failed; vision.json not written")
+    vision = json.loads((fixtures_dir / "vision.json").read_text(encoding="utf-8"))
 
     _write_json(SCENARIOS_PATH, {"scenarios": SCENARIOS})
     print(f"wrote {len(photos)} sidecars, {len(entries)} weather entries, "

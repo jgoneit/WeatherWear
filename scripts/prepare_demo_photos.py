@@ -2,22 +2,24 @@
 """Copy rights-confirmed demo photos from ``ex_img/`` into ``data/demo/photos/``.
 
 Only manifest entries with ``"rights_confirmed": true`` are copied, keeping the
-original file name and extension. For each copied photo a sidecar template
-(``<stem>.metadata.json``) is created when it does not exist yet. Existing
-sidecars are never touched, so values filled in later (task 2.3) survive reruns.
+original file name and extension. Files are copied byte for byte with
+``shutil.copyfile`` (never re-encoded with Pillow), so the embedded EXIF
+metadata and the SHA-256 hash stay the same as in ``ex_img/``. A destination
+file whose content differs from the source (e.g. an older copy made before the
+metadata was embedded) is replaced.
 
-Sidecar templates:
-- ``YYYY-MM-DD_HHMMSS_KST.jpg`` photos get ``captured_at`` from the file name
-  as KST (``+09:00``), e.g. ``2025-01-08_081500_KST.jpg`` ->
-  ``2025-01-08T08:15:00+09:00``.
-- Other photos get ``captured_at: null``; the real value is written by hand
-  (design "사이드카 작성 규칙"). Until then the scanner rejects the photo with
-  ``SIDECAR_MISSING_FIELD`` instead of storing an invented timestamp.
-- ``latitude``/``longitude`` default to the Seoul coordinates.
+After copying, every confirmed photo is read with the backend's
+``read_embedded_metadata``. If any photo has no valid embedded capture
+time/location, the script prints the file name and error code and exits with 1.
 
-The script is idempotent: identical photos are skipped (SHA-256 compared),
-existing sidecars are kept, and nothing is deleted. If no photo is confirmed,
-run ``scripts/make_placeholders.py`` instead.
+Sidecars (``<stem>.metadata.json``) are optional and only carry seed votes
+(design "데모 데이터 파일"). This script does not create, edit or delete them;
+``scripts/select_scenarios.py`` rewrites them. Existing sidecars are only
+counted in the report.
+
+The script is idempotent: identical photos are skipped (SHA-256 compared) and
+nothing is deleted. If no photo is confirmed, run ``scripts/make_placeholders.py``
+instead.
 
 Usage: python scripts/prepare_demo_photos.py [--manifest PATH] [--source DIR] [--dest DIR]
 """
@@ -28,12 +30,10 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import shutil
 import sys
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -41,16 +41,12 @@ DEFAULT_MANIFEST = REPO_ROOT / "data" / "demo" / "photos.manifest.json"
 DEFAULT_SOURCE = REPO_ROOT / "ex_img"
 DEFAULT_DEST = REPO_ROOT / "data" / "demo" / "photos"
 
+sys.path.insert(0, str(REPO_ROOT / "backend"))
+from app.domain import CaptureMetadata  # noqa: E402
+from app.ingestion.metadata import read_embedded_metadata  # noqa: E402
+
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 SIDECAR_SUFFIX = ".metadata.json"
-KST = timezone(timedelta(hours=9))
-SEOUL_LATITUDE = 37.5665
-SEOUL_LONGITUDE = 126.9780
-
-_KST_NAME = re.compile(
-    r"^(?P<y>\d{4})-(?P<mo>\d{2})-(?P<d>\d{2})_(?P<h>\d{2})(?P<mi>\d{2})(?P<s>\d{2})_KST\.jpe?g$",
-    re.IGNORECASE,
-)
 
 
 class ManifestError(ValueError):
@@ -63,49 +59,26 @@ class ConfirmedPhoto:
     origin: Path
 
 
+@dataclass(frozen=True)
+class MetadataProblem:
+    file: str
+    code: str
+
+
 @dataclass
 class PrepareReport:
     confirmed: int = 0
     copied: list[str] = field(default_factory=list)
     replaced: list[str] = field(default_factory=list)
     unchanged: list[str] = field(default_factory=list)
-    sidecars_created: list[str] = field(default_factory=list)
-    sidecars_kept: list[str] = field(default_factory=list)
     missing_sources: list[str] = field(default_factory=list)
+    metadata_problems: list[MetadataProblem] = field(default_factory=list)
+    sidecars_present: int = 0
     unlisted_in_dest: list[str] = field(default_factory=list)
 
-
-def sidecar_path_for(image: Path) -> Path:
-    """``001_front.png`` -> ``001_front.metadata.json``."""
-    return image.with_name(image.stem + SIDECAR_SUFFIX)
-
-
-def captured_at_from_kst_name(file_name: str) -> str | None:
-    """Return the ISO 8601 KST timestamp encoded in a ``YYYY-MM-DD_HHMMSS_KST.jpg`` name.
-
-    Returns None for names that do not follow the pattern or encode an invalid
-    date/time.
-    """
-    match = _KST_NAME.match(file_name)
-    if match is None:
-        return None
-    try:
-        value = datetime(
-            int(match["y"]), int(match["mo"]), int(match["d"]),
-            int(match["h"]), int(match["mi"]), int(match["s"]),
-            tzinfo=KST,
-        )
-    except ValueError:
-        return None
-    return value.isoformat()
-
-
-def sidecar_template(file_name: str) -> dict[str, object]:
-    return {
-        "captured_at": captured_at_from_kst_name(file_name),
-        "latitude": SEOUL_LATITUDE,
-        "longitude": SEOUL_LONGITUDE,
-    }
+    @property
+    def ok(self) -> bool:
+        return not self.missing_sources and not self.metadata_problems
 
 
 def load_confirmed_photos(manifest_path: Path, source_dir: Path, repo_root: Path) -> list[ConfirmedPhoto]:
@@ -177,15 +150,17 @@ def _atomic_copy(src: Path, dest: Path) -> None:
         tmp.unlink(missing_ok=True)
 
 
-def _write_sidecar_if_missing(path: Path, content: dict[str, object]) -> bool:
-    """Create the sidecar only if no file exists at ``path``. Returns True when created."""
-    text = json.dumps(content, ensure_ascii=False, indent=2) + "\n"
+def check_embedded_metadata(data: bytes) -> str | None:
+    """Return None when the image has valid embedded capture metadata, else an error code."""
     try:
-        with path.open("x", encoding="utf-8") as handle:
-            handle.write(text)
-    except FileExistsError:
-        return False
-    return True
+        result = read_embedded_metadata(data)
+    except Exception:  # noqa: BLE001 - an unreadable image is reported, not raised
+        return "METADATA_READ_FAILED"
+    if result is None:
+        return "METADATA_NOT_FOUND"
+    if isinstance(result, CaptureMetadata):
+        return None
+    return result.code
 
 
 def prepare(manifest_path: Path, source_dir: Path, dest_dir: Path, repo_root: Path = REPO_ROOT) -> PrepareReport:
@@ -210,11 +185,9 @@ def prepare(manifest_path: Path, source_dir: Path, dest_dir: Path, repo_root: Pa
             _atomic_copy(photo.origin, target)
             report.copied.append(photo.file)
 
-        sidecar = sidecar_path_for(target)
-        if _write_sidecar_if_missing(sidecar, sidecar_template(photo.file)):
-            report.sidecars_created.append(sidecar.name)
-        else:
-            report.sidecars_kept.append(sidecar.name)
+        code = check_embedded_metadata(target.read_bytes())
+        if code is not None:
+            report.metadata_problems.append(MetadataProblem(file=photo.file, code=code))
 
     listed = {photo.file for photo in photos}
     report.unlisted_in_dest = sorted(
@@ -223,6 +196,9 @@ def prepare(manifest_path: Path, source_dir: Path, dest_dir: Path, repo_root: Pa
         if entry.is_file()
         and entry.suffix.lower() in SUPPORTED_EXTENSIONS
         and entry.name not in listed
+    )
+    report.sidecars_present = sum(
+        1 for entry in dest_dir.iterdir() if entry.is_file() and entry.name.endswith(SIDECAR_SUFFIX)
     )
     return report
 
@@ -235,7 +211,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        report = prepare(args.manifest, args.source, args.dest)
+        report = prepare(args.manifest, args.source, args.dest, repo_root=REPO_ROOT)
     except ManifestError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -248,17 +224,15 @@ def main(argv: list[str] | None = None) -> int:
     print(f"copied           : {len(report.copied)}")
     print(f"replaced         : {len(report.replaced)}")
     print(f"unchanged        : {len(report.unchanged)}")
-    print(f"sidecars created : {len(report.sidecars_created)}")
-    print(f"sidecars kept    : {len(report.sidecars_kept)}")
-    for name in report.replaced:
-        print(f"  replaced (content differed from source): {name}")
+    print(f"metadata ok      : {report.confirmed - len(report.missing_sources) - len(report.metadata_problems)}")
+    print(f"sidecars present : {report.sidecars_present} (not modified; select_scenarios.py rewrites them)")
     for name in report.unlisted_in_dest:
         print(f"warning: {name} is in {args.dest} but not confirmed in the manifest", file=sys.stderr)
-    if report.missing_sources:
-        for name in report.missing_sources:
-            print(f"error: source photo missing: {name}", file=sys.stderr)
-        return 1
-    return 0
+    for name in report.missing_sources:
+        print(f"error: source photo missing: {name}", file=sys.stderr)
+    for problem in report.metadata_problems:
+        print(f"error: no valid embedded metadata: {problem.file} ({problem.code})", file=sys.stderr)
+    return 0 if report.ok else 1
 
 
 if __name__ == "__main__":

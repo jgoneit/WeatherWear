@@ -1168,6 +1168,16 @@
         "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794637612475
+      },
+      {
+        "executionId": "e0ecb243-9570-4124-838a-774cca0da929",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638859646
+      },
+      {
+        "executionId": "e0ecb243-9570-4124-838a-774cca0da929",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794639102128
       }
     ],
     "19.18 `clothing_tags.json` 가져오기 스크립트 작성 후 실행 (`scripts/import_clothing_tags.py`)": [
@@ -1175,6 +1185,16 @@
         "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794637612495
+      },
+      {
+        "executionId": "e0ecb243-9570-4124-838a-774cca0da929",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794639107650
+      },
+      {
+        "executionId": "e0ecb243-9570-4124-838a-774cca0da929",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794639558913
       }
     ],
     "19.19 날씨 기록 스크립트 작성 후 실행 (`scripts/record_fixture_weather.py`)": [
@@ -1182,6 +1202,16 @@
         "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794637612501
+      },
+      {
+        "executionId": "e0ecb243-9570-4124-838a-774cca0da929",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794639108552
+      },
+      {
+        "executionId": "e0ecb243-9570-4124-838a-774cca0da929",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794639559455
       }
     ],
     "19.20 시나리오 선택·검사와 시드 투표 구현 후 실행 (`backend/app/demo_scenarios.py`, `scripts/select_scenarios.py`)": [
@@ -1189,6 +1219,11 @@
         "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794637612506
+      },
+      {
+        "executionId": "e0ecb243-9570-4124-838a-774cca0da929",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794639565905
       }
     ],
     "19.22 플레이스홀더 스크립트에 내장 메타데이터 추가 (`scripts/make_placeholders.py`)": [
@@ -1206,6 +1241,11 @@
         "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794638725581
+      },
+      {
+        "executionId": "e0ecb243-9570-4124-838a-774cca0da929",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638879722
       }
     ],
     "19.23 데모 데이터·통합 테스트 기대값 갱신 (`backend/tests/test_demo_data.py`, `test_integration.py`, `test_demo_scripts.py`)": [

@@ -27,9 +27,20 @@ prepare_mod = _load("prepare_demo_photos")
 placeholders_mod = _load("make_placeholders")
 
 
-def _png_bytes(color: tuple[int, int, int]) -> bytes:
+USER_COMMENT = {"date": "2025-01-08", "time": "08:15:00", "timezone": "Asia/Seoul",
+                "utc_offset": "+09:00", "latitude": 37.556, "longitude": 126.924,
+                "location": "Seoul", "synthetic": True}
+
+
+def _image_bytes(color: tuple[int, int, int], fmt: str = "PNG", comment: dict | None = USER_COMMENT) -> bytes:
+    """8×8 image; with ``comment`` it carries a UserComment JSON like the ex_img photos."""
     buffer = io.BytesIO()
-    Image.new("RGB", (8, 8), color).save(buffer, format="PNG")
+    kwargs = {}
+    if comment is not None:
+        exif = Image.Exif()
+        exif.get_ifd(0x8769)[0x9286] = b"ASCII\x00\x00\x00" + json.dumps(comment).encode()
+        kwargs["exif"] = exif.tobytes()
+    Image.new("RGB", (8, 8), color).save(buffer, format=fmt, **kwargs)
     return buffer.getvalue()
 
 
@@ -42,9 +53,10 @@ def _entry(file_name: str, confirmed: bool) -> dict[str, object]:
 def layout(tmp_path: Path):
     source = tmp_path / "ex_img"
     source.mkdir()
-    (source / "007_linen.png").write_bytes(_png_bytes((255, 0, 0)))
-    (source / "2025-01-08_081500_KST.jpg").write_bytes(b"jpeg-bytes")
-    (source / "126_unconfirmed.png").write_bytes(_png_bytes((0, 0, 255)))
+    (source / "007_linen.png").write_bytes(_image_bytes((255, 0, 0)))
+    (source / "2025-01-08_081500_KST.jpg").write_bytes(_image_bytes((0, 255, 0), fmt="JPEG"))
+    (source / "126_unconfirmed.png").write_bytes(_image_bytes((0, 0, 255)))
+    (source / "clothing_tags.json").write_text("{}", encoding="utf-8")
     manifest = tmp_path / "manifest.json"
     manifest.write_text(json.dumps({"photos": [
         _entry("007_linen.png", True),
@@ -54,43 +66,51 @@ def layout(tmp_path: Path):
     return tmp_path, manifest, source, tmp_path / "photos"
 
 
-def test_captured_at_from_kst_file_name():
-    assert prepare_mod.captured_at_from_kst_name("2025-01-08_081500_KST.jpg") == "2025-01-08T08:15:00+09:00"
-    assert prepare_mod.captured_at_from_kst_name("2025-07-30_200300_KST.JPG") == "2025-07-30T20:03:00+09:00"
-    assert prepare_mod.captured_at_from_kst_name("2025-02-30_081500_KST.jpg") is None
-    assert prepare_mod.captured_at_from_kst_name("007_front_linen.png") is None
-
-
-def test_prepare_copies_only_confirmed_and_creates_templates(layout):
+def test_prepare_copies_confirmed_photos_byte_for_byte_without_sidecars(layout):
     root, manifest, source, dest = layout
     report = prepare_mod.prepare(manifest, source, dest, repo_root=root)
 
-    assert sorted(p.name for p in dest.iterdir()) == [
-        "007_linen.metadata.json", "007_linen.png",
-        "2025-01-08_081500_KST.jpg", "2025-01-08_081500_KST.metadata.json",
-    ]
-    assert report.confirmed == 2 and len(report.copied) == 2
+    assert sorted(p.name for p in dest.iterdir()) == ["007_linen.png", "2025-01-08_081500_KST.jpg"]
+    assert report.confirmed == 2 and len(report.copied) == 2 and report.ok
+    assert report.metadata_problems == [] and report.sidecars_present == 0
+    for name in ("007_linen.png", "2025-01-08_081500_KST.jpg"):
+        assert (dest / name).read_bytes() == (source / name).read_bytes()
+
+
+def test_prepare_replaces_stale_copy_and_rerun_is_idempotent(layout):
+    root, manifest, source, dest = layout
+    dest.mkdir()
+    (dest / "007_linen.png").write_bytes(_image_bytes((255, 0, 0), comment=None))  # pre-metadata copy
+    vote_sidecar = dest / "007_linen.metadata.json"
+    vote_sidecar.write_text('{"thermal_vote": "hot"}', encoding="utf-8")
+
+    first = prepare_mod.prepare(manifest, source, dest, repo_root=root)
+    second = prepare_mod.prepare(manifest, source, dest, repo_root=root)
+
+    assert first.replaced == ["007_linen.png"] and first.copied == ["2025-01-08_081500_KST.jpg"]
     assert (dest / "007_linen.png").read_bytes() == (source / "007_linen.png").read_bytes()
-    jpg_sidecar = json.loads((dest / "2025-01-08_081500_KST.metadata.json").read_text(encoding="utf-8"))
-    assert jpg_sidecar == {"captured_at": "2025-01-08T08:15:00+09:00", "latitude": 37.5665, "longitude": 126.978}
-    png_sidecar = json.loads((dest / "007_linen.metadata.json").read_text(encoding="utf-8"))
-    assert png_sidecar["captured_at"] is None
+    assert second.copied == [] and second.replaced == [] and len(second.unchanged) == 2 and second.ok
+    assert vote_sidecar.read_text(encoding="utf-8") == '{"thermal_vote": "hot"}'
+    assert second.sidecars_present == 1 and len(list(dest.iterdir())) == 3
 
 
-def test_prepare_rerun_is_idempotent_and_keeps_sidecars(layout):
+def test_prepare_reports_photo_without_embedded_metadata(layout, capsys, monkeypatch):
     root, manifest, source, dest = layout
-    prepare_mod.prepare(manifest, source, dest, repo_root=root)
-    edited = {"captured_at": "2025-07-01T09:00:00+09:00", "latitude": 37.5, "longitude": 127.0,
-              "thermal_vote": "hot"}
-    sidecar = dest / "007_linen.metadata.json"
-    sidecar.write_text(json.dumps(edited), encoding="utf-8")
+    (source / "007_linen.png").write_bytes(_image_bytes((255, 0, 0), comment=None))
+    bad_comment = {**USER_COMMENT, "latitude": 123.0}
+    (source / "2025-01-08_081500_KST.jpg").write_bytes(_image_bytes((0, 255, 0), "JPEG", bad_comment))
 
     report = prepare_mod.prepare(manifest, source, dest, repo_root=root)
+    assert not report.ok
+    assert {(p.file, p.code) for p in report.metadata_problems} == {
+        ("007_linen.png", "METADATA_NOT_FOUND"),
+        ("2025-01-08_081500_KST.jpg", "METADATA_OUT_OF_RANGE"),
+    }
 
-    assert report.copied == [] and report.replaced == [] and len(report.unchanged) == 2
-    assert report.sidecars_created == [] and len(report.sidecars_kept) == 2
-    assert json.loads(sidecar.read_text(encoding="utf-8")) == edited
-    assert len(list(dest.iterdir())) == 4
+    monkeypatch.setattr(prepare_mod, "REPO_ROOT", root)
+    code = prepare_mod.main(["--manifest", str(manifest), "--source", str(source), "--dest", str(dest)])
+    assert code == 1
+    assert "007_linen.png (METADATA_NOT_FOUND)" in capsys.readouterr().err
 
 
 def test_prepare_rejects_origin_outside_source(layout):
@@ -105,9 +125,11 @@ def test_prepare_rejects_origin_outside_source(layout):
 def test_placeholders_refuse_when_photos_confirmed(layout, tmp_path):
     _, manifest, _, dest = layout
     code = placeholders_mod.main(["--manifest", str(manifest), "--dest", str(dest),
-                                  "--vision-fixture", str(tmp_path / "vision.json")])
+                                  "--vision-fixture", str(tmp_path / "vision.json"),
+                                  "--weather-fixture", str(tmp_path / "weather.json")])
     assert code == 1
     assert not dest.exists()
+    assert not (tmp_path / "weather.json").exists()
 
 
 @pytest.mark.parametrize("confirmed", [False, True])

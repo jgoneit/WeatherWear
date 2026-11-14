@@ -536,17 +536,17 @@
     - 이후 새로 생기는 `ex_img/` 파일은 `rights_confirmed: false`로 두고 사용자에게 확인한다
     - _Requirements: 15.2, 15.3_
 
-  - [ ] 19.17 사진 복사 스크립트 수정 후 실행 (`scripts/prepare_demo_photos.py`)
+  - [x] 19.17 사진 복사 스크립트 수정 후 실행 (`scripts/prepare_demo_photos.py`)
     - manifest의 174장을 `shutil.copyfile`로 바이트 그대로 복사(이전 159장 복사본 덮어쓰기), 사이드카 템플릿 생성 제거, 복사 후 각 사진을 `read_embedded_metadata`로 확인하고 실패하면 종료 코드 1
     - 스크립트를 실행해 `data/demo/photos/`를 174장(약 325MB)으로 채운다
     - _Requirements: 2.1, 15.2, 15.3_
 
-  - [ ] 19.18 `clothing_tags.json` 가져오기 스크립트 작성 후 실행 (`scripts/import_clothing_tags.py`)
+  - [x] 19.18 `clothing_tags.json` 가져오기 스크립트 작성 후 실행 (`scripts/import_clothing_tags.py`)
     - design "의류 태그 fixture" 절대로 파일 이름으로 연결, `ClothingTags` 검증, 키는 `data/demo/photos` 파일 바이트 전체의 SHA-256, 원래 `sha256`은 `vision.sources.json`의 `source_sha256`으로 기록. 누락·검증 실패 시 파일을 쓰지 않고 종료 코드 1
     - 실행해 `data/demo/fixtures/vision.json`을 174개 키로 교체. `build_fixtures.py`의 태그 작성 경로는 이 스크립트를 쓰도록 바꾸거나 제거
     - _Requirements: 3.3, 15.8, 15.12, 15.13_
 
-  - [ ] 19.19 날씨 기록 스크립트 작성 후 실행 (`scripts/record_fixture_weather.py`)
+  - [x] 19.19 날씨 기록 스크립트 작성 후 실행 (`scripts/record_fixture_weather.py`)
     - 각 사진의 내장 메타데이터로 `(날짜, 좌표)` 묶음마다 Archive API 요청 1건(OpenMeteoWeatherProvider와 같은 파라미터), `map_archive_response`로 변환, 실패 시 값을 지어내지 않고 종료 코드 1, 성공 시 `recorded` 블록과 함께 원자적 교체
     - 순수 부분(묶기, 항목 생성)에 대한 단위 테스트를 respx로 작성(네트워크 없음). pytest는 스크립트 본체를 실행하지 않는다
     - 개발자 환경에서 한 번 실행해 `data/demo/fixtures/weather.json`을 174건의 기록값으로 교체한다(네트워크 필요)
@@ -562,7 +562,7 @@
     - **Property 35: 시나리오 선택은 규칙 S1~S4를 만족한다**
     - **Validates: Requirements 15.9, 15.10, 15.11**
 
-  - [ ] 19.22 플레이스홀더 스크립트에 내장 메타데이터 추가 (`scripts/make_placeholders.py`)
+  - [x] 19.22 플레이스홀더 스크립트에 내장 메타데이터 추가 (`scripts/make_placeholders.py`)
     - 생성 PNG마다 UserComment JSON(`synthetic: true`, 서로 다른 시각, 서울 좌표)을 EXIF로 기록하고, 사이드카 대신 `weather.json` 항목(계절 공식 값, `recorded.source="placeholder"`)과 vision fixture를 만든다. 확인된 사진이 0장일 때만 쓰는 경로다
     - _Requirements: 15.7_
 

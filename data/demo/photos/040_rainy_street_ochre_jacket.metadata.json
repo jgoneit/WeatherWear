@@ -1,6 +1,4 @@
 {
-  "captured_at": "2025-04-11T08:50:00+09:00",
-  "latitude": 37.5796,
-  "longitude": 126.977,
-  "thermal_vote": "comfortable"
+  "thermal_vote": "cold",
+  "note": "select_scenarios.py 시드 투표 (V4). 촬영 시각·위치는 사진 내장 메타데이터에서 읽는다"
 }

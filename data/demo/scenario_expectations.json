@@ -1,0 +1,125 @@
+{
+  "generated_by": "scripts/select_scenarios.py",
+  "algorithm_version": "rule_based_v1",
+  "tolerance_c": 3.0,
+  "note": "fixture 모드로 data/demo/photos 전체를 스캔한 결과의 기대값. 항목은 파일 이름으로 비교한다",
+  "scenarios": [
+    {
+      "id": "chilly-morning",
+      "name": "쌀쌀한 아침",
+      "actual_temperature_c": 14.5,
+      "status": "ok",
+      "fallback": false,
+      "applied_tolerance_c": 3.0,
+      "count": 5,
+      "top_file": "015_loose_hair_front_cream.png",
+      "items": [
+        {
+          "rank": 1,
+          "file": "015_loose_hair_front_cream.png",
+          "past_temperature_c": 14.4,
+          "temperature_diff_c": 0.1,
+          "score": 114.0,
+          "effective_vote": "comfortable",
+          "confidence_level": "high",
+          "selected_by_fallback": false
+        },
+        {
+          "rank": 2,
+          "file": "089_quiet_luxury_camel_blazer.png",
+          "past_temperature_c": 14.6,
+          "temperature_diff_c": 0.1,
+          "score": 114.0,
+          "effective_vote": "comfortable",
+          "confidence_level": "high",
+          "selected_by_fallback": false
+        },
+        {
+          "rank": 3,
+          "file": "087_tailored_office_suit.png",
+          "past_temperature_c": 14.6,
+          "temperature_diff_c": 0.1,
+          "score": 99.0,
+          "effective_vote": null,
+          "confidence_level": "medium",
+          "selected_by_fallback": false
+        },
+        {
+          "rank": 4,
+          "file": "122_rugby_skater_store.png",
+          "past_temperature_c": 14.3,
+          "temperature_diff_c": 0.2,
+          "score": 98.0,
+          "effective_vote": null,
+          "confidence_level": "medium",
+          "selected_by_fallback": false
+        },
+        {
+          "rank": 5,
+          "file": "012_slight_upward_gaze_grey.png",
+          "past_temperature_c": 14.2,
+          "temperature_diff_c": 0.3,
+          "score": 97.0,
+          "effective_vote": null,
+          "confidence_level": "medium",
+          "selected_by_fallback": false
+        }
+      ]
+    },
+    {
+      "id": "cold-snap",
+      "name": "기록적 한파 (경계 3.0°C)",
+      "actual_temperature_c": -8.8,
+      "status": "ok",
+      "fallback": false,
+      "applied_tolerance_c": 3.0,
+      "count": 1,
+      "top_file": "2025-01-08_081500_KST.jpg",
+      "items": [
+        {
+          "rank": 1,
+          "file": "2025-01-08_081500_KST.jpg",
+          "past_temperature_c": -5.8,
+          "temperature_diff_c": 3.0,
+          "score": 85.0,
+          "effective_vote": "comfortable",
+          "confidence_level": "high",
+          "selected_by_fallback": false
+        }
+      ]
+    },
+    {
+      "id": "early-heat",
+      "name": "무더위 (범위 확장)",
+      "actual_temperature_c": 41.8,
+      "status": "ok",
+      "fallback": true,
+      "applied_tolerance_c": 5.0,
+      "count": 1,
+      "top_file": "136_abstract_tee_skate_shorts.png",
+      "items": [
+        {
+          "rank": 1,
+          "file": "136_abstract_tee_skate_shorts.png",
+          "past_temperature_c": 37.8,
+          "temperature_diff_c": 4.0,
+          "score": 60.0,
+          "effective_vote": null,
+          "confidence_level": "low",
+          "selected_by_fallback": true
+        }
+      ]
+    },
+    {
+      "id": "heatwave",
+      "name": "기록적 폭염 (데이터 부족)",
+      "actual_temperature_c": 45.8,
+      "status": "insufficient_data",
+      "fallback": true,
+      "applied_tolerance_c": 5.0,
+      "count": 0,
+      "top_file": null,
+      "items": []
+    }
+  ]
+}

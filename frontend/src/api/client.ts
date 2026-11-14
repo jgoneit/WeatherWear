@@ -5,7 +5,7 @@
  */
 import { API_BASE_URL } from "../lib/env";
 import { STRINGS } from "../lib/strings";
-import type { components } from "./schema";
+import type { components, operations } from "./schema";
 
 export type Schemas = components["schemas"];
 export type RecommendationResponse = Schemas["RecommendationResponse"];
@@ -22,6 +22,27 @@ export type ScenarioSelection = Schemas["ScenarioSelection"];
 export type DemoStatus = Schemas["DemoStatus"];
 export type AppMeta = Schemas["AppMeta"];
 export type ErrorResponse = Schemas["ErrorResponse"];
+
+// Phase 2 (자동화) 타입. 모두 schema.d.ts에서 가져온다 (Req 10.7).
+export type AutomationStatus = Schemas["AutomationStatusOut"];
+export type GalleryImport = Schemas["GalleryImportOut"];
+export type GalleryImportStatus = GalleryImport["status"];
+export type GalleryImportQuery = NonNullable<
+  operations["list_gallery_imports_api_gallery_imports_get"]["parameters"]["query"]
+>;
+export type LocationIn = Schemas["LocationIn"];
+export type LocationOut = Schemas["LocationOut"];
+export type LocationState = Schemas["LocationStateOut"];
+/** 알림 기록 1건. 브라우저 `Notification`과 이름이 겹치지 않게 `NotificationItem`으로 부른다. */
+export type NotificationItem = Schemas["NotificationOut"];
+export type NotificationKind = NotificationItem["kind"];
+export type NotificationQuery = NonNullable<
+  operations["list_notifications_api_notifications_get"]["parameters"]["query"]
+>;
+export type DailyBriefRun = Schemas["DailyBriefRunOut"];
+export type PushSubscriptionBody = Schemas["PushSubscriptionIn"];
+export type PushSubscriptionCreated = Schemas["PushSubscriptionCreatedOut"];
+export type VapidPublicKey = Schemas["VapidPublicKeyOut"];
 
 /** 화면 데이터와 피드백 저장의 제한 시간 (Req 11.9, 13.7). */
 export const DEFAULT_TIMEOUT_MS = 10_000;
@@ -143,6 +164,18 @@ function jsonBody(body: unknown): Pick<RequestInit, "body" | "headers"> {
   return { body: JSON.stringify(body), headers: { "Content-Type": "application/json" } };
 }
 
+/** 값이 있는 쿼리 파라미터만 붙인다. 예: `withQuery("/x", { limit: 1, kind: null })` → "/x?limit=1". */
+function withQuery(path: string, query: Record<string, string | number | null | undefined>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null) params.set(key, String(value));
+  }
+  const text = params.toString();
+  return text ? `${path}?${text}` : path;
+}
+
+const idPath = (id: number) => encodeURIComponent(String(id));
+
 export const api = {
   getRecommendations: (o: CallOptions = {}) =>
     request<RecommendationResponse>("/api/recommendations/today", {
@@ -188,4 +221,65 @@ export const api = {
     }),
   getStatus: (o: CallOptions = {}) =>
     request<DemoStatus>("/api/demo/status", { timeoutMs: DEMO_TIMEOUT_MS, ...o }),
+
+  // Phase 2: 자동화 상태, 사진 처리 기록, 위치, 알림, 브리핑, 푸시 (Req 13, 14, 15, 16, 17)
+  getAutomationStatus: (o: CallOptions = {}) =>
+    request<AutomationStatus>("/api/automation/status", { timeoutMs: DEFAULT_TIMEOUT_MS, ...o }),
+  getGalleryImports: (query: GalleryImportQuery = {}, o: CallOptions = {}) =>
+    request<GalleryImport[]>(withQuery("/api/gallery/imports", query), {
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+      ...o,
+    }),
+  reanalyzeImport: (id: number, o: CallOptions = {}) =>
+    request<GalleryImport>(`/api/gallery/imports/${idPath(id)}/reanalyze`, {
+      method: "POST",
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+      ...o,
+    }),
+  /** "착장 맞음". 복사·날씨·저장을 거치므로 30초 제한을 쓴다 (Req 6.12). */
+  confirmImport: (id: number, o: CallOptions = {}) =>
+    request<GalleryImport>(`/api/gallery/imports/${idPath(id)}/confirm-outfit`, {
+      method: "POST",
+      timeoutMs: DEMO_TIMEOUT_MS,
+      ...o,
+    }),
+  postLocation: (body: LocationIn, o: CallOptions = {}) =>
+    request<LocationOut>("/api/location", {
+      method: "POST",
+      ...jsonBody(body),
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+      ...o,
+    }),
+  getLocation: (o: CallOptions = {}) =>
+    request<LocationState>("/api/location", { timeoutMs: DEFAULT_TIMEOUT_MS, ...o }),
+  getNotifications: (query: NotificationQuery = {}, o: CallOptions = {}) =>
+    request<NotificationItem[]>(withQuery("/api/notifications", query), {
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+      ...o,
+    }),
+  /** 오늘 브리핑 지금 보내기 (30초, Req 13.4). */
+  runDailyBrief: (o: CallOptions = {}) =>
+    request<DailyBriefRun>("/api/daily-brief/run", {
+      method: "POST",
+      timeoutMs: DEMO_TIMEOUT_MS,
+      ...o,
+    }),
+  getVapidPublicKey: (o: CallOptions = {}) =>
+    request<VapidPublicKey>("/api/push/vapid-public-key", { timeoutMs: DEFAULT_TIMEOUT_MS, ...o }),
+  postPushSubscription: (body: PushSubscriptionBody, o: CallOptions = {}) =>
+    request<PushSubscriptionCreated>("/api/push/subscriptions", {
+      method: "POST",
+      ...jsonBody(body),
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+      ...o,
+    }),
+  deletePushSubscription: (id: number, o: CallOptions = {}) =>
+    request<void>(`/api/push/subscriptions/${idPath(id)}`, {
+      method: "DELETE",
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+      ...o,
+    }),
+  /** 구독마다 Web Push를 보내므로 30초 제한을 쓴다 (Req 15.9). */
+  postPushTest: (o: CallOptions = {}) =>
+    request<NotificationItem>("/api/push/test", { method: "POST", timeoutMs: DEMO_TIMEOUT_MS, ...o }),
 };

@@ -29,6 +29,8 @@ def build_vision_provider(
 ) -> VisionProvider:
     """Return ``GeminiVisionProvider`` for ``vision_provider=gemini``, else ``FixtureVisionProvider``.
 
+    The fixture provider gets ``cfg.automation.vision_overlay_path`` (Phase 2,
+    design.md §8); a missing overlay file changes nothing.
     ``gemini_client`` lets tests inject a fake ``genai.Client``.
     """
     if cfg.vision_provider == "gemini":
@@ -45,4 +47,7 @@ def build_vision_provider(
                 client=gemini_client,
             )
         logger.error("VISION_PROVIDER=gemini이지만 GEMINI_API_KEY 또는 GEMINI_MODEL이 없어 fixture를 사용합니다.")
-    return FixtureVisionProvider.from_file(fixture_path)
+    # Phase 2 (Req 6.3): Vision_Fixture_Overlay is looked up before the demo fixture.
+    return FixtureVisionProvider.from_file(
+        fixture_path, overlay_path=cfg.automation.vision_overlay_path
+    )

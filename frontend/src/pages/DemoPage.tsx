@@ -2,14 +2,18 @@ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 
 import {
   api,
   ApiError,
+  type AutomationStatus,
+  type DailyBriefRun,
   type DemoStatus,
+  type GalleryImport,
   type RecommendationResponse,
   type ScanReport,
   type Schemas,
 } from "../api/client";
+import { GalleryImportList } from "../components/GalleryImportList";
 import { useReportTodayTemperature } from "../components/layout/TodayTemperatureContext";
 import { IS_DEV } from "../lib/env";
-import { formatTemp } from "../lib/format";
+import { FALLBACK_TIMEZONE, formatDateTime, formatTemp } from "../lib/format";
 import { STRINGS } from "../lib/strings";
 import { useAsync } from "../lib/useAsync";
 
@@ -18,13 +22,18 @@ type Scenario = Schemas["ScenarioOut"];
 interface DemoPageProps {
   /** 테스트에서 개발 모드 여부를 바꿀 때 사용한다. 기본값은 import.meta.env.DEV. */
   isDev?: boolean;
+  /**
+   * Phase 2 "오늘 브리핑 지금 보내기"와 자동화 상태 카드 (Phase 2 Req 13.4, 17.4). 앱 라우트에서 켠다.
+   * 꺼 두면 Phase 2 API를 부르지 않으므로, 단독 렌더는 Phase 1 데모 화면과 같다.
+   */
+  automation?: boolean;
 }
 
 /**
  * 데모 관리 화면 (Req 14.1~14.7, 16.5).
  * 개발 모드가 아니면 컨트롤 없이 안내 문구만 보여주고 API도 부르지 않는다 (Req 14.2).
  */
-export function DemoPage({ isDev = IS_DEV }: DemoPageProps) {
+export function DemoPage({ isDev = IS_DEV, automation = false }: DemoPageProps) {
   if (!isDev) {
     return (
       <section className="glass rounded-(--radius-card) p-5">
@@ -33,7 +42,7 @@ export function DemoPage({ isDev = IS_DEV }: DemoPageProps) {
       </section>
     );
   }
-  return <DemoPanel />;
+  return <DemoPanel automation={automation} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -102,7 +111,7 @@ function errorReason(error: unknown): string {
 
 type ScenarioOutcome = { kind: "selected"; scenario: Scenario } | { kind: "cleared" };
 
-function DemoPanel() {
+function DemoPanel({ automation }: { automation: boolean }) {
   const status = useAsync((signal) => api.getStatus({ signal }), []);
   const scenarios = useAsync((signal) => api.getScenarios({ signal }), []);
   const scan = useAction<ScanReport>();
@@ -189,6 +198,8 @@ function DemoPanel() {
         onClear={() => void handleClear()}
       />
 
+      {automation ? <AutomationSection /> : null}
+
       <details className="detail-disclosure"><summary>개발 정보</summary><div className="detail-extra">
       <StatusCard
         data={status.data}
@@ -273,12 +284,20 @@ function SecondaryButton({
   );
 }
 
-/** 어느 동작이 실패했는지와 사유를 보여준다 (Req 14.6). */
-function ActionError({ action, error }: { action: string; error: unknown }) {
+/** 어느 동작이 실패했는지와 사유를 보여준다 (Req 14.6). `reason`으로 사유 문구를 바꿀 수 있다. */
+function ActionError({
+  action,
+  error,
+  reason = errorReason,
+}: {
+  action: string;
+  error: unknown;
+  reason?: (error: unknown) => string;
+}) {
   if (error === undefined) return null;
   return (
     <p role="alert" className="rounded-2xl bg-red-50/90 px-3 py-2 text-sm font-medium text-red-800">
-      {STRINGS.demo.failedWithReason(action, errorReason(error))}
+      {STRINGS.demo.failedWithReason(action, reason(error))}
     </p>
   );
 }
@@ -634,6 +653,190 @@ function RecomputeCard({
           {summary}
         </p>
       ) : null}
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: 오늘 브리핑 지금 보내기와 자동화 상태 (Phase 2 Req 13.4, 17.4)
+// ---------------------------------------------------------------------------
+
+/** 최근 사진 처리 표시 건수 (Req 17.4). */
+const RECENT_IMPORTS = 5;
+
+/** "지금 보내기" 실패 사유. 다른 브리핑을 만드는 중(409)이면 그 안내를 쓴다. */
+function briefRunReason(error: unknown): string {
+  if (error instanceof ApiError && error.status === 409) return STRINGS.brief.runInProgress;
+  return errorReason(error);
+}
+
+function AutomationSection() {
+  const meta = useAsync((signal) => api.getMeta({ signal }), []);
+  const timeZone = meta.data?.app_timezone ?? FALLBACK_TIMEZONE;
+  const status = useAsync((signal) => api.getAutomationStatus({ signal }), []);
+  const imports = useAsync((signal) => api.getGalleryImports({ limit: RECENT_IMPORTS }, { signal }), []);
+  const briefRun = useAction<DailyBriefRun>();
+  const reloadStatus = status.reload;
+  const reloadImports = imports.reload;
+
+  const handleRun = useCallback(async () => {
+    const outcome = await briefRun.run((signal) => api.runDailyBrief({ signal }));
+    if (outcome.ok) void reloadStatus();
+  }, [briefRun.run, reloadStatus]);
+
+  const handleRefresh = useCallback(() => {
+    void reloadStatus();
+    void reloadImports();
+  }, [reloadStatus, reloadImports]);
+
+  return (
+    <>
+      <BriefRunCard
+        result={briefRun.data}
+        error={briefRun.error}
+        pending={briefRun.pending}
+        onRun={() => void handleRun()}
+      />
+      <AutomationStatusCard
+        status={status.data}
+        statusError={status.error}
+        imports={imports.data}
+        importsError={imports.error}
+        pending={status.pending || imports.pending}
+        timeZone={timeZone}
+        onRefresh={handleRefresh}
+      />
+    </>
+  );
+}
+
+function BriefRunCard({
+  result,
+  error,
+  pending,
+  onRun,
+}: {
+  result: DailyBriefRun | undefined;
+  error: unknown;
+  pending: boolean;
+  onRun: () => void;
+}) {
+  return (
+    <Card title={STRINGS.brief.runNow}>
+      <p className="text-sm text-slate-700">{STRINGS.brief.runDescription}</p>
+      <PrimaryButton label={STRINGS.brief.runNow} pending={pending} onClick={onRun} />
+      <ActionError action={STRINGS.brief.runFailed} error={error} reason={briefRunReason} />
+      {result && error === undefined && !pending ? (
+        <div className="flex min-w-0 flex-col gap-2">
+          <DoneNotice title={STRINGS.brief.runDone} />
+          <div className="min-w-0 rounded-2xl bg-white/50 px-3 py-2 text-sm">
+            <p data-testid="brief-run-title" className="min-w-0 font-semibold break-words text-slate-900">
+              {result.notification.title}
+            </p>
+            <p data-testid="brief-run-body" className="mt-1 min-w-0 break-words text-slate-700">
+              {result.notification.body}
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
+function watcherLabel(gallery: AutomationStatus["gallery"]): string {
+  if (!gallery.enabled) return STRINGS.gallery.watcherDisabled;
+  const state = gallery.running ? STRINGS.gallery.watcherRunning : STRINGS.gallery.watcherStopped;
+  return gallery.dir_available ? state : `${state} · ${STRINGS.gallery.watcherDirMissing}`;
+}
+
+function notifierLabel(notifier: AutomationStatus["notifier"]): string {
+  if (notifier.name !== "webpush") return notifier.name;
+  const key = notifier.vapid_ready ? STRINGS.brief.vapidReady : STRINGS.brief.vapidMissing;
+  return `${notifier.name} · ${STRINGS.brief.vapid} ${key} · ${STRINGS.brief.subscriptions(notifier.subscription_count)}`;
+}
+
+function AutomationStatusCard({
+  status,
+  statusError,
+  imports,
+  importsError,
+  pending,
+  timeZone,
+  onRefresh,
+}: {
+  status: AutomationStatus | undefined;
+  statusError: unknown;
+  imports: GalleryImport[] | undefined;
+  importsError: unknown;
+  pending: boolean;
+  timeZone: string;
+  onRefresh: () => void;
+}) {
+  const brief = status?.daily_brief;
+  return (
+    <Card
+      title={STRINGS.gallery.automationTitle}
+      action={<SecondaryButton label={STRINGS.gallery.automationRefresh} pending={pending} onClick={onRefresh} />}
+    >
+      <ActionError action={STRINGS.gallery.automationLoadFailed} error={statusError} />
+      {status && brief ? (
+        <>
+          <dl className="grid min-w-0 grid-cols-1 gap-2 text-sm">
+            <StatusRow label={STRINGS.gallery.watcher} value={watcherLabel(status.gallery)} testId="automation-watcher" />
+            <StatusRow
+              label={STRINGS.gallery.lastPoll}
+              value={
+                status.gallery.last_poll_at
+                  ? formatDateTime(status.gallery.last_poll_at, timeZone)
+                  : STRINGS.gallery.never
+              }
+              testId="automation-last-poll"
+            />
+            <StatusRow
+              label={STRINGS.brief.nextRun}
+              value={
+                brief.enabled
+                  ? brief.next_run_at
+                    ? formatDateTime(brief.next_run_at, timeZone)
+                    : STRINGS.emptyValue
+                  : STRINGS.brief.scheduleOff
+              }
+              testId="automation-next-brief"
+            />
+            <StatusRow
+              label={STRINGS.brief.lastScheduled}
+              value={
+                brief.last_scheduled
+                  ? `${brief.last_scheduled.date} · ${STRINGS.brief.lastScheduledStatus[brief.last_scheduled.status]}`
+                  : STRINGS.gallery.never
+              }
+              testId="automation-last-scheduled"
+            />
+            <StatusRow label={STRINGS.brief.notifier} value={notifierLabel(status.notifier)} testId="automation-notifier" />
+          </dl>
+          <div className="grid min-w-0 grid-cols-2 gap-2">
+            <BentoTile label={STRINGS.gallery.pendingCount} value={status.gallery.pending} testId="automation-pending" />
+            <BentoTile
+              label={STRINGS.gallery.uncertainCount}
+              value={status.gallery.uncertain}
+              testId="automation-uncertain"
+            />
+          </div>
+        </>
+      ) : null}
+      <div className="flex min-w-0 flex-col gap-2">
+        <h3 className="text-sm font-semibold text-slate-900">{STRINGS.gallery.recentImports}</h3>
+        <ActionError action={STRINGS.gallery.recentImportsLoadFailed} error={importsError} />
+        {imports === undefined ? null : imports.length === 0 ? (
+          <p className="text-sm text-slate-700">{STRINGS.gallery.historyEmpty}</p>
+        ) : (
+          <GalleryImportList
+            items={imports.slice(0, RECENT_IMPORTS)}
+            timeZone={timeZone}
+            label={STRINGS.gallery.recentImports}
+          />
+        )}
+      </div>
     </Card>
   );
 }

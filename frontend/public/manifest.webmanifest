@@ -1,0 +1,11 @@
+{
+  "name": "WeatherWear",
+  "short_name": "WeatherWear",
+  "description": "날씨에 맞는, 나다운 옷.",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F5F5F7",
+  "theme_color": "#F3EFE6"
+}

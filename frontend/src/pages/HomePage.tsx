@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { Link } from "react-router";
 import { api, type RecommendationResponse } from "../api/client";
+import { DailyBriefCard } from "../components/DailyBriefCard";
 import { ErrorRetry } from "../components/ErrorRetry";
 import { FallbackNotice } from "../components/FallbackNotice";
 import { InsufficientDataState } from "../components/InsufficientDataState";
@@ -17,12 +18,17 @@ import { useAsync } from "../lib/useAsync";
 interface HomePageProps {
   /** 데모 진입 링크 노출 여부. 테스트에서 바꿀 때 쓴다. 기본값은 `IS_DEV` (Req 14.1, 14.2). */
   isDev?: boolean;
+  /**
+   * Phase 2 오늘 브리핑 카드(Req 14.6). 앱 라우트(`App.tsx`)에서 켠다.
+   * 꺼 두면 GET /api/notifications를 부르지 않으므로, 단독 렌더는 Phase 1 홈 화면과 같다.
+   */
+  dailyBrief?: boolean;
 }
 
 const outfitHref = (id: number) => `/outfits/${id}`;
 
 /** Daily weather, outfit recommendation and feedback; technical detail is opt-in. */
-export function HomePage({ isDev = IS_DEV }: HomePageProps) {
+export function HomePage({ isDev = IS_DEV, dailyBrief = false }: HomePageProps) {
   const recommendations = useAsync((signal) => api.getRecommendations({ signal }), []);
   const meta = useAsync((signal) => api.getMeta({ signal }), []);
 
@@ -60,6 +66,7 @@ export function HomePage({ isDev = IS_DEV }: HomePageProps) {
       {data === undefined && recommendations.error === undefined ? <p role="status" className="glass rounded-3xl p-5">{STRINGS.home.loading}</p> : null}
       {data ? <>
         <div className="home-dashboard">
+          {dailyBrief ? <div className="home-brief"><DailyBriefCard timeZone={timeZone} /></div> : null}
           <div className="home-weather"><WeatherHero today={data.today} /></div>
           <div className="home-metrics"><WeatherBento weather={data.today} showNotice={false}/></div>
           <section aria-label={STRINGS.home.topRecommendation} className="home-feature">

@@ -10,7 +10,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
 
 ## Tasks
 
-- [ ] 1. 공유 계약과 Phase 1 접점 (리드)
+- [x] 1. 공유 계약과 Phase 1 접점 (리드)
   - [x] 1.1 병합 결과 기준선 확인
     - Phase 1 + main 병합 브랜치에서 `cd backend && python -m pytest -q`, `cd frontend && npx vitest --run && npm run typecheck`가 통과하는지 확인하고 결과(통과 수, skip 수)를 기록한다. 실패하면 Phase 2 작업을 시작하지 않고 병합 담당에게 알린다
     - `VisionAnalysis`, `ScanDecision`, `photo_analyses`, `MIN_PHOTO_TYPE_CONFIDENCE = 0.70`, `UNKNOWN_ANALYSIS`가 design의 전제와 같은지 확인한다
@@ -66,8 +66,8 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
   - `cd backend && python -m pytest -q`(Phase 1 전체 + 1.x 테스트)와 `cd frontend && npm run typecheck`가 외부 연결 없이 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
   - _Requirements: 20.5_
 
-- [ ] 3. 흐름 A: 갤러리 감시와 수집
-  - [ ] 3.1 후보·안정 판정 순수 함수 (`backend/app/gallery/rules.py`, `backend/tests/test_gallery_rules.py`)
+- [x] 3. 흐름 A: 갤러리 감시와 수집
+  - [x] 3.1 후보·안정 판정 순수 함수 (`backend/app/gallery/rules.py`, `backend/tests/test_gallery_rules.py`)
     - `is_gallery_candidate()`(Phase 1 `SUPPORTED_EXTENSIONS`와 `SIDECAR_SUFFIX` 재사용 + 숨김·`~`·임시 확장자·심볼릭 링크 제외), `Signature`, `Tracker`, `StableEvent`, `advance_trackers()`
     - 예제: `test_zero_byte_file_ignored`, `test_signature_change_resets_stability`, `test_ignored_names_never_read`, 이벤트 순서 (first_seen, name)
     - _Requirements: 2.1, 2.2, 2.3, 2.8, 1.6_
@@ -78,7 +78,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 2: 안정 판정이 참조 모델과 일치한다**
     - **Validates: Requirements 2.2, 2.3, 2.9**
 
-  - [ ] 3.3 GalleryStore (`backend/app/gallery/store.py`, `backend/tests/test_gallery_store.py`)
+  - [x] 3.3 GalleryStore (`backend/app/gallery/store.py`, `backend/tests/test_gallery_store.py`)
     - `gallery_key()`, `baseline_done/record_baseline`(app_state 표시 + baseline 행, 한 트랜잭션), `upsert_version`(같은 서명 무시, 다른 서명은 새 버전), `due_rows`, `claim`(조건부 UPDATE, lease 10분), `finish`, `active_with_sha`, `reset_for_reanalyze`, `list_imports`(baseline 제외, updated_at DESC), `counts`, `user_photos` 함수 3개
     - 예제: `test_baseline_not_redone_for_same_gallery_dir`, `test_claim_once_between_two_stores`(서로 다른 engine 2개, 같은 파일), `test_expired_lease_reclaimed`, `test_reset_for_reanalyze_rules`
     - _Requirements: 2.4, 2.5, 1.7, 3.3, 6.8, 17.3_
@@ -87,7 +87,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 3: 기준선과 재시작**
     - **Validates: Requirements 2.4, 2.5, 2.8**
 
-  - [ ] 3.5 추정 촬영 정보 (`backend/app/gallery/estimate.py`, `backend/tests/test_gallery_estimate.py`)
+  - [x] 3.5 추정 촬영 정보 (`backend/app/gallery/estimate.py`, `backend/tests/test_gallery_estimate.py`)
     - `read_partial_exif()`(Phase 1 metadata.py의 DMS helper 재사용, 읽기만), `estimate_capture()`(결정 A3: EXIF 시각 → 파일 mtime(APP_TIMEZONE), 미래 mtime은 처리 시각), `estimated_sidecar_json()`(`time_source: file_mtime`)
     - 예제: `test_no_exif_uses_mtime_and_default_location`(`os.utime`으로 mtime 고정), `test_future_mtime_clamped_to_now`, `test_no_exif_uses_last_location`, `test_datetime_without_offset_uses_app_tz`, `test_valid_embedded_metadata_not_estimated`
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
@@ -98,7 +98,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 7: 추정 사이드카 round-trip**
     - **Validates: Requirements 5.3, 5.7**
 
-  - [ ] 3.7 Fixture Vision overlay (`backend/app/providers/vision/fixture.py`, `backend/app/providers/vision/factory.py`, `backend/tests/test_vision_overlay.py`)
+  - [x] 3.7 Fixture Vision overlay (`backend/app/providers/vision/fixture.py`, `backend/app/providers/vision/factory.py`, `backend/tests/test_vision_overlay.py`)
     - `FixtureVisionProvider(..., overlay_path=None)`: overlay(크기·mtime_ns 변화 시 다시 읽기, main `load_vision_fixture()` 재사용) → 데모 fixture → `UNKNOWN_ANALYSIS`. 실패 경고는 서명마다 1건
     - `build_vision_provider()`가 `cfg.automation.vision_overlay_path`를 넘긴다. 기존 `test_vision_fixture.py`는 고치지 않고 통과해야 한다
     - 예제: `test_fixture_unknown_hash_uncertain_without_overlay`, `test_overlay_reload_on_change`, `test_broken_overlay_ignored_with_one_warning`, `test_demo_scan_results_unchanged_with_overlay`
@@ -108,7 +108,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 9: Fixture overlay 조회 순서**
     - **Validates: Requirements 6.3, 6.4**
 
-  - [ ] 3.9 RecentWeatherProvider (`backend/app/gallery/weather_recent.py`, `backend/tests/test_weather_recent.py`)
+  - [x] 3.9 RecentWeatherProvider (`backend/app/gallery/weather_recent.py`, `backend/tests/test_weather_recent.py`)
     - `choose_weather_endpoint()`, `RecentWeatherProvider.get_weather()`(4.1의 `ForecastClient.get_hourly` + Phase 1 `map_archive_response`, 실패 시 Phase 1 `OpenMeteoWeatherProvider`)
     - 예제(respx): `test_recent_photo_uses_forecast_past_days`(URL·파라미터 확인), `test_old_photo_uses_archive`, `test_forecast_failure_falls_back_to_archive_then_fixture`, `test_fixture_mode_today_photo_gets_today_default`
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
@@ -117,7 +117,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 11: 촬영 시점 날씨 엔드포인트 선택**
     - **Validates: Requirements 7.1, 7.2, 7.6**
 
-  - [ ] 3.11 GalleryImportService (`backend/app/gallery/processor.py`, `backend/tests/test_gallery_processor.py`)
+  - [x] 3.11 GalleryImportService (`backend/app/gallery/processor.py`, `backend/tests/test_gallery_processor.py`)
     - `failure_transition()`과 `process()`를 design "GalleryImportService" 절의 순서대로 구현: 파일 재확인, SHA-256, 중복(outfits, 활성 행, `non_outfit` 판정), 바이트 그대로 복사(`.partial` → `os.replace`, 해시 확인, 이름 충돌 `<stem>_<sha8>`), `user_photos`, 추정 사이드카, `ingest_file()`, 결과별 정리(NotOutfit·Duplicate·최종 실패는 복사본·사이드카·`user_photos` 삭제)
     - 감시용 `ImageIngestionService`는 `photo_dir=user_photo_dir`, Vision은 API_Server와 같은 provider, 날씨는 `RecentWeatherProvider`(fixture 모드면 Phase 1 fixture)로 만든다. Photo_Dir·manifest·fixtures에는 쓰지 않는다
     - 예제: `test_outfit_imported_with_user_photo`, `test_non_outfit_skipped_copy_removed`, `test_uncertain_kept_out_and_listed`, `test_low_confidence_outfit_is_uncertain`, `test_known_non_outfit_hash_skips_vision`, `test_same_bytes_two_names_one_outfit`, `test_vision_timeout_retries_after_1_then_5_minutes`, `test_third_failure_is_final`, `test_invalid_format_not_retried`, `test_failed_attempt_leaves_no_rows`
@@ -131,14 +131,14 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 8: 재시도 일정과 Vision 호출 상한**
     - **Validates: Requirements 6.1, 6.5, 6.6, 6.7, 6.10, 6.11**
 
-  - [ ] 3.13 GalleryWatcher, CLI, 런타임 builder (`backend/app/gallery/watcher.py`, `backend/app/gallery/runtime.py`, `scripts/watch_gallery.py`, `backend/tests/test_gallery_watcher.py`)
+  - [x] 3.13 GalleryWatcher, CLI, 런타임 builder (`backend/app/gallery/watcher.py`, `backend/app/gallery/runtime.py`, `scripts/watch_gallery.py`, `backend/tests/test_gallery_watcher.py`)
     - `poll_once(stop)`(scandir → 사용 가능 여부 전환 시에만 WARNING → 기준선 → `advance_trackers` → `upsert_version` → `due_rows` → `claim` → `process` → `finish`, 행마다 stop 확인, 예외는 기록 후 계속), `run(stop)`, `status()`
     - `build_gallery_runtime(config, container)`: store, importer, watcher(감시 꺼짐이면 None)를 만든다. `deps.py`는 고치지 않는다(7.1에서 연결)
     - CLI: `--once`(poll → 대기 → poll, 종료 코드 0), `--gallery-dir`, Ctrl+C 처리
     - 예제: `test_first_poll_records_baseline_without_analysis`, `test_new_file_after_baseline_is_imported`, `test_file_added_while_stopped_is_processed_on_restart`, `test_growing_file_not_read_until_stable`, `test_hidden_tmp_then_rename_processed_once`, `test_missing_gallery_dir_warns_once`, `test_unexpected_exception_does_not_kill_watcher`, `test_watch_gallery_once_cli`
     - _Requirements: 1.1, 1.2, 1.4, 1.5, 1.6, 1.8, 2.8_
 
-  - [ ] 3.14 사진 파일 위치 확장 (`backend/app/api/outfits.py`, `backend/tests/test_photo_paths.py`)
+  - [x] 3.14 사진 파일 위치 확장 (`backend/app/api/outfits.py`, `backend/tests/test_photo_paths.py`)
     - `resolve_outfit_photo()`: `user_photos`에 해시가 있으면 User_Photo_Dir, 없으면 Phase 1 `resolve_photo_path()`. 두 경우 모두 폴더 밖 경로를 거부한다
     - 예제: `test_user_photo_served_from_user_dir`, `test_demo_photo_still_served_from_photo_dir`, `test_photo_path_traversal_404`, `test_imported_outfit_listed_in_outfits_and_candidates`
     - _Requirements: 3.5, 3.6_
@@ -147,12 +147,12 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 10: 사진 파일 위치 해석**
     - **Validates: Requirements 3.5**
 
-  - [ ] 3.16 사진 처리 기록 API (`backend/app/api/gallery.py`, `backend/tests/test_api_gallery.py`)
+  - [x] 3.16 사진 처리 기록 API (`backend/app/api/gallery.py`, `backend/tests/test_api_gallery.py`)
     - `GET /api/gallery/imports?limit&status`(baseline 제외, 판정·capture_origin 포함, 경로 없음), `POST /api/gallery/imports/{id}/reanalyze`(202 / 404 / 409)
     - 예제: `test_gallery_imports_filters_and_order`, `test_imports_list_marks_estimated`, `test_reanalyze_uncertain_and_failed_only`, `test_imports_response_has_no_paths`
     - _Requirements: 17.3, 6.8, 5.5, 17.2_
 
-  - [ ] 3.17 "방금 찍은 사진" 흉내 스크립트 (`backend/app/gallery/simulate.py`, `scripts/simulate_capture.py`, `backend/tests/test_simulate_capture.py`)
+  - [x] 3.17 "방금 찍은 사진" 흉내 스크립트 (`backend/app/gallery/simulate.py`, `scripts/simulate_capture.py`, `backend/tests/test_simulate_capture.py`)
     - design "Capture_Simulator" 절의 helper와 `main(argv)`: 원본 선택(`--source` → `data/user/capture_pool/` `.last_used` 다음 → 플레이스홀더), 데모 사진 거부(종료 코드 2), 시각·위치 결정(`--at`, `--lat/--lon`, DB `user_location` 읽기 전용, 기본 위치), EXIF 기록, fixture 모드 overlay 선기록(`--tags`, pool `clothing_tags.json`, 플레이스홀더 고정 태그, `--no-fixture`), 숨김 임시 파일 → `os.replace`, 이름 충돌 `_2`, 파일 이름만 출력
     - 예제(tmp 디렉터리, 오프라인): `test_simulate_writes_exif_and_prints_name`, `test_simulate_refuses_demo_photo`, `test_simulate_placeholder_when_pool_empty`, `test_simulate_atomic_name_collision_suffix`, `test_simulate_overlay_written_before_publish`, `test_simulate_no_tags_prints_uncertain_notice`, `test_simulate_no_network`
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8_
@@ -161,12 +161,12 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 13: 흉내 스크립트 EXIF round-trip**
     - **Validates: Requirements 8.5, 8.9**
 
-  - [ ] 3.19 흐름 A 통합 예제 테스트 (`backend/tests/test_gallery_flow.py`)
+  - [x] 3.19 흐름 A 통합 예제 테스트 (`backend/tests/test_gallery_flow.py`)
     - 영역 (a)~(g)를 한 파일에서 실제 store·importer·watcher로 확인: `test_demo_dirs_unchanged_after_imports`(tmp에 Photo_Dir·manifest·fixtures 사본을 만들고 해시 비교), `test_demo_photo_bytes_in_gallery_is_duplicate`, `test_overlay_written_before_file_imports_as_outfit`(simulate → poll×2 → imported, fixture 모드), `test_watch_disabled_reads_nothing`, `test_demo_scan_weather_unchanged`
     - 스레드를 쓰지 않는다. `poll_once()`와 FakeClock만 쓴다
     - _Requirements: 20.2, 20.3, 4.1, 4.4, 1.3_
 
-  - [ ] 3.20 uncertain 사진 "착장 맞음" 확정 (`backend/app/gallery/confirm.py`, `backend/app/api/gallery.py`의 confirm-outfit 경로, `backend/tests/test_gallery_confirm.py`)
+  - [x] 3.20 uncertain 사진 "착장 맞음" 확정 (`backend/app/gallery/confirm.py`, `backend/app/api/gallery.py`의 confirm-outfit 경로, `backend/tests/test_gallery_confirm.py`)
     - `confirmed_analysis()`, `OutfitConfirmService.confirm()`: `uncertain` 행만 claim, Gallery_Dir 원본 재읽기와 SHA-256 비교, User_Photo_Dir 재복사(+내장 메타데이터 없으면 추정 사이드카), `ingest_file(copy, analysis_override=…, before_commit=…)`로 메타데이터 → 날씨 → 저장. `before_commit`에서 `photo_analyses` → `outfit` 변경과 `photo_confirmations` INSERT. 실패하면 복사본 정리 후 `uncertain`으로 되돌린다. Vision은 부르지 않는다
     - `POST /api/gallery/imports/{id}/confirm-outfit`: 200(imported, outfit_id) / 404 `GALLERY_IMPORT_NOT_FOUND` / 409 `GALLERY_IMPORT_NOT_CONFIRMABLE`(상태 또는 원본 문제)
     - 예제 영역 (m): `test_confirm_uncertain_creates_outfit_with_audit`, `test_confirm_does_not_call_vision`, `test_confirm_twice_conflict`, `test_confirm_source_missing_or_changed_409`, `test_confirm_storage_failure_rolls_back_all`, `test_confirmed_unknown_tags_listed_not_recommended`
@@ -176,8 +176,8 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 28: uncertain 확정은 Vision 없이 원자적으로 저장된다**
     - **Validates: Requirements 6.12, 6.13, 6.14**
 
-- [ ] 4. 흐름 B: 매일 브리핑과 알림
-  - [ ] 4.1 ForecastClient (`backend/app/providers/weather/forecast.py`, `backend/tests/test_forecast.py`)
+- [x] 4. 흐름 B: 매일 브리핑과 알림
+  - [x] 4.1 ForecastClient (`backend/app/providers/weather/forecast.py`, `backend/tests/test_forecast.py`)
     - 시작 전에 Open-Meteo Forecast 공식 문서로 `current`·`hourly`·`past_days`·`forecast_days`·변수 이름·단위를 확인하고, design과 다르면 design의 "근거와 가정" 표와 상수를 고친다
     - `build_current_params()`, `build_hourly_params()`, `map_current_response()`(Phase 1 `normalize_value()` 재사용), `ForecastClient.get_current/get_hourly`(10초, API 키 없음, 실패 → `ForecastError`)
     - 예제(respx): 서울 `current` 응답 고정 JSON 변환, 변수 누락 시 null, 2xx 아님·잘못된 JSON·타임아웃 → `ForecastError`
@@ -187,12 +187,12 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 12: Forecast 응답 변환과 대체**
     - **Validates: Requirements 7.3, 10.1, 10.2, 10.6**
 
-  - [ ] 4.3 CurrentWeatherService (`backend/app/notifications/current_weather.py`, `backend/tests/test_current_weather.py`)
+  - [x] 4.3 CurrentWeatherService (`backend/app/notifications/current_weather.py`, `backend/tests/test_current_weather.py`)
     - 시나리오 → Forecast current(open_meteo일 때) → fixture `today_default`, 실패 시 WARNING. Phase 1 `TodayWeatherService`와 `/api/weather/today`는 고치지 않는다
     - 예제: `test_scenario_overrides_current_weather`, `test_live_current_weather_mapping`(respx), `test_live_failure_uses_today_default`, `test_fixture_mode_no_network`, `test_phase1_weather_today_unchanged`
     - _Requirements: 10.2, 10.3, 10.4, 10.5_
 
-  - [ ] 4.4 Brief_Composer (`backend/app/notifications/{labels_ko,josa,places,compose}.py`, `backend/tests/test_brief_compose.py`)
+  - [x] 4.4 Brief_Composer (`backend/app/notifications/{labels_ko,josa,places,compose}.py`, `backend/tests/test_brief_compose.py`)
     - `labels_ko`: design 표대로 UpperType·OuterType·LowerType 전체(`none`, `unknown` 제외)와 데모 fixture 색상 표기. 커버리지 테스트는 main의 `UPPER_TYPES`/`OUTER_TYPES`/`LOWER_TYPES`와 `data/demo/fixtures/vision.json`의 색상을 순회한다
     - `object_particle()`, `KNOWN_PLACES` 16곳 + `place_label()`(haversine 30km), `outfit_phrase()`, `format_temp()`, `compose_brief()`(본문 규칙, 제목 표시, 200자 제한)
     - 예제: `test_compose_matches_user_example`(입력: 서울, 14.5°C/55%, 1순위 14.4°C·knit·none·cream·comfortable → 사용자 결정 2의 문장과 정확히 같음), 투표 없음, cold 꼬리 문장, hot 꼬리 문장, fallback 문구, 데이터 부족, 습도 없음, "카멜 니트에 블레이저를", "현재 위치"
@@ -208,12 +208,12 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 18: 브리핑 문장 규칙**
     - **Validates: Requirements 11.2, 11.3, 11.4, 11.5, 11.9, 11.10, 11.12, 11.14**
 
-  - [ ] 4.6 Notification_Log와 Notifier (`backend/app/notifications/records.py`, `backend/app/notifications/notifier.py`, `backend/tests/test_notification_records.py`)
+  - [x] 4.6 Notification_Log와 Notifier (`backend/app/notifications/records.py`, `backend/app/notifications/notifier.py`, `backend/tests/test_notification_records.py`)
     - `NotificationLog.create/add_deliveries/list_recent/latest_for_date`, `Notifier` Protocol, `DeliveryResult`, `LogNotifier`(id·kind만 INFO, log `sent` 1건), `build_notifier()`(webpush는 4.9에서 연결할 자리)
     - 예제: 기록 먼저 저장 후 전달, Notifier 예외에도 기록 유지 + `failed(NOTIFIER_ERROR)`, 목록 정렬과 kind 필터, 전달 요약 집계
     - _Requirements: 14.1, 14.2, 14.4, 14.8_
 
-  - [ ] 4.7 VapidKeyStore (`backend/app/notifications/vapid.py`, `backend/tests/test_vapid.py`)
+  - [x] 4.7 VapidKeyStore (`backend/app/notifications/vapid.py`, `backend/tests/test_vapid.py`)
     - `ensure()`(로드 → `O_CREAT|O_EXCL` 0600 생성 → 손상 시 `.invalid-<stamp>` 이름 변경 후 재생성과 `on_rotated` 콜백), 공개키 base64url, `secret_strings()`, `VapidKeyUnavailable`
     - 예제: `test_vapid_key_created_once_with_0600`, `test_corrupt_key_renamed_and_subscriptions_cleared`(콜백 호출 확인), `test_vapid_dir_unwritable_raises`, 키 값이 로그에 없음
     - _Requirements: 15.1, 15.2, 15.3, 15.10, 15.11, 18.7_
@@ -222,7 +222,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 22: VAPID 키 round-trip**
     - **Validates: Requirements 15.1, 15.2, 15.3, 15.11**
 
-  - [ ] 4.9 Push 구독 저장소와 WebPushNotifier (`backend/app/notifications/push_store.py`, `backend/app/notifications/webpush.py`, `backend/tests/test_webpush.py`)
+  - [x] 4.9 Push 구독 저장소와 WebPushNotifier (`backend/app/notifications/push_store.py`, `backend/app/notifications/webpush.py`, `backend/tests/test_webpush.py`)
     - `validate_subscription()`, `PushSubscriptionStore`(endpoint upsert, delete, list, `delete_not_matching_key`, count), `PushSender` Protocol, `PyWebPushSender`(pywebpush, timeout 10초, 설치 버전 시그니처 확인), `classify_push_status()`, `WebPushNotifier`(payload 5필드 ≤ 3000바이트, TTL 12시간, `sub`=VAPID_SUBJECT, gone 삭제, 키 없으면 기록만)
     - 로그에는 구독 id와 endpoint 호스트 이름만 남긴다
     - 예제(가짜 sender): `test_410_deletes_subscription`, `test_404_deletes_subscription`, `test_500_keeps_subscription`, `test_payload_shape_ttl_subject`, `test_zero_subscriptions_records_only`, `test_duplicate_endpoint_upserts`
@@ -234,7 +234,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 23: 구독 검증과 upsert**
     - **Validates: Requirements 15.5**
 
-  - [ ] 4.11 DailyBriefService, 스케줄러, CLI, 런타임 builder (`backend/app/notifications/daily_brief.py`, `backend/app/notifications/scheduler.py`, `backend/app/notifications/runtime.py`, `scripts/daily_brief.py`, `backend/tests/test_daily_brief.py`)
+  - [x] 4.11 DailyBriefService, 스케줄러, CLI, 런타임 builder (`backend/app/notifications/daily_brief.py`, `backend/app/notifications/scheduler.py`, `backend/app/notifications/runtime.py`, `scripts/daily_brief.py`, `backend/tests/test_daily_brief.py`)
     - `DailyBriefRuns.claim/retry/finish`(부분 고유 인덱스 INSERT, failed 행 조건부 UPDATE), `DailyBriefService.run(trigger)`(non-blocking Lock → `DailyBriefInProgress`, 위치 → 현재 날씨 → `recommendations_for` → `compose_brief` → 기록 → 전달 → 결과)
     - `scheduled_decision()`, `next_run_at()`, `DailyBriefScheduler.tick/run`(30초, FakeClock 주입)
     - `build_brief_runtime(config, container)`: log, push_store, vapid_keys, notifier, service, scheduler(꺼짐이면 None). `deps.py`는 고치지 않는다(7.1에서 연결)
@@ -246,7 +246,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 19: 예약 실행은 날짜당 1회다**
     - **Validates: Requirements 12.1, 12.3, 12.4, 12.5, 12.7, 12.8**
 
-  - [ ] 4.13 알림·푸시·브리핑 API (`backend/app/api/notifications.py`, `backend/app/api/push.py`, `backend/app/api/daily_brief.py`, `backend/tests/test_api_notifications.py`)
+  - [x] 4.13 알림·푸시·브리핑 API (`backend/app/api/notifications.py`, `backend/app/api/push.py`, `backend/app/api/daily_brief.py`, `backend/tests/test_api_notifications.py`)
     - 1.7 골격의 본문 구현: `GET /api/notifications`, `POST /api/daily-brief/run`(409 `DAILY_BRIEF_IN_PROGRESS`, DAILY_BRIEF_ENABLED와 무관), `GET /api/push/vapid-public-key`(503 `VAPID_KEY_UNAVAILABLE`), `POST /api/push/subscriptions`(201/422), `DELETE /api/push/subscriptions/{id}`(204/404), `POST /api/push/test`(409 `WEB_PUSH_DISABLED`)
     - 테스트는 `app.dependency_overrides`로 4.x 서비스를 넣는다(7.1 연결 전에도 돈다)
     - 예제: `test_concurrent_run_returns_409`, `test_push_test_disabled_with_log_notifier`, `test_vapid_dir_unwritable_returns_503`, `test_public_key_only_in_response`, `test_subscription_delete_404`
@@ -258,12 +258,12 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 25: 비밀값 비노출**
     - **Validates: Requirements 18.7, 15.4, 17.2**
 
-  - [ ] 4.15 흐름 B 통합 예제 테스트 (`backend/tests/test_daily_brief_flow.py`)
+  - [x] 4.15 흐름 B 통합 예제 테스트 (`backend/tests/test_daily_brief_flow.py`)
     - `test_brief_with_fixture_demo_data`: fixture 모드에서 데모 데이터(189장) 스캔 → `run("manual")` → 본문이 병합된 `today_default`(main은 9.0°C/55%)와 그때 RecommendationService 1순위의 기온·태그·투표로 만든 기대 문장과 같고, 제목이 "오늘의 착장 브리핑 (fixture 날씨)"이다. 사용자 예시 문장과의 정확한 일치는 4.4의 `test_compose_matches_user_example`이 맡는다. 데모 사진이 없는 환경에서는 Phase 1 데모 테스트처럼 skip한다
     - `test_brief_without_vote`, `test_brief_cold_tail`, `test_brief_fallback_wording`, `test_brief_without_humidity`, `test_title_marks_fixture_and_scenario`를 실제 저장소·추천 경로로 확인한다(합성 Outfit 사용)
     - _Requirements: 20.3, 20.1, 11.2_
 
-  - [ ] 4.16 Live 모드 홈 오늘 날씨 전환 (`backend/app/today_weather.py`, `backend/tests/test_today_weather_live.py`)
+  - [x] 4.16 Live 모드 홈 오늘 날씨 전환 (`backend/app/today_weather.py`, `backend/tests/test_today_weather_live.py`)
     - `TodayWeatherService(..., live_current=None)`: 시나리오가 없고 `live_current`가 있으면 그 결과(Current_Weather_Service, 실패 시 fixture 표시)를 쓴다. 기본값 `None`이면 Phase 1 동작 그대로라 Phase 1 `test_today_weather_service.py`는 고치지 않는다. 컨테이너 연결은 7.1
     - 예제 영역 (n): `test_live_home_weather_uses_last_location_forecast`(respx), `test_live_home_weather_fallback_marks_fixture`, `test_fixture_home_weather_unchanged`, `test_scenario_still_wins_in_live_mode`, `test_home_and_brief_same_weather`
     - _Requirements: 10.5, 10.7, 10.8, 20.3_
@@ -272,13 +272,13 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 29: 홈 오늘 날씨의 Live 전환**
     - **Validates: Requirements 10.5, 10.7, 10.8**
 
-- [ ] 5. 흐름 C: 프론트엔드 (PR #10 UI 구조 기준)
-  - [ ] 5.1 Service Worker와 manifest (`frontend/public/sw.js`, `frontend/public/manifest.webmanifest`, `frontend/index.html`, `frontend/src/sw.test.ts`)
+- [x] 5. 흐름 C: 프론트엔드 (PR #10 UI 구조 기준)
+  - [x] 5.1 Service Worker와 manifest (`frontend/public/sw.js`, `frontend/public/manifest.webmanifest`, `frontend/index.html`, `frontend/src/sw.test.ts`)
     - design "Mobile_Web_Client" 절의 push / notificationclick 처리(tag `weatherwear-daily-brief`, 열린 창 focus + navigate, 없으면 openWindow), manifest(`display: standalone`) 연결
     - `sw.test.ts`: `self`를 흉내 내 `showNotification` 인자와 클릭 동작을 확인한다
     - _Requirements: 16.1_
 
-  - [ ] 5.2 푸시·위치 모듈 (`frontend/src/lib/push.ts`, `frontend/src/lib/location.ts`)
+  - [x] 5.2 푸시·위치 모듈 (`frontend/src/lib/push.ts`, `frontend/src/lib/location.ts`)
     - `pushState()`, `urlBase64ToUint8Array()`, `enablePush()`(사용자 동작에서만 `requestPermission` → `register("/sw.js")` → 공개키 → `subscribe` → POST → localStorage), `disablePush()`
     - `shouldReportLocation()`, `reportLocation()`(enableHighAccuracy false, timeout 10초, maximumAge 30분, 거부·시간 초과 결과 반환)
     - 새 `VITE_` 변수 없음. secure context가 아니면 `unsupported`
@@ -288,31 +288,31 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 27: 푸시 상태와 위치 재보고 판정 (프론트엔드)**
     - **Validates: Requirements 16.5, 16.6, 16.12**
 
-  - [ ] 5.4 API 클라이언트, 한국어 문구, 아이콘, 스타일 (`frontend/src/api/client.ts`, `frontend/src/lib/strings.ts`, `frontend/src/components/Icon.tsx`, `frontend/src/styles/automation.css`, `frontend/src/styles/app.css`)
+  - [x] 5.4 API 클라이언트, 한국어 문구, 아이콘, 스타일 (`frontend/src/api/client.ts`, `frontend/src/lib/strings.ts`, `frontend/src/components/Icon.tsx`, `frontend/src/styles/automation.css`, `frontend/src/styles/app.css`)
     - `Icon` 이름 목록에 `bell`만 추가한다. Phase 2 스타일은 전부 새 `automation.css`에 두고 `app.css`에는 import 한 줄만 넣는다(5.5~5.8은 `app.css`를 고치지 않는다)
     - `schema.d.ts` 타입만 쓰는 Phase 2 함수: `getAutomationStatus`, `getGalleryImports`, `reanalyzeImport`, `confirmImport`, `postLocation`, `getLocation`, `getNotifications`, `runDailyBrief`(30초), `getVapidPublicKey`, `postPushSubscription`, `deletePushSubscription`, `postPushTest`
     - `strings.ts`에 Phase 2 문구 묶음 `notifications`, `push`, `location`, `gallery`, `brief`, `nav.notifications`를 **한 번에** 추가한다(5.5~5.8은 이 키만 쓴다)
     - _Requirements: 16.9, 16.10, 16.8_
 
-  - [ ] 5.5 Daily_Brief_Card와 홈 화면 (`frontend/src/components/DailyBriefCard.tsx`, `frontend/src/pages/HomePage.tsx`)
+  - [x] 5.5 Daily_Brief_Card와 홈 화면 (`frontend/src/components/DailyBriefCard.tsx`, `frontend/src/pages/HomePage.tsx`)
     - 오늘(`app_timezone`) daily_brief 알림 1건만 표시, fixture 배지, 탭하면 `url`로 이동. `HomePage`의 `home-dashboard` 첫 영역 `<div className="home-brief">`로 `home-weather`(WeatherHero) 앞에 둔다. `WeatherHero`, `RecommendationCard`, `NotificationCard` 등 PR #10 컴포넌트 코드는 고치지 않는다
     - _Requirements: 14.6, 14.7_
 
-  - [ ] 5.6 Notifications_Page, 탭, 라우트, 자동 위치 보고 (`frontend/src/pages/NotificationsPage.tsx`, `frontend/src/components/{PushToggle,LocationToggle,GalleryImportList}.tsx`, `frontend/src/components/layout/BottomTabBar.tsx`, `frontend/src/components/layout/AppShell.tsx`, `frontend/src/components/layout/AppShell.test.tsx`, `frontend/src/App.tsx`)
+  - [x] 5.6 Notifications_Page, 탭, 라우트, 자동 위치 보고 (`frontend/src/pages/NotificationsPage.tsx`, `frontend/src/components/{PushToggle,LocationToggle,GalleryImportList}.tsx`, `frontend/src/components/layout/BottomTabBar.tsx`, `frontend/src/components/layout/AppShell.tsx`, `frontend/src/components/layout/AppShell.test.tsx`, `frontend/src/App.tsx`)
     - 푸시 상태 4종과 켜기/끄기·차단 안내, 위치 상태와 "현재 위치 사용", 브리핑 사용 여부·시각(읽기 전용), 최근 알림, "확인이 필요한 사진"(uncertain)과 "착장 맞음"(confirm-outfit, 처리 중 비활성, 성공 시 "기록에 추가했어요"와 목록 갱신, 409는 상태 다시 조회)·"다시 분석", 처리 기록 칩(`estimated`에 "촬영 정보 추정")
     - `BottomTabBar`의 tabs 배열에 `{ to: "/notifications", label: STRINGS.nav.notifications, icon: "bell", end: false }`를 넣어 홈 / 기록 / 알림(+개발 모드 데모), `App.tsx`에 `/notifications` 라우트, `AppShell`에서 `shouldReportLocation`이 true일 때만 조용히 위치 보고(권한 요청 없음)
     - Phase 1 `AppShell.test.tsx`의 탭 기대값을 [홈, 기록, 알림]으로 고친다
     - _Requirements: 16.2, 16.6, 16.8, 6.9, 5.5, 20.4_
 
-  - [ ] 5.7 기록 화면 재조회 (`frontend/src/pages/HistoryPage.tsx`)
+  - [x] 5.7 기록 화면 재조회 (`frontend/src/pages/HistoryPage.tsx`)
     - `visibilitychange`로 `visible`이 되면 GET /api/outfits를 다시 부르고, 이전 목록은 유지한다(Phase 1 Req 12.7). 기존 Phase 1 기록 화면 테스트는 고치지 않고 통과해야 한다
     - _Requirements: 16.11_
 
-  - [ ] 5.8 데모 관리 화면 추가 (`frontend/src/pages/DemoPage.tsx`)
+  - [x] 5.8 데모 관리 화면 추가 (`frontend/src/pages/DemoPage.tsx`)
     - "오늘 브리핑 지금 보내기"(처리 중 비활성, 성공 시 제목·본문, 실패·30초·409 표시), 자동화 상태 카드(감시 동작·마지막 확인·최근 처리 5건·다음 브리핑·NOTIFIER). 기존 스캔·시나리오 컨트롤은 그대로 둔다
     - _Requirements: 13.4, 17.4_
 
-  - [ ] 5.9 번들 비밀값 검사 확장 (`frontend/scripts/check-bundle.mjs`)
+  - [x] 5.9 번들 비밀값 검사 확장 (`frontend/scripts/check-bundle.mjs`)
     - `PRIVATE KEY` 문자열, VAPID_KEY_DIR(환경 변수 → 루트 `.env` → `data/secrets`)의 `vapid_private.pem` 본문 base64 연속 16자 창 검사. 파일 이름만 출력하고 키·일치 내용은 출력하지 않는다
     - _Requirements: 18.8_
 

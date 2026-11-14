@@ -73,6 +73,48 @@ export function formatDate(iso: string | null | undefined, timeZone: string): st
   return `${year}-${part("month")}-${part("day")}`;
 }
 
+const timeFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function timeFormatter(timeZone: string): Intl.DateTimeFormat {
+  let formatter = timeFormatterCache.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
+    timeFormatterCache.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
+/**
+ * ISO 8601 시각을 지정 타임존의 24시간 `HH:MM`으로 표시한다 (Phase 2 알림·위치·감시 시각).
+ * 유효하지 않은 타임존이면 Asia/Seoul, 파싱할 수 없는 시각이나 null은 "–"다.
+ */
+export function formatTime(iso: string | null | undefined, timeZone: string): string {
+  if (typeof iso !== "string" || iso.length === 0) return EMPTY_VALUE;
+  const instant = new Date(iso);
+  if (Number.isNaN(instant.getTime())) return EMPTY_VALUE;
+  let formatter: Intl.DateTimeFormat;
+  try {
+    formatter = timeFormatter(timeZone);
+  } catch {
+    formatter = timeFormatter(FALLBACK_TIMEZONE);
+  }
+  const parts = formatter.formatToParts(instant);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("hour")}:${part("minute")}`;
+}
+
+/** `YYYY-MM-DD HH:MM` (지정 타임존). 둘 중 하나라도 표시할 수 없으면 "–"다. */
+export function formatDateTime(iso: string | null | undefined, timeZone: string): string {
+  const date = formatDate(iso, timeZone);
+  if (date === EMPTY_VALUE) return EMPTY_VALUE;
+  return `${date} ${formatTime(iso, timeZone)}`;
+}
+
 /** Effective_Vote를 화면 표기로 바꾼다. 없으면 "미평가" (Req 12.2). */
 export function voteLabel(
   vote: ThermalVote | null | undefined,

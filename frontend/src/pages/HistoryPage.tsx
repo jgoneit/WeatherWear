@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router";
 import { api, type Outfit } from "../api/client";
 import { ErrorRetry } from "../components/ErrorRetry";
@@ -32,9 +33,18 @@ export function groupOutfitsByDate(outfits: readonly Outfit[], timeZone: string)
  * 착장 기록 화면 (Req 12.1, 12.2, 12.3, 12.4, 12.6, 12.7).
  * 날짜별 사진 그룹을 반응형 갤러리로 보여준다.
  * 재조회가 실패해도 이미 표시한 목록은 유지하고 오류와 다시 시도 버튼을 함께 보인다.
+ * 탭이 다시 보이면(`visibilitychange`) 그사이 감시로 수집된 착장을 보이도록 목록을 다시 부른다 (Phase 2 Req 16.11).
  */
 export function HistoryPage() {
   const outfits = useAsync((signal) => api.getOutfits({ signal }), []);
+  const reloadOutfits = outfits.reload;
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void reloadOutfits();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [reloadOutfits]);
   // 타임존은 날짜 표시에만 쓰므로, 메타 요청이 실패해도 기본 타임존으로 목록을 보여준다.
   const meta = useAsync((signal) => api.getMeta({ signal }), []);
   const timeZone = meta.data?.app_timezone ?? FALLBACK_TIMEZONE;

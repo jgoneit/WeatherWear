@@ -307,11 +307,33 @@ EXPECTED_OPERATIONS = {
     ("/api/outfits/{outfit_id}/feedback", "post"),
 }
 
+# Phase 2 routes (Phase 2 design.md §19, Req 20.4): 12 operations.
+PHASE2_OPERATIONS = {
+    ("/api/automation/status", "get"),
+    ("/api/gallery/imports", "get"),
+    ("/api/gallery/imports/{import_id}/reanalyze", "post"),
+    ("/api/gallery/imports/{import_id}/confirm-outfit", "post"),
+    ("/api/location", "post"),
+    ("/api/location", "get"),
+    ("/api/notifications", "get"),
+    ("/api/daily-brief/run", "post"),
+    ("/api/push/vapid-public-key", "get"),
+    ("/api/push/subscriptions", "post"),
+    ("/api/push/subscriptions/{subscription_id}", "delete"),
+    ("/api/push/test", "post"),
+}
+EXPECTED_OPERATIONS = EXPECTED_OPERATIONS | PHASE2_OPERATIONS
+
 
 def test_all_router_modules_registered(client: TestClient) -> None:
     from app.main import ROUTER_MODULES
 
-    assert set(ROUTER_MODULES) == {"outfits", "demo", "weather", "recommendations", "meta"}
+    assert set(ROUTER_MODULES) == {
+        "outfits", "demo", "weather", "recommendations", "meta",
+        # Phase 2 (Req 20.4)
+        "gallery", "location", "notifications", "push", "daily_brief", "automation",
+    }
+    assert len(PHASE2_OPERATIONS) == 12
     paths = client.get("/openapi.json").json()["paths"]
     operations = {(path, method) for path, item in paths.items() for method in item}
     assert operations == EXPECTED_OPERATIONS
@@ -421,3 +443,61 @@ def test_demo_data_end_to_end(tmp_path: Path) -> None:
         assert unknown.json()["error"]["code"] == "UNKNOWN_SCENARIO"
         assert test_client.get("/api/demo/scenarios").json()["selected_id"] == "heatwave"
         assert test_client.get("/api/weather/today").json()["scenario_id"] == "heatwave"
+
+
+# --- Phase 2 skeleton (Phase 2 tasks 1.7) --------------------------------------
+
+
+def test_phase2_error_codes_registered() -> None:
+    from app.main import MESSAGES, PHASE2_ERROR_CODES
+
+    assert len(PHASE2_ERROR_CODES) == 9
+    assert "GALLERY_IMPORT_NOT_CONFIRMABLE" in PHASE2_ERROR_CODES
+    for code in PHASE2_ERROR_CODES:
+        assert MESSAGES[code]
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("get", "/api/automation/status"),
+        ("get", "/api/gallery/imports"),
+        ("post", "/api/gallery/imports/1/reanalyze"),
+        ("post", "/api/gallery/imports/1/confirm-outfit"),
+        ("get", "/api/notifications"),
+        ("post", "/api/daily-brief/run"),
+        ("get", "/api/push/vapid-public-key"),
+        ("delete", "/api/push/subscriptions/1"),
+        ("post", "/api/push/test"),
+    ],
+)
+def test_phase2_skeleton_routes_answer_501_until_filled(client: TestClient, method: str, path: str) -> None:
+    response = getattr(client, method)(path)
+    assert response.status_code == 501
+    assert response.json() == {
+        "error": {"code": "NOT_IMPLEMENTED", "message": "아직 준비되지 않은 기능입니다."}
+    }
+
+
+def test_push_subscription_body_error_code(client: TestClient) -> None:
+    response = client.post("/api/push/subscriptions", json={"endpoint": "https://push.example/x"})
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "PUSH_SUBSCRIPTION_INVALID"
+
+
+def test_phase2_list_query_limits(client: TestClient) -> None:
+    for path in ("/api/gallery/imports?limit=0", "/api/gallery/imports?limit=101",
+                 "/api/gallery/imports?status=baseline", "/api/notifications?limit=101",
+                 "/api/notifications?kind=email"):
+        response = client.get(path)
+        assert response.status_code == 422, path
+        assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+def test_phase2_schemas_carry_no_secret_fields(client: TestClient) -> None:
+    schemas = client.get("/openapi.json").json()["components"]["schemas"]
+    names = [name for name in schemas if name.endswith("Out")]
+    forbidden = {"endpoint", "p256dh", "auth", "private_key", "path", "gemini_api_key"}
+    for name in names:
+        fields = set(schemas[name].get("properties", {}))
+        assert not (fields & forbidden), name

@@ -11,14 +11,15 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
 ## Tasks
 
 - [ ] 1. 공유 계약과 Phase 1 접점 (리드)
-  - [ ] 1.1 병합 결과 기준선 확인
+  - [x] 1.1 병합 결과 기준선 확인
     - Phase 1 + main 병합 브랜치에서 `cd backend && python -m pytest -q`, `cd frontend && npx vitest --run && npm run typecheck`가 통과하는지 확인하고 결과(통과 수, skip 수)를 기록한다. 실패하면 Phase 2 작업을 시작하지 않고 병합 담당에게 알린다
     - `VisionAnalysis`, `ScanDecision`, `photo_analyses`, `MIN_PHOTO_TYPE_CONFIDENCE = 0.70`, `UNKNOWN_ANALYSIS`가 design의 전제와 같은지 확인한다
+    - 기록(2026-11-14, 병합 커밋 `3e69344` = main `edb8df2` + spec): backend pytest 602 passed / 0 skipped, vitest 11 files 92 passed, `npm run typecheck` 통과, `npm run check:bundle` 통과, `select_scenarios.py --check` ok(189장, S1~S4·V1~V4). 전제 5개 모두 일치
     - _Requirements: 20.4, 20.5_
 
-  - [ ] 1.2 Phase 2 설정 추가 (`backend/app/config.py`, `backend/app/main.py`의 `resolve_paths()`만, `.env.example`, `.gitignore`, `backend/tests/test_config.py`, `backend/tests/test_config_automation.py`)
+  - [x] 1.2 Phase 2 설정 추가 (`backend/app/config.py`, `backend/app/main.py`의 `resolve_automation_paths()`만, `.env.example`, `.gitignore`, `backend/tests/test_config.py`, `backend/tests/test_config_automation.py`)
     - `RawSettings`에 9개 필드, `AutomationConfig`(기본값 모두 꺼짐), `AppConfig.automation`(default_factory), `parse_bool()`, `parse_hhmm()`, `resolve_automation_config()` 구현. 이슈 메시지에는 변수 이름과 허용값만 넣는다
-    - `resolve_paths()`: `gallery_dir`, `user_photo_dir`, `vapid_key_dir`를 저장소 루트 기준 절대 경로로 바꾸고, USER_PHOTO_DIR가 PHOTO_DIR·GALLERY_DIR와 같거나 조상·자손이면 이슈를 남기고 기본값을 쓴다
+    - `resolve_automation_paths()`(Phase 1 `resolve_paths()` 다음에 부름): `gallery_dir`, `user_photo_dir`, `vapid_key_dir`를 저장소 루트 기준 절대 경로로 바꾸고, USER_PHOTO_DIR가 PHOTO_DIR·GALLERY_DIR와 같거나 조상·자손이면 이슈를 남기고 기본값을 쓴다
     - `.env.example`에 9개 변수(설명 포함, GALLERY_DIR·VAPID_KEY_DIR 설명 문구 포함). 결정 A1에 따라 `GALLERY_WATCH_ENABLED=true`, `DAILY_BRIEF_ENABLED=true`로 켜고 설명에 "코드 기본값은 false"를 적는다. 나머지는 기본값. `.gitignore`에 `data/user/`, `data/secrets/`
     - Phase 1 테스트 2개를 21개 / 백엔드 20개 기준으로 고치고, 예제 테스트 영역 (l)(`test_phase2_defaults`, `test_invalid_phase2_values_fall_back_with_issue`, `test_relative_paths_resolved_to_repo_root`, `test_gitignore_has_user_and_secrets`)을 작성한다
     - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 4.2, 4.5, 20.4_
@@ -27,7 +28,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 24: Phase 2 설정 해석**
     - **Validates: Requirements 18.1, 18.2, 18.9, 4.2**
 
-  - [ ] 1.4 Phase 2 테이블과 추가 업그레이드 (`backend/app/db_automation.py`, `backend/app/db.py`, `backend/tests/test_db.py`, `backend/tests/test_db_automation.py`)
+  - [x] 1.4 Phase 2 테이블과 추가 업그레이드 (`backend/app/db_automation.py`, `backend/app/db.py`, `backend/tests/test_db.py`, `backend/tests/test_db_automation.py`)
     - design ER대로 SQLModel 테이블 9개(`gallery_files`, `app_state`, `user_photos`, `photo_confirmations`(UNIQUE gallery_file_id, INSERT만), `user_location`, `push_subscriptions`, `notifications`, `notification_deliveries`, `daily_brief_runs`)와 CHECK·UNIQUE·인덱스, `daily_brief_runs`의 부분 고유 인덱스(`sqlite_where`)
     - `SCHEMA_VERSION = 3`, `REBUILD_BELOW_VERSION = 2`, `migrate_schema()`(v<2 백업 후 재생성, v==2 추가 후 3, v>3 유지 + WARNING). main의 시작 마이그레이션 순서는 그대로 둔다
     - `test_new_db_has_schema_version`을 3으로 고치고, 예제 테스트 영역 (k)를 작성한다(`test_v2_db_upgraded_to_v3_without_data_loss`, `test_v1_db_still_backed_up`, `test_newer_db_version_not_downgraded`, `test_existing_tables_unchanged`)
@@ -37,21 +38,21 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 26: DB 추가 업그레이드는 보존적이고 멱등이다**
     - **Validates: Requirements 19.2, 19.6**
 
-  - [ ] 1.6 Phase 1 공개 메서드 2개 꺼내기 (`backend/app/ingestion/service.py`, `backend/app/recommendation/service.py`, `backend/app/repository.py`, `backend/tests/test_ingest_file.py`)
+  - [x] 1.6 Phase 1 공개 메서드 2개 꺼내기 (`backend/app/ingestion/service.py`, `backend/app/recommendation/service.py`, `backend/app/repository.py`, `backend/tests/test_ingest_file.py`)
     - `ImageIngestionService.ingest_file(path, *, processed_hashes=None, analysis_override=None, before_commit=None) -> Stored | Duplicate | NotOutfit | Failed`로 main의 `_process()` 본문을 옮기고 `scan()`이 이를 쓰게 한다. `Stored`에는 `create_outfit_bundle()`의 id를 담는다
     - `analysis_override`가 있으면 Vision·Photo_Gate·`save_photo_analysis`를 건너뛴다. `before_commit`은 `OutfitRepository.create_outfit_bundle(..., before_commit=None)`에 넘겨 같은 트랜잭션에서 부른다(uncertain 확정용, 기본값이면 동작 불변)
     - `RecommendationService.recommendations_for(today)`를 만들고 `today_recommendations()`가 이를 부르게 한다
     - 새 테스트는 결과 타입 4종과 outfit_id만 확인한다. 기존 Phase 1 수집·추천·통합 테스트는 고치지 않고 통과해야 완료다
     - _Requirements: 3.1, 11.1, 6.12, 6.13, 20.4_
 
-  - [ ] 1.7 API 스키마, 라우터 골격, 오류 매핑, OpenAPI 재생성 (`backend/app/schemas_automation.py`, `backend/app/api/{gallery,location,notifications,push,daily_brief,automation}.py`, `backend/app/main.py`, `backend/app/deps.py`, `frontend/src/api/schema.d.ts`, `backend/tests/test_api_routes.py`, `backend/tests/test_api.py`)
+  - [x] 1.7 API 스키마, 라우터 골격, 오류 매핑, OpenAPI 재생성 (`backend/app/schemas_automation.py`, `backend/app/api/{gallery,location,notifications,push,daily_brief,automation}.py`, `backend/app/main.py`, `backend/app/deps.py`, `frontend/src/api/schema.d.ts`, `backend/tests/test_api_routes.py`, `backend/tests/test_api.py`)
     - design "REST API" 절의 요청·응답 모델 전부(비밀값 필드 없음). 6개 라우터는 `response_model`과 오류 응답만 선언하고 본문은 501을 낸다(각 흐름이 채운다)
     - `ROUTER_MODULES`에 6개 추가, RequestValidationError 핸들러에 `/api/location` → `INVALID_LOCATION`, `POST /api/push/subscriptions` → `PUSH_SUBSCRIPTION_INVALID` 매핑, MESSAGES에 Phase 2 오류 코드 9개 추가(`GALLERY_IMPORT_NOT_CONFIRMABLE` 포함, `confirm-outfit` 골격 포함)
     - `AppContainer`에 Phase 2 필드(기본 None)와 `get_*` 의존성 함수 추가
     - `scripts/export_openapi.py` + `openapi-typescript`로 `schema.d.ts` 재생성. `test_api_routes.py` ROUTER_MODULES 집합과 `test_api.py` `EXPECTED_OPERATIONS`(12개 추가) 갱신
     - _Requirements: 9.2, 15.5, 17.2, 20.4_
 
-  - [ ] 1.8 LocationService와 위치 API (`backend/app/location.py`, `backend/app/api/location.py`, `backend/tests/test_location.py`)
+  - [x] 1.8 LocationService와 위치 API (`backend/app/location.py`, `backend/app/api/location.py`, `backend/tests/test_location.py`)
     - `round_location()`(Decimal ROUND_HALF_UP 소수 둘째 자리), `validate_location()`(불리언·NaN·범위·음수 accuracy 거부), `LocationService.report/last/brief_location`(`user_location` id=1 UPSERT, 위경도 로그 없음)
     - `POST /api/location`(200 + Place_Label: 1.8에서는 `notifications/places.py`가 아직 없으므로 `place_label` 함수를 주입받는 형태로 두고 7.1에서 연결), `GET /api/location`
     - 테스트: `test_location_round_and_replace`, `test_location_invalid_422_keeps_previous`, `test_location_not_logged`, `test_brief_location_default_then_browser`
@@ -61,7 +62,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     - **Property 14: Last_Location은 마지막 유효 보고다**
     - **Validates: Requirements 9.1, 9.2, 9.6**
 
-- [ ] 2. Checkpoint - 공유 계약 확인
+- [x] 2. Checkpoint - 공유 계약 확인
   - `cd backend && python -m pytest -q`(Phase 1 전체 + 1.x 테스트)와 `cd frontend && npm run typecheck`가 외부 연결 없이 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
   - _Requirements: 20.5_
 

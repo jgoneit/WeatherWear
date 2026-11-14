@@ -21,6 +21,11 @@ Per-file pipeline. The first failing step stops the file, records one
 
 Error messages and logs carry the file name only, never a server path.
 The scan lock (409) lives in the API layer, not here.
+
+Phase 2 (design.md "Phase 1 접점의 작은 리팩터"): ``ingest_file()`` is the
+public one-file entry point and returns ``Stored | Duplicate | NotOutfit |
+Failed``. ``scan()`` calls it for every file, so the demo scan counts are
+unchanged. The gallery watcher (flow A) calls it on the copy in User_Photo_Dir.
 """
 
 from __future__ import annotations
@@ -28,9 +33,12 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from zoneinfo import ZoneInfo
+
+from sqlmodel import Session
 
 from app.domain import UNKNOWN_TAGS, CaptureMetadata, ThermalVote, VisionAnalysis, WeatherReading
 from app.ingestion.image_check import check_image, is_too_large, list_image_files, mime_type_for
@@ -76,6 +84,48 @@ class _FileFailed(Exception):
 
 class _Duplicate(Exception):
     """Internal: the file's hash is already stored."""
+
+    def __init__(self, sha256: str) -> None:
+        super().__init__(sha256)
+        self.sha256 = sha256
+
+
+# --- Public per-file results (Phase 2 Req 3.1) ------------------------------
+
+
+@dataclass(frozen=True)
+class Stored:
+    """A new Outfit was stored; ``outfit_id`` is the id ``create_outfit_bundle`` returned."""
+
+    sha256: str
+    outfit_id: int
+
+
+@dataclass(frozen=True)
+class Duplicate:
+    """The hash is already stored (or was stored earlier in the same scan)."""
+
+    sha256: str
+
+
+@dataclass(frozen=True)
+class NotOutfit:
+    """A valid image that is not stored: ``analysis.photo_type`` is non_outfit or uncertain."""
+
+    sha256: str
+    analysis: VisionAnalysis
+
+
+@dataclass(frozen=True)
+class Failed:
+    """The first failing step for this file; nothing was stored (Req 1.6)."""
+
+    stage: FailureStage
+    code: str
+    message: str
+
+
+FileResult = Stored | Duplicate | NotOutfit | Failed
 
 
 MIN_PHOTO_TYPE_CONFIDENCE = 0.70
@@ -196,13 +246,12 @@ class ImageIngestionService:
         state = _ScanState()
         for image in images:
             state.scanned += 1
-            try:
-                sha256 = self._process(image, state.processed_hashes)
-            except _Duplicate:
+            result = self.ingest_file(image, processed_hashes=state.processed_hashes)
+            if isinstance(result, Duplicate):
                 state.duplicate += 1
-            except _NotOutfit as skipped:
-                analysis = skipped.analysis
-                state.processed_hashes.add(skipped.sha256)
+            elif isinstance(result, NotOutfit):
+                analysis = result.analysis
+                state.processed_hashes.add(result.sha256)
                 if analysis.photo_type == "non_outfit":
                     state.skipped_non_outfit += 1
                 else:
@@ -215,22 +264,22 @@ class ImageIngestionService:
                         reason=analysis.reason,
                     )
                 )
-            except _FileFailed as failure:
+            elif isinstance(result, Failed):
                 state.failed += 1
                 state.report_errors.append(
                     ScanError(
                         file_name=image.name,
-                        stage=failure.stage,
-                        code=failure.code,
-                        message=failure.message,
+                        stage=result.stage,
+                        code=result.code,
+                        message=result.message,
                     )
                 )
                 logger.warning(
-                    "스캔 실패: %s (%s/%s)", image.name, failure.stage, failure.code
+                    "스캔 실패: %s (%s/%s)", image.name, result.stage, result.code
                 )
             else:
                 state.succeeded += 1
-                state.processed_hashes.add(sha256)
+                state.processed_hashes.add(result.sha256)
 
         report = state.to_report()
         logger.info(
@@ -246,44 +295,91 @@ class ImageIngestionService:
 
     # -- one file -------------------------------------------------------------
 
-    def _process(self, image: Path, processed_hashes: set[str]) -> str:
-        """Run the pipeline for one file and return its SHA-256 on success."""
+    def ingest_file(
+        self,
+        image: Path,
+        *,
+        processed_hashes: set[str] | None = None,
+        analysis_override: VisionAnalysis | None = None,
+        before_commit: Callable[[Session], None] | None = None,
+    ) -> FileResult:
+        """Run the per-file pipeline once and return its result (Phase 2 Req 3.1).
+
+        ``processed_hashes`` are hashes already stored in the caller's run; a
+        hit is a ``Duplicate`` without any provider call. The set is read, not
+        changed. ``image.name`` is stored as ``Outfit.file_name``.
+
+        ``analysis_override`` (uncertain confirmation, Req 6.12) skips the
+        Vision call, Photo_Gate and ``save_photo_analysis`` and uses the given
+        analysis; an existing Outfit for the hash is still a ``Duplicate``.
+        ``before_commit`` is passed to ``create_outfit_bundle`` and runs inside
+        the same transaction (Req 6.13). With both left as ``None`` the
+        behaviour is exactly the Phase 1 scan pipeline.
+        """
+        try:
+            sha256, outfit_id = self._process(
+                image,
+                processed_hashes if processed_hashes is not None else set(),
+                analysis_override,
+                before_commit,
+            )
+        except _Duplicate as duplicate:
+            return Duplicate(sha256=duplicate.sha256)
+        except _NotOutfit as skipped:
+            return NotOutfit(sha256=skipped.sha256, analysis=skipped.analysis)
+        except _FileFailed as failure:
+            return Failed(stage=failure.stage, code=failure.code, message=failure.message)
+        return Stored(sha256=sha256, outfit_id=outfit_id)
+
+    def _process(
+        self,
+        image: Path,
+        processed_hashes: set[str],
+        analysis_override: VisionAnalysis | None = None,
+        before_commit: Callable[[Session], None] | None = None,
+    ) -> tuple[str, int]:
+        """Run the pipeline for one file and return (SHA-256, Outfit id) on success."""
         data = self._read_bytes(image)
         sha256 = hashlib.sha256(data).hexdigest()
         if sha256 in processed_hashes:
-            raise _Duplicate()
+            raise _Duplicate(sha256)
 
         format_error = check_image(data, image.suffix)
         if format_error is not None:
             raise _FileFailed("validation", format_error.code, format_error.message)
 
-        stored = self._get_stored_analysis(sha256)
-        outfit_exists = self._exists(sha256)
         analysis: VisionAnalysis | None = None
+        if analysis_override is not None:
+            if self._exists(sha256):
+                raise _Duplicate(sha256)
+            analysis = analysis_override
+        else:
+            stored = self._get_stored_analysis(sha256)
+            outfit_exists = self._exists(sha256)
 
-        if stored is not None:
-            if stored.analysis.photo_type == "non_outfit":
-                raise _NotOutfit(sha256, stored.analysis)
-            if stored.analysis.photo_type == "outfit":
-                if outfit_exists:
-                    raise _Duplicate()
-                # A previous sidecar/weather/storage failure happened after a
-                # successful Vision call. Reuse that result on retry.
-                analysis = stored.analysis
-        elif outfit_exists:
-            # Defensive fallback for an Outfit inserted outside the repository
-            # or before startup backfill completed.
-            raise _Duplicate()
+            if stored is not None:
+                if stored.analysis.photo_type == "non_outfit":
+                    raise _NotOutfit(sha256, stored.analysis)
+                if stored.analysis.photo_type == "outfit":
+                    if outfit_exists:
+                        raise _Duplicate(sha256)
+                    # A previous sidecar/weather/storage failure happened after a
+                    # successful Vision call. Reuse that result on retry.
+                    analysis = stored.analysis
+            elif outfit_exists:
+                # Defensive fallback for an Outfit inserted outside the repository
+                # or before startup backfill completed.
+                raise _Duplicate(sha256)
 
-        if analysis is None:
-            # Explicitly retry persisted uncertain decisions; a later model or
-            # clearer result may promote them to outfit/non_outfit.
-            analysis = apply_confidence_gate(self._analyze(image, data, sha256))
-            self._save_analysis(image, sha256, analysis)
+            if analysis is None:
+                # Explicitly retry persisted uncertain decisions; a later model or
+                # clearer result may promote them to outfit/non_outfit.
+                analysis = apply_confidence_gate(self._analyze(image, data, sha256))
+                self._save_analysis(image, sha256, analysis)
 
-            if outfit_exists and analysis.photo_type == "outfit":
-                self._update_existing_outfit(image, sha256, analysis)
-                raise _Duplicate()
+                if outfit_exists and analysis.photo_type == "outfit":
+                    self._update_existing_outfit(image, sha256, analysis)
+                    raise _Duplicate(sha256)
 
         if analysis.photo_type != "outfit":
             raise _NotOutfit(sha256, analysis)
@@ -306,13 +402,19 @@ class ImageIngestionService:
             metadata_synthetic=capture.synthetic,
         )
         try:
-            self._repo.create_outfit_bundle(outfit, reading, seed_vote)
+            if before_commit is None:
+                # Phase 1 call shape: test doubles may not accept the keyword.
+                outfit_id = self._repo.create_outfit_bundle(outfit, reading, seed_vote)
+            else:
+                outfit_id = self._repo.create_outfit_bundle(
+                    outfit, reading, seed_vote, before_commit=before_commit
+                )
         except Exception as exc:  # repository already rolled back
             logger.warning("저장 실패: %s (%s)", image.name, type(exc).__name__)
             raise _FileFailed(
                 "storage", "STORAGE_ERROR", "착장 기록을 저장하지 못했습니다."
             ) from None
-        return sha256
+        return sha256, outfit_id
 
     def _capture_metadata(
         self, image: Path, data: bytes

@@ -348,7 +348,7 @@ def resolve_automation_config(raw: Mapping[str, str], *, photo_dir: Path) -> tup
 ```
 
 - `resolve_config()`는 Phase 1 해석 뒤 `resolve_automation_config()`를 불러 결과를 `automation`에 넣고 이슈를 합친다. 메시지에는 변수 이름과 허용값만 넣는다(Req 18.2).
-- `main.resolve_paths()`가 `gallery_dir`, `user_photo_dir`, `vapid_key_dir`도 저장소 루트 기준 절대 경로로 바꾼다(Req 18.3). 경로 충돌 검사(Req 4.2)는 절대 경로가 된 뒤 `resolve_paths()`에서 한다. `user_photo_dir`이 `photo_dir`/`gallery_dir`와 같거나 조상·자손 관계이면 이슈를 기록하고 기본값(절대 경로)을 쓴다. 기본값도 충돌하면 감시를 끈다.
+- `main.resolve_automation_paths(config, root, *, issues=None)`가 `gallery_dir`, `user_photo_dir`, `vapid_key_dir`를 저장소 루트 기준 절대 경로로 바꾼다(Req 18.3). `create_app`은 `resolve_automation_paths(resolve_paths(config))` 순서로 부른다. Phase 1 `resolve_paths()`는 그대로 두어 Phase 1 `test_resolve_paths_uses_repo_root_for_relative_paths`가 고치지 않고 통과한다. 경로 충돌 검사(Req 4.2)는 `resolve_automation_config()`에서 설정 문자열 기준으로 한 번, `resolve_automation_paths()`에서 절대 경로 기준으로 한 번 더 한다. `user_photo_dir`이 `photo_dir`/`gallery_dir`와 같거나 조상·자손 관계이면 이슈를 기록하고 기본값(절대 경로)을 쓴다. 기본값도 충돌하면 감시를 끈다.
 - `VITE_API_BASE_URL`처럼 프론트엔드 전용 변수는 더하지 않는다(Req 16.10).
 - `.env.example`에 9개 변수를 더한다(Req 18.5). Phase 1 테스트 2개는 Phase 1 목록(12/11)과 Phase 2 목록(9/9)의 합으로 정확히 비교하도록 고친다(Req 20.4).
 
@@ -901,21 +901,21 @@ class DailyBriefScheduler:
 
 ### 19. REST API (Phase 2 추가분)
 
-Phase 1 공통 오류 형식 `{"error": {"code", "message"}}`를 그대로 쓴다. 스키마는 `schemas_automation.py`에 두고 OpenAPI로 노출한다.
+Phase 1 공통 오류 형식 `{"error": {"code", "message"}}`를 그대로 쓴다. 스키마는 `schemas_automation.py`에 두고 OpenAPI로 노출한다. 경로 변수 이름은 Phase 1 `{outfit_id}`처럼 `{import_id}`, `{subscription_id}`다(요구사항의 `{id}`와 같은 URL). 1.7 골격 단계에서는 본문을 채우지 않은 경로가 501 `NOT_IMPLEMENTED`("아직 준비되지 않은 기능입니다.")를 낸다. 이 코드는 해당 태스크가 경로를 채우면 더 나오지 않는다.
 
 | 메서드 · 경로 | 성공 | 오류 | 소유 | Req |
 |---|---|---|---|---|
 | `GET /api/automation/status` | 200 `AutomationStatusOut` | – | 리드 | 17.1, 17.2, 1.5 |
 | `GET /api/gallery/imports?limit&status` | 200 `list[GalleryImportOut]` | 422 `VALIDATION_ERROR` | A | 17.3, 5.5, 6.9 |
-| `POST /api/gallery/imports/{id}/reanalyze` | 202 `GalleryImportOut` | 404 `GALLERY_IMPORT_NOT_FOUND`, 409 `GALLERY_IMPORT_NOT_REANALYZABLE` | A | 6.8 |
-| `POST /api/gallery/imports/{id}/confirm-outfit` | 200 `GalleryImportOut`(imported, outfit_id) | 404 `GALLERY_IMPORT_NOT_FOUND`, 409 `GALLERY_IMPORT_NOT_CONFIRMABLE`, 500 `STORAGE_ERROR` | A | 6.12~6.15 |
+| `POST /api/gallery/imports/{import_id}/reanalyze` | 202 `GalleryImportOut` | 404 `GALLERY_IMPORT_NOT_FOUND`, 409 `GALLERY_IMPORT_NOT_REANALYZABLE` | A | 6.8 |
+| `POST /api/gallery/imports/{import_id}/confirm-outfit` | 200 `GalleryImportOut`(imported, outfit_id) | 404 `GALLERY_IMPORT_NOT_FOUND`, 409 `GALLERY_IMPORT_NOT_CONFIRMABLE`, 500 `STORAGE_ERROR` | A | 6.12~6.15 |
 | `POST /api/location` | 200 `LocationOut` | 422 `INVALID_LOCATION` | 리드 | 9.1, 9.2 |
 | `GET /api/location` | 200 `LocationStateOut` | – | 리드 | 9.3 |
 | `GET /api/notifications?limit&kind` | 200 `list[NotificationOut]` | 422 `VALIDATION_ERROR` | B | 14.5 |
 | `POST /api/daily-brief/run` | 200 `DailyBriefRunOut` | 409 `DAILY_BRIEF_IN_PROGRESS` | B | 13.1~13.3 |
 | `GET /api/push/vapid-public-key` | 200 `{"public_key": str}` | 503 `VAPID_KEY_UNAVAILABLE` | B | 15.1, 15.4, 15.10 |
 | `POST /api/push/subscriptions` | 201 `{"id": int}` | 422 `PUSH_SUBSCRIPTION_INVALID` | B | 15.5 |
-| `DELETE /api/push/subscriptions/{id}` | 204 | 404 `PUSH_SUBSCRIPTION_NOT_FOUND` | B | 15.6 |
+| `DELETE /api/push/subscriptions/{subscription_id}` | 204 | 404 `PUSH_SUBSCRIPTION_NOT_FOUND` | B | 15.6 |
 | `POST /api/push/test` | 200 `NotificationOut` | 409 `WEB_PUSH_DISABLED`, 503 `VAPID_KEY_UNAVAILABLE` | B | 15.9 |
 
 주요 스키마는 다음과 같다. 모든 datetime은 오프셋을 포함한다(Phase 1 Req 10.10).
@@ -970,8 +970,11 @@ class AutomationStatusOut(BaseModel):
 
 `AppContainer`에 다음 필드를 더한다. 모두 기본값 `None`이고 `build_container`가 채운다.
 
-- `location`, `gallery_store`, `gallery_importer`, `gallery_watcher`(감시 꺼짐이면 `None`)
-- `notification_log`, `push_store`, `vapid_keys`, `notifier`, `daily_brief`, `brief_scheduler`(꺼짐이면 `None`)
+- `location`, `place_label`(1.8에서 `fallback_place_label` "현재 위치", 7.1에서 `notifications.places.place_label`로 교체)
+- `gallery_store`, `gallery_importer`, `gallery_watcher`(감시 꺼짐이면 `None`), `outfit_confirm`(3.20의 `OutfitConfirmService`)
+- `current_weather`, `notification_log`, `push_store`, `vapid_keys`, `notifier`, `daily_brief`, `brief_scheduler`(꺼짐이면 `None`)
+
+라우터는 `deps.get_*` 의존성 함수로 서비스를 받는다. 필드가 `None`이면 `deps.require()`가 501 `NOT_IMPLEMENTED`를 낸다. 흐름 A·B의 API 테스트는 `app.dependency_overrides[get_*]`로 자기 서비스를 넣어 7.1 연결 전에도 돈다.
 
 갤러리 런타임은 `gallery/runtime.py`, 브리핑 런타임은 `notifications/runtime.py`의 builder가 만든다. 각 흐름이 자기 builder만 고치므로 `deps.py` 충돌이 없다.
 

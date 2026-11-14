@@ -22,7 +22,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy import CheckConstraint, Index, event, text
 from sqlalchemy.engine import Engine, make_url
@@ -198,8 +198,13 @@ def _set_sqlite_pragmas(dbapi_connection: Any, _connection_record: Any) -> None:
         cursor.close()
 
 
-SCHEMA_VERSION = 2  # PRAGMA user_version of the current table layout
+SCHEMA_VERSION = 3  # PRAGMA user_version of the current table layout (Phase 2)
+# Phase 1 rule: a file below this version is backed up and recreated. Version 2
+# (Phase 1 + main) is upgraded in place by adding the Phase 2 tables (Req 19.2).
+REBUILD_BELOW_VERSION = 2
 _SQLITE_SIDE_FILES = ("-wal", "-shm")
+
+MigrationResult = Literal["new", "rebuilt", "upgraded", "current", "newer"]
 
 
 def _read_user_version(path: Path) -> int:
@@ -214,13 +219,13 @@ def backup_outdated_db(path: Path, *, now: datetime | None = None) -> Path | Non
     """Rename an old-schema SQLite file out of the way before tables are created.
 
     ``create_all()`` cannot change existing CHECK constraints or add columns,
-    so a file with ``user_version < SCHEMA_VERSION`` is renamed (together with
+    so a file with ``user_version < REBUILD_BELOW_VERSION`` is renamed (together with
     its ``-wal``/``-shm`` files) to ``<name>.v1-backup-<UTC yyyymmddHHMMSS>``.
     Nothing is deleted. Returns the backup path, or None if no backup was needed.
     """
     if not path.is_file() or path.stat().st_size == 0:
         return None
-    if _read_user_version(path) >= SCHEMA_VERSION:
+    if _read_user_version(path) >= REBUILD_BELOW_VERSION:
         return None
     stamp = (now or datetime.now(UTC)).astimezone(UTC).strftime("%Y%m%d%H%M%S")
     backup = path.with_name(f"{path.name}.v1-backup-{stamp}")
@@ -235,7 +240,7 @@ def backup_outdated_db(path: Path, *, now: datetime | None = None) -> Path | Non
             side.rename(backup.with_name(backup.name + suffix))
     logger.warning(
         "Database schema is older than version %d; moved it to %s and creating a new one",
-        SCHEMA_VERSION,
+        REBUILD_BELOW_VERSION,
         backup.name,
     )
     return backup
@@ -252,7 +257,6 @@ def create_db_engine(database_url: str) -> Engine:
     file_path = _sqlite_file_path(database_url)
     if file_path is not None:
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        backup_outdated_db(file_path)
 
     is_sqlite = make_url(database_url).drivername.startswith("sqlite")
     connect_args = {"check_same_thread": False} if is_sqlite else {}
@@ -260,18 +264,75 @@ def create_db_engine(database_url: str) -> Engine:
     if is_sqlite:
         event.listen(engine, "connect", _set_sqlite_pragmas)
 
-    init_db(engine)
+    # The engine connects lazily, so a backup inside migrate_schema still
+    # happens before any connection opens the file.
+    migrate_schema(file_path, engine)
     migrate_legacy_garment_types(engine)
     backfill_photo_analyses(engine)
     return engine
 
 
+def migrate_schema(path: Path | None, engine: Engine) -> MigrationResult:
+    """Bring a database to SCHEMA_VERSION without losing data (Req 19.2-19.4, 19.6).
+
+    By the ``user_version`` of an existing file:
+
+    - ``< REBUILD_BELOW_VERSION`` (2): Phase 1 rule, ``backup_outdated_db`` moves the
+      file to ``.v1-backup-…`` and a new file is created -> ``"rebuilt"``.
+    - ``== 2``: ``create_all`` adds only the Phase 2 tables and indexes
+      (``CREATE … IF NOT EXISTS``), then ``user_version = 3`` -> ``"upgraded"``.
+    - ``== 3``: ``create_all`` is a no-op -> ``"current"``.
+    - ``> 3``: tables are created if missing, ``user_version`` is kept and a
+      WARNING is logged -> ``"newer"``.
+
+    A missing or empty file (or a non-file database) is ``"new"``. Running it
+    again gives the same result, because the upgrade is one ``create_all`` and
+    one ``PRAGMA user_version``.
+    """
+    before: int | None = None
+    if path is not None and path.is_file() and path.stat().st_size > 0:
+        before = _read_user_version(path)
+
+    result: MigrationResult
+    if before is None:
+        result = "new"
+    elif before < REBUILD_BELOW_VERSION:
+        backup_outdated_db(path)  # type: ignore[arg-type]  # path is a file here
+        result = "rebuilt"
+    elif before < SCHEMA_VERSION:
+        result = "upgraded"
+    elif before == SCHEMA_VERSION:
+        result = "current"
+    else:
+        result = "newer"
+
+    init_db(engine)
+    if result == "upgraded":
+        logger.info(
+            "Database schema upgraded from version %d to %d (Phase 2 tables added)",
+            before,
+            SCHEMA_VERSION,
+        )
+    elif result == "newer":
+        logger.warning(
+            "Database schema version %d is newer than this app (%d); keeping it as is",
+            before,
+            SCHEMA_VERSION,
+        )
+    return result
+
+
 def init_db(engine: Engine) -> None:
-    """Create all WeatherWear tables if they do not exist and mark the schema version."""
+    """Create all WeatherWear tables if they do not exist and mark the schema version.
+
+    A database already marked with a newer ``user_version`` keeps its mark.
+    """
     SQLModel.metadata.create_all(engine)
     if engine.dialect.name == "sqlite":
         with engine.begin() as conn:
-            conn.execute(text(f"PRAGMA user_version = {SCHEMA_VERSION}"))
+            current = int(conn.execute(text("PRAGMA user_version")).scalar() or 0)
+            if current <= SCHEMA_VERSION:
+                conn.execute(text(f"PRAGMA user_version = {SCHEMA_VERSION}"))
 
 
 def migrate_legacy_garment_types(engine: Engine) -> int:
@@ -379,3 +440,8 @@ def session_scope(engine: Engine) -> Iterator[Session]:
         except BaseException:
             session.rollback()
             raise
+
+
+# Register the Phase 2 tables on SQLModel.metadata (Req 19.1). Imported last
+# because db_automation only needs SQLModel, not the names above.
+from app import db_automation as _db_automation  # noqa: E402, F401

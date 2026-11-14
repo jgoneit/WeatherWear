@@ -19,8 +19,11 @@ from __future__ import annotations
 
 import logging
 import math
+import os
+import re
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import time
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Literal
@@ -72,6 +75,57 @@ class RawSettings(BaseSettings):
     DEFAULT_LONGITUDE: str = "126.9780"
     CORS_ORIGINS: str = DEFAULT_CORS_ORIGINS
 
+    # Phase 2 automation (Req 18.1). Watching and the daily brief are off in
+    # code; `.env.example` and compose.yaml turn them on (decision A1).
+    GALLERY_WATCH_ENABLED: str = "false"
+    GALLERY_DIR: str = "./ex_img"
+    GALLERY_POLL_SECONDS: str = "2"
+    USER_PHOTO_DIR: str = "./data/user/photos"
+    DAILY_BRIEF_ENABLED: str = "false"
+    DAILY_BRIEF_TIME: str = "07:30"
+    NOTIFIER: str = "log"
+    VAPID_KEY_DIR: str = "./data/secrets"
+    VAPID_SUBJECT: str = "mailto:weatherwear@example.com"
+
+
+# Phase 2 defaults (Req 18.1).
+DEFAULT_GALLERY_DIR = Path("./ex_img")
+DEFAULT_GALLERY_POLL_SECONDS = 2.0
+GALLERY_POLL_SECONDS_MIN = 0.5
+GALLERY_POLL_SECONDS_MAX = 60.0
+DEFAULT_USER_PHOTO_DIR = Path("./data/user/photos")
+DEFAULT_DAILY_BRIEF_TIME = time(7, 30)
+NOTIFIERS: tuple[str, ...] = ("log", "webpush")
+DEFAULT_NOTIFIER: Literal["log"] = "log"
+DEFAULT_VAPID_KEY_DIR = Path("./data/secrets")
+DEFAULT_VAPID_SUBJECT = "mailto:weatherwear@example.com"
+VAPID_SUBJECT_PREFIXES: tuple[str, ...] = ("mailto:", "https://")
+
+AUTOMATION_VARS: tuple[str, ...] = (
+    "GALLERY_WATCH_ENABLED", "GALLERY_DIR", "GALLERY_POLL_SECONDS", "USER_PHOTO_DIR",
+    "DAILY_BRIEF_ENABLED", "DAILY_BRIEF_TIME", "NOTIFIER", "VAPID_KEY_DIR", "VAPID_SUBJECT",
+)
+
+
+@dataclass(frozen=True)
+class AutomationConfig:
+    """Phase 2 settings. The defaults turn watching and the daily brief off (Req 18.4)."""
+
+    gallery_watch_enabled: bool = False
+    gallery_dir: Path = DEFAULT_GALLERY_DIR
+    gallery_poll_seconds: float = DEFAULT_GALLERY_POLL_SECONDS  # 0.5 <= x <= 60
+    user_photo_dir: Path = DEFAULT_USER_PHOTO_DIR
+    daily_brief_enabled: bool = False
+    daily_brief_time: time = DEFAULT_DAILY_BRIEF_TIME
+    notifier: Literal["log", "webpush"] = DEFAULT_NOTIFIER
+    vapid_key_dir: Path = DEFAULT_VAPID_KEY_DIR
+    vapid_subject: str = DEFAULT_VAPID_SUBJECT
+
+    @property
+    def vision_overlay_path(self) -> Path:
+        """``data/user/fixtures/vision.overlay.json`` next to User_Photo_Dir (design §8)."""
+        return self.user_photo_dir.parent / "fixtures" / "vision.overlay.json"
+
 
 @dataclass(frozen=True)
 class AppConfig:
@@ -86,6 +140,8 @@ class AppConfig:
     default_latitude: float
     default_longitude: float
     cors_origins: tuple[str, ...]
+    # Phase 2 (Req 18.4): a default keeps every existing AppConfig(...) call valid.
+    automation: AutomationConfig = field(default_factory=AutomationConfig)
 
     @property
     def gemini_api_key_configured(self) -> bool:
@@ -253,18 +309,171 @@ def resolve_config(raw: Mapping[str, str]) -> tuple[AppConfig, list[ConfigIssue]
                 f"CORS_ORIGINS는 쉼표로 구분한 출처 1개 이상이어야 합니다. 기본값 {DEFAULT_CORS_ORIGINS}을 사용합니다.",
             )
 
+    photo_dir = Path(_get(raw, "PHOTO_DIR") or DEFAULT_PHOTO_DIR)
+    automation, automation_issues = resolve_automation_config(raw, photo_dir=photo_dir)
+    issues.extend(automation_issues)
+
     config = AppConfig(
         vision_provider=vision_provider,
         gemini_model=gemini_model or DEFAULT_GEMINI_MODEL,
         gemini_api_key=api_key,
         weather_provider=weather_provider,
         database_url=_get(raw, "DATABASE_URL") or DEFAULT_DATABASE_URL,
-        photo_dir=Path(_get(raw, "PHOTO_DIR") or DEFAULT_PHOTO_DIR),
+        photo_dir=photo_dir,
         app_timezone=timezone,
         temperature_tolerance_c=tolerance,
         default_latitude=latitude,
         default_longitude=longitude,
         cors_origins=cors_origins,
+        automation=automation,
+    )
+    return config, issues
+
+
+# --- Phase 2 automation settings (Req 18.1, 18.2, 4.2) ----------------------
+
+_TRUE_WORDS = frozenset({"true", "1", "yes", "on"})
+_FALSE_WORDS = frozenset({"false", "0", "no", "off"})
+_HHMM = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
+
+
+def parse_bool(value: str) -> bool | None:
+    """``true/false/1/0/yes/no/on/off`` (case-insensitive, surrounding space ignored)."""
+    word = str(value).strip().lower()
+    if word in _TRUE_WORDS:
+        return True
+    if word in _FALSE_WORDS:
+        return False
+    return None
+
+
+def parse_hhmm(value: str) -> time | None:
+    """24-hour ``HH:MM`` with two digits each, e.g. ``07:30``."""
+    match = _HHMM.fullmatch(str(value).strip())
+    if match is None:
+        return None
+    return time(int(match.group(1)), int(match.group(2)))
+
+
+def _is_same_or_nested(a: Path, b: Path) -> bool:
+    """True when ``a`` and ``b`` are the same path or one contains the other."""
+    return a == b or a in b.parents or b in a.parents
+
+
+def user_photo_dir_conflicts(user_photo_dir: Path, *others: Path) -> bool:
+    """Req 4.2: USER_PHOTO_DIR must not equal, contain or sit inside PHOTO_DIR/GALLERY_DIR.
+
+    Paths are compared lexically after normalization, so call it with paths of
+    the same kind (all relative to one root, or all absolute).
+    """
+    mine = Path(os.path.normpath(user_photo_dir))
+    return any(_is_same_or_nested(mine, Path(os.path.normpath(other))) for other in others)
+
+
+def resolve_automation_config(
+    raw: Mapping[str, str], *, photo_dir: Path
+) -> tuple[AutomationConfig, list[ConfigIssue]]:
+    """Validate the 9 Phase 2 variables; invalid values fall back to their defaults.
+
+    Never raises. Every invalid variable yields one ``ConfigIssue`` whose
+    message has the variable name and the allowed values only (Req 18.2, 18.9).
+    The USER_PHOTO_DIR conflict check here compares the configured (usually
+    relative) paths; ``main.resolve_paths`` repeats it on absolute paths.
+    """
+    issues: list[ConfigIssue] = []
+
+    def issue(variable: str, message: str) -> None:
+        issues.append(ConfigIssue(variable=variable, message=message))
+
+    def boolean(name: str) -> bool:
+        value = _get(raw, name)
+        if value is None:
+            return False
+        parsed = parse_bool(value)
+        if parsed is None:
+            issue(
+                name,
+                f"{name}는 true, false, 1, 0, yes, no, on, off 중 하나여야 합니다. "
+                "기본값 false를 사용합니다.",
+            )
+            return False
+        return parsed
+
+    def path(name: str, default: Path) -> Path:
+        value = _get(raw, name)
+        return Path(value) if value is not None else default
+
+    gallery_watch_enabled = boolean("GALLERY_WATCH_ENABLED")
+    daily_brief_enabled = boolean("DAILY_BRIEF_ENABLED")
+    gallery_dir = path("GALLERY_DIR", DEFAULT_GALLERY_DIR)
+    vapid_key_dir = path("VAPID_KEY_DIR", DEFAULT_VAPID_KEY_DIR)
+
+    poll_seconds = DEFAULT_GALLERY_POLL_SECONDS
+    poll_value = _get(raw, "GALLERY_POLL_SECONDS")
+    if poll_value is not None:
+        number = _parse_finite_float(poll_value)
+        if number is None or not (GALLERY_POLL_SECONDS_MIN <= number <= GALLERY_POLL_SECONDS_MAX):
+            issue(
+                "GALLERY_POLL_SECONDS",
+                "GALLERY_POLL_SECONDS는 0.5 이상 60 이하의 숫자여야 합니다. 기본값 2를 사용합니다.",
+            )
+        else:
+            poll_seconds = number
+
+    brief_time = DEFAULT_DAILY_BRIEF_TIME
+    time_value = _get(raw, "DAILY_BRIEF_TIME")
+    if time_value is not None:
+        parsed_time = parse_hhmm(time_value)
+        if parsed_time is None:
+            issue(
+                "DAILY_BRIEF_TIME",
+                "DAILY_BRIEF_TIME은 24시간 HH:MM 형식이어야 합니다(예: 07:30). 기본값 07:30을 사용합니다.",
+            )
+        else:
+            brief_time = parsed_time
+
+    notifier: Literal["log", "webpush"] = DEFAULT_NOTIFIER
+    notifier_value = _get(raw, "NOTIFIER")
+    if notifier_value is not None:
+        if notifier_value in NOTIFIERS:
+            notifier = notifier_value  # type: ignore[assignment]
+        else:
+            issue(
+                "NOTIFIER",
+                f"NOTIFIER 값이 올바르지 않습니다. 허용값: {', '.join(NOTIFIERS)}. "
+                f"기본값 {DEFAULT_NOTIFIER}을 사용합니다.",
+            )
+
+    vapid_subject = DEFAULT_VAPID_SUBJECT
+    subject_value = _get(raw, "VAPID_SUBJECT")
+    if subject_value is not None:
+        if subject_value.startswith(VAPID_SUBJECT_PREFIXES):
+            vapid_subject = subject_value
+        else:
+            issue(
+                "VAPID_SUBJECT",
+                "VAPID_SUBJECT는 mailto: 또는 https://로 시작해야 합니다. 기본값을 사용합니다.",
+            )
+
+    user_photo_dir = path("USER_PHOTO_DIR", DEFAULT_USER_PHOTO_DIR)
+    if user_photo_dir_conflicts(user_photo_dir, photo_dir, gallery_dir):
+        issue(
+            "USER_PHOTO_DIR",
+            "USER_PHOTO_DIR는 PHOTO_DIR, GALLERY_DIR와 같거나 서로 포함하면 안 됩니다. "
+            "기본값 ./data/user/photos를 사용합니다.",
+        )
+        user_photo_dir = DEFAULT_USER_PHOTO_DIR
+
+    config = AutomationConfig(
+        gallery_watch_enabled=gallery_watch_enabled,
+        gallery_dir=gallery_dir,
+        gallery_poll_seconds=poll_seconds,
+        user_photo_dir=user_photo_dir,
+        daily_brief_enabled=daily_brief_enabled,
+        daily_brief_time=brief_time,
+        notifier=notifier,
+        vapid_key_dir=vapid_key_dir,
+        vapid_subject=vapid_subject,
     )
     return config, issues
 

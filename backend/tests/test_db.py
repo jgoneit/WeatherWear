@@ -238,7 +238,7 @@ def test_outfit_source_check_allows_exif(engine) -> None:  # Req 2.7, 2.15
 
 def test_new_db_has_schema_version(engine) -> None:
     with engine.connect() as conn:
-        assert conn.execute(text("PRAGMA user_version")).scalar() == SCHEMA_VERSION == 2
+        assert conn.execute(text("PRAGMA user_version")).scalar() == SCHEMA_VERSION == 3
 
 
 def test_old_schema_db_is_backed_up_and_recreated(tmp_path: Path, caplog) -> None:

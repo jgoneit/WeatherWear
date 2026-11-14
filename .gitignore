@@ -8,6 +8,10 @@
 # Local database
 data/weatherwear.db*
 
+# Phase 2 user data (watched-photo copies, sidecars, Vision overlay, capture pool) and VAPID keys
+data/user/
+data/secrets/
+
 # Photos (not published; prepare locally with scripts/prepare_demo_photos.py)
 # Demo photos (people photos, ~290MB): copy to the deploy server separately.
 # ex_img/ also holds files whose usage rights are not confirmed.

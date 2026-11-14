@@ -378,7 +378,10 @@ def test_demo_data_end_to_end(tmp_path: Path) -> None:
         chilly = test_client.get("/api/recommendations/today").json()
         assert chilly["status"] == "ok" and chilly["fallback"] is False
         assert len(chilly["items"]) == 5
-        assert chilly["items"][0]["rank"] == 1
+        # Ranks run 1..n without gaps and scores never increase (ties allowed).
+        assert [item["rank"] for item in chilly["items"]] == list(range(1, len(chilly["items"]) + 1))
+        scores = [item["score"] for item in chilly["items"]]
+        assert all(a >= b for a, b in zip(scores, scores[1:])), scores
         assert all(item["temperature_diff_c"] <= 3.0 for item in chilly["items"])
 
         test_client.put("/api/demo/scenarios/selected", json={"scenario_id": "heatwave"})

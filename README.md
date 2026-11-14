@@ -144,6 +144,8 @@ VITE_API_BASE_URL=http://localhost:8000 npm run dev
 
 ## 테스트
 
+비전 정확도 평가(실제 사진 기반, opt-in)는 [docs/evaluation.md](docs/evaluation.md)를 본다. `python scripts/evaluate_vision.py`가 Fixture로 파이프라인을 점검하고, `--provider gemini`는 키가 있을 때만 live로 측정한다.
+
 백엔드:
 
 ```bash

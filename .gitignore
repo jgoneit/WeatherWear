@@ -32,3 +32,6 @@ dist/
 .vscode/
 .idea/
 *.log
+
+# Evaluation outputs (generated)
+eval-results/

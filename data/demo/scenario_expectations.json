@@ -2,7 +2,7 @@
   "generated_by": "scripts/select_scenarios.py",
   "algorithm_version": "rule_based_v1",
   "tolerance_c": 3.0,
-  "note": "fixture 모드로 data/demo/photos 전체를 스캔한 결과의 기대값. 항목은 파일 이름으로 비교한다",
+  "note": "fixture 모드로 data/demo/photos 전체를 스캔한 결과의 기대값. 착장으로 저장되는 사진만 후보이고 착장 아닌 사진(non_outfit)과 uncertain 사진은 저장되지 않는다. 항목은 파일 이름으로 비교한다",
   "scenarios": [
     {
       "id": "chilly-morning",

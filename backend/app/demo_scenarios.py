@@ -4,8 +4,10 @@
 Pure functions only: no file or network access. ``scripts/select_scenarios.py``
 reads the recorded data, calls these functions and writes the demo files.
 
-Input ``T`` is the list of recorded temperatures of outfit photos (photos that
-are not Non_Outfit_Photo). ``d(x, t) = round_half_up(|x - t|, 1)`` is the same
+Input ``T`` is the list of recorded temperatures of the photos a scan stores as
+Outfits: fixture ``photo_type`` ``outfit`` after the ingestion confidence gate
+(``apply_confidence_gate``). ``non_outfit`` and ``uncertain`` photos are never
+stored, so they are not in ``T``. ``d(x, t) = round_half_up(|x - t|, 1)`` is the same
 Decimal calculation the recommendation strategy uses (Req 6.7), and
 ``N(t, r) = #{x in T : d(x, t) <= r}``. The rules assume the default
 ``TEMPERATURE_TOLERANCE_C = 3.0`` and temperatures in 0.1°C steps.
@@ -19,7 +21,8 @@ Scenario rules:
 
 Seed vote rules (earlier rule wins when a photo matches two):
 
-- V1: Non_Outfit_Photo gets no vote.
+- V1: a photo the scan does not store as an Outfit (Non_Outfit_Photo or
+  uncertain) gets no vote; the scan stops before it would read the sidecar.
 - V2: outfit photos within 3.0°C of S1, sorted by ``(diff, file)``: the 1st
   gets ``cold``, the 2nd gets ``comfortable``.
 - V3: the S2 boundary photo (diff 3.0) gets ``comfortable``.
@@ -35,8 +38,9 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Literal
 
-from app.domain import ClothingTags, ThermalVote
-from app.recommendation.rule_based_v1 import is_non_outfit, score_for, temperature_diff, to_decimal
+from app.domain import ClothingTags, ThermalVote, VisionAnalysis
+from app.ingestion.service import apply_confidence_gate
+from app.recommendation.rule_based_v1 import score_for, temperature_diff, to_decimal
 
 DEFAULT_TOLERANCE_C = Decimal("3.0")
 FALLBACK_TOLERANCE_C = Decimal("5.0")
@@ -124,11 +128,16 @@ class OutfitPhoto:
     file: str
     sha256: str
     temperature_c: Number
-    tags: ClothingTags
+    analysis: VisionAnalysis  # the fixture entry for ``sha256``
 
     @property
-    def non_outfit(self) -> bool:
-        return is_non_outfit(self.tags)
+    def tags(self) -> ClothingTags:
+        return self.analysis.tags
+
+    @property
+    def stored_as_outfit(self) -> bool:
+        """True when a scan stores the photo as an Outfit (same gate as ingestion)."""
+        return apply_confidence_gate(self.analysis).photo_type == "outfit"
 
 
 @dataclass(frozen=True)
@@ -156,8 +165,8 @@ def count_within(temps: Iterable[Number], t: Number, radius: Number) -> int:
 
 
 def outfit_temperatures(photos: Iterable[OutfitPhoto]) -> list[Decimal]:
-    """``T``: recorded temperatures of outfit photos only (Non_Outfit_Photo excluded)."""
-    return [to_decimal(p.temperature_c) for p in photos if not p.non_outfit]
+    """``T``: recorded temperatures of the photos stored as Outfits only."""
+    return [to_decimal(p.temperature_c) for p in photos if p.stored_as_outfit]
 
 
 def _as_mapping(scenarios: ScenarioTemps | Mapping[str, Number]) -> dict[str, Decimal]:
@@ -230,14 +239,14 @@ def build_scenarios_document(temps: ScenarioTemps) -> dict:
 
 def v2_photos(photos: Sequence[OutfitPhoto], s1: Number) -> list[OutfitPhoto]:
     """Outfit photos within 3.0°C of S1, sorted by ``(diff, file)``."""
-    within = [p for p in photos if not p.non_outfit and diff(p.temperature_c, s1) <= DEFAULT_TOLERANCE_C]
+    within = [p for p in photos if p.stored_as_outfit and diff(p.temperature_c, s1) <= DEFAULT_TOLERANCE_C]
     return sorted(within, key=lambda p: (diff(p.temperature_c, s1), p.file))
 
 
 def v3_photos(photos: Sequence[OutfitPhoto], s2: Number) -> list[OutfitPhoto]:
     """Outfit photos exactly 3.0°C from S2 (one photo when S2 holds)."""
     return sorted(
-        (p for p in photos if not p.non_outfit and diff(p.temperature_c, s2) == DEFAULT_TOLERANCE_C),
+        (p for p in photos if p.stored_as_outfit and diff(p.temperature_c, s2) == DEFAULT_TOLERANCE_C),
         key=lambda p: p.file,
     )
 
@@ -264,7 +273,7 @@ def assign_seed_votes(
         votes.setdefault(photo.file, SeedVote("comfortable", "V3"))
 
     for photo in sorted(photos, key=lambda p: p.file):
-        if photo.non_outfit or photo.file in votes:  # V1, earlier rules
+        if not photo.stored_as_outfit or photo.file in votes:  # V1, earlier rules
             continue
         vote = v4_vote(photo.sha256)
         if vote is not None:
@@ -284,7 +293,7 @@ def check_scenarios(
 ) -> list[Violation]:
     """Re-check S1~S4 against ``T``. With ``photos`` and ``votes`` also check V1~V3.
 
-    The vote checks: no Non_Outfit_Photo has a vote (V1); the two V2 photos
+    The vote checks: no photo that is not stored as an Outfit has a vote (V1); the two V2 photos
     hold ``cold``/``comfortable`` and the ``comfortable`` one scores higher
     (V2); the S2 boundary photo has a vote, so its confidence is ``high`` (V3).
     """
@@ -327,8 +336,8 @@ def check_scenarios(
         return value.vote if isinstance(value, SeedVote) else value
 
     for photo in photos:
-        if photo.non_outfit and vote_of(photo.file) is not None:
-            violations.append(Violation("V1", None, f"{photo.file} is not an outfit photo but has a vote"))
+        if not photo.stored_as_outfit and vote_of(photo.file) is not None:
+            violations.append(Violation("V1", None, f"{photo.file} is not stored as an outfit but has a vote"))
 
     if S1_ID in chosen:
         ranked = v2_photos(photos, chosen[S1_ID])

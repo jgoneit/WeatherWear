@@ -11,6 +11,12 @@ to SHA-256 mapping comes from ``vision.sources.json``, and
 ``ex_img/`` is git-ignored as well, so the comparison with
 ``ex_img/clothing_tags.json`` is its own test and skips on its own.
 
+``vision.json`` holds one ``VisionAnalysis`` per photo. A scan stores only the
+photos whose analysis is ``outfit`` after the ingestion confidence gate;
+``non_outfit`` and ``uncertain`` photos are reported and never stored. The scan
+counts the other tests expect (``first_scan_counts``, ``rescan_counts``) are
+derived from that, not written as literals.
+
 The other modules that use the demo data import their helpers from here.
 """
 
@@ -37,12 +43,20 @@ from app.demo_scenarios import (
     outfit_temperatures,
     v2_photos,
 )
-from app.domain import UNKNOWN_TAGS, CaptureMetadata, ClothingTags
+from app.domain import (
+    UNKNOWN_TAGS,
+    CaptureMetadata,
+    ClothingTags,
+    VisionAnalysis,
+    normalize_lower_type,
+    normalize_outer_type,
+    normalize_upper_type,
+)
 from app.ingestion.image_check import SUPPORTED_EXTENSIONS, list_image_files
 from app.ingestion.metadata import read_embedded_metadata
+from app.ingestion.service import apply_confidence_gate
 from app.ingestion.sidecar import SIDECAR_SUFFIX, SidecarError, parse_sidecar_text, sidecar_path_for
 from app.providers.weather.fixture import FixtureWeatherProvider
-from app.recommendation.rule_based_v1 import is_non_outfit
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEMO_DIR = REPO_ROOT / "data" / "demo"
@@ -56,7 +70,8 @@ VISION_SOURCES_PATH = FIXTURES_DIR / "vision.sources.json"
 WEATHER_PATH = FIXTURES_DIR / "weather.json"
 CLOTHING_TAGS_PATH = REPO_ROOT / "ex_img" / "clothing_tags.json"
 
-# Req 15.2: 174 photos = PNG 134 + JPG 40. Req 15.13: 20 of the JPGs are Non_Outfit_Photo.
+# Req 15.2: 174 photos = PNG 134 + JPG 40. Req 15.13: 20 of the JPGs are Non_Outfit_Photo
+# (vision.json photo_type "non_outfit"); every other photo is "outfit".
 DEMO_PHOTO_COUNT = 174
 DEMO_PHOTO_COUNT_BY_SUFFIX = {".png": 134, ".jpg": 40}
 NON_OUTFIT_PHOTO_COUNT = 20
@@ -102,27 +117,32 @@ class DemoRecord:
 
     file: str
     sha256: str  # vision.json key, from vision.sources.json
-    tags: ClothingTags
+    analysis: VisionAnalysis
     entry: dict[str, Any]  # its weather.json entry
 
     @property
     def temperature_c(self) -> float:
         return self.entry["actual_temperature_c"]
 
+    @property
+    def scan_photo_type(self) -> str:
+        """What a scan does with the photo: ``outfit`` is stored, the others are reported."""
+        return apply_confidence_gate(self.analysis).photo_type
+
     def outfit_photo(self) -> OutfitPhoto:
-        return OutfitPhoto(self.file, self.sha256, self.temperature_c, self.tags)
+        return OutfitPhoto(self.file, self.sha256, self.temperature_c, self.analysis)
 
 
 def load_demo_records() -> list[DemoRecord]:
-    """Every ``weather.json`` entry joined with its hash and tags, in file name order."""
+    """Every ``weather.json`` entry joined with its hash and vision analysis, in file name order."""
     vision = read_json(VISION_PATH)
     sha_by_file = {source["file"]: sha for sha, source in read_json(VISION_SOURCES_PATH).items()}
     records = []
     for entry in sorted(read_json(WEATHER_PATH)["entries"], key=lambda e: e["file"]):
         sha = sha_by_file.get(entry["file"])
         assert sha is not None, f"{entry['file']} is not in {VISION_SOURCES_PATH.name}"
-        assert sha in vision, f"{entry['file']}: no tags in {VISION_PATH.name}"
-        records.append(DemoRecord(entry["file"], sha, ClothingTags.model_validate(vision[sha]), entry))
+        assert sha in vision, f"{entry['file']}: no entry in {VISION_PATH.name}"
+        records.append(DemoRecord(entry["file"], sha, VisionAnalysis.model_validate(vision[sha]), entry))
     return records
 
 
@@ -132,7 +152,32 @@ def demo_outfit_photos() -> list[OutfitPhoto]:
 
 
 def non_outfit_files(records: list[DemoRecord]) -> set[str]:
-    return {r.file for r in records if is_non_outfit(r.tags)}
+    """Photos whose fixture ``photo_type`` is ``non_outfit`` (Req 15.13)."""
+    return {r.file for r in records if r.analysis.photo_type == "non_outfit"}
+
+
+def not_stored_files(records: list[DemoRecord]) -> set[str]:
+    """Photos a scan reports as non_outfit or uncertain instead of storing them."""
+    return {r.file for r in records if r.scan_photo_type != "outfit"}
+
+
+def first_scan_counts() -> dict[str, int]:
+    """``ScanReport`` counts of the first fixture-mode scan of ``data/demo/photos``."""
+    types = Counter(record.scan_photo_type for record in load_demo_records())
+    return {
+        "scanned": sum(types.values()),
+        "succeeded": types["outfit"],
+        "duplicate": 0,
+        "skipped_non_outfit": types["non_outfit"],
+        "uncertain": types["uncertain"],
+        "failed": 0,
+    }
+
+
+def rescan_counts() -> dict[str, int]:
+    """Counts of a second scan: stored outfits are duplicates, the others are reported again."""
+    first = first_scan_counts()
+    return {**first, "succeeded": 0, "duplicate": first["succeeded"]}
 
 
 def sidecar_texts(records: list[DemoRecord]) -> dict[str, str]:
@@ -209,8 +254,8 @@ def test_demo_data_layout() -> None:
     assert len(set(sha_by_file.values())) == len(sha_by_file), "two demo photos have the same bytes"
     assert set(vision) == set(sha_by_file.values())
     assert {s["file"]: sha for sha, s in read_json(VISION_SOURCES_PATH).items()} == sha_by_file
-    for tags in vision.values():
-        ClothingTags.model_validate(tags)
+    for analysis in vision.values():
+        VisionAnalysis.model_validate(analysis)
 
     # weather.json: recorded provenance block and one entry per photo.
     assert isinstance(weather.get("recorded"), dict) and weather["recorded"].get("source")
@@ -219,16 +264,23 @@ def test_demo_data_layout() -> None:
     assert sorted(entries) == names  # no duplicate or unknown file
     assert provider.entry_count == DEMO_PHOTO_COUNT
 
-    # Req 15.13: the Non_Outfit_Photo are 20 JPGs.
+    # Req 15.13: the Non_Outfit_Photo are 20 JPGs labeled non_outfit; every other
+    # photo is an outfit the scan stores (none falls to uncertain at the gate).
     records = load_demo_records()
     non_outfit = non_outfit_files(records)
     assert len(non_outfit) == NON_OUTFIT_PHOTO_COUNT
     assert all(name.endswith(".jpg") for name in non_outfit)
+    assert all(r.analysis.tags == UNKNOWN_TAGS for r in records if r.file in non_outfit)
+    assert Counter(r.scan_photo_type for r in records) == {
+        "outfit": DEMO_PHOTO_COUNT - NON_OUTFIT_PHOTO_COUNT,
+        "non_outfit": NON_OUTFIT_PHOTO_COUNT,
+    }
+    assert not_stored_files(records) == non_outfit
 
-    # Req 15.2, 15.11: sidecars hold only the seed vote; Non_Outfit_Photo have none.
+    # Req 15.2, 15.11: sidecars hold only the seed vote; photos that are not stored have none.
     texts = sidecar_texts(records)
     assert texts, "no seed vote sidecars"
-    assert sorted(set(texts) & non_outfit) == []
+    assert sorted(set(texts) & not_stored_files(records)) == []
     for file, text in texts.items():
         document = json.loads(text)
         assert set(document) <= SIDECAR_KEYS, f"{file}: {sorted(document)}"
@@ -245,9 +297,20 @@ def test_demo_data_layout() -> None:
 def test_demo_data_layout_clothing_tags() -> None:
     """vision.json holds the tags of ``ex_img/clothing_tags.json`` (Req 15.12).
 
-    The file to hash mapping is ``vision.sources.json``, which
-    ``test_demo_data_layout`` checks against the current photo bytes.
+    The source spells garments freely (``"t-shirt"``); vision.json holds the
+    canonical taxonomy values, so the source is compared after
+    ``normalize_*_type``. The file to hash mapping is ``vision.sources.json``,
+    which ``test_demo_data_layout`` checks against the current photo bytes.
     """
+
+    def canonical(raw: dict[str, Any]) -> ClothingTags:
+        return ClothingTags.model_validate({
+            **raw,
+            "upper_type": normalize_upper_type(raw["upper_type"]),
+            "outer_type": normalize_outer_type(raw["outer_type"]),
+            "lower_type": normalize_lower_type(raw["lower_type"]),
+        })
+
     source = read_json(CLOTHING_TAGS_PATH)
     assert source["schema"] == "WeatherWear ClothingTags"
     images: dict[str, dict[str, Any]] = source["images"]
@@ -260,15 +323,15 @@ def test_demo_data_layout_clothing_tags() -> None:
 
     mismatched = [
         file for file, item in images.items()
-        if ClothingTags.model_validate(vision[sha_by_file[file]]) != ClothingTags.model_validate(item["tags"])
+        if VisionAnalysis.model_validate(vision[sha_by_file[file]]).tags != canonical(item["tags"])
     ]
     assert mismatched == []
     # The hash in clothing_tags.json is of the bytes before metadata was embedded.
     assert {file: sources[sha]["source_sha256"] for file, sha in sha_by_file.items()} == {
         file: item["sha256"] for file, item in images.items()
     }
-    # design: exactly the Non_Outfit_Photo carry UNKNOWN_TAGS in clothing_tags.json.
-    unknown = {file for file, item in images.items() if ClothingTags.model_validate(item["tags"]) == UNKNOWN_TAGS}
+    # design: exactly the photos labeled non_outfit carry UNKNOWN_TAGS in clothing_tags.json.
+    unknown = {file for file, item in images.items() if canonical(item["tags"]) == UNKNOWN_TAGS}
     assert unknown == non_outfit_files(load_demo_records())
 
 

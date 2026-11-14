@@ -17,9 +17,12 @@ reads the data, applies them and writes:
   photo lacks valid embedded metadata.
 - ``data/demo/scenario_expectations.json``: the result of
   ``RuleBasedTemperatureStrategy`` for each scenario on the recorded data.
-  Outfit ids follow the scan order (file name order), so ties on equal score
-  and weather resolve the same way as after a real scan; items are compared
-  by file name.
+  Only the photos a scan stores as Outfits are candidates (fixture
+  ``photo_type`` ``outfit`` after the ingestion confidence gate; non-outfit and
+  uncertain photos are reported by the scan and never stored). Outfit ids
+  follow the scan order (file name order among the stored photos), so ties on
+  equal score and weather resolve the same way as after a real scan; items are
+  compared by file name.
 
 Before writing, ``check_scenarios`` and the expected outcome of each scenario
 are checked. Any violation is printed, nothing is written and the exit code
@@ -73,14 +76,15 @@ from app.demo_scenarios import (  # noqa: E402
 from app.domain import (  # noqa: E402
     ALGORITHM_VERSION,
     CaptureMetadata,
-    ClothingTags,
     OutfitWithWeatherAndFeedback,
     ThermalVote,
+    VisionAnalysis,
     WeatherContext,
     WeatherReading,
 )
 from app.ingestion.image_check import list_image_files  # noqa: E402
 from app.ingestion.metadata import read_embedded_metadata  # noqa: E402
+from app.ingestion.service import apply_confidence_gate  # noqa: E402
 from app.ingestion.sidecar import SIDECAR_SUFFIX, SidecarError, parse_sidecar_text, sidecar_path_for  # noqa: E402
 from app.recommendation.rule_based_v1 import RuleBasedTemperatureStrategy  # noqa: E402
 from app.today_weather import load_scenarios  # noqa: E402
@@ -101,11 +105,11 @@ class PhotoData:
     file: str
     sha256: str
     captured_at: datetime
-    tags: ClothingTags
+    analysis: VisionAnalysis
     weather: WeatherReading
 
     def outfit_photo(self) -> OutfitPhoto:
-        return OutfitPhoto(self.file, self.sha256, self.weather.actual_temperature_c, self.tags)
+        return OutfitPhoto(self.file, self.sha256, self.weather.actual_temperature_c, self.analysis)
 
 
 @dataclass(frozen=True)
@@ -139,7 +143,7 @@ def _reading(entry: dict[str, Any]) -> WeatherReading:
 
 
 def load_photo_data(paths: Paths) -> tuple[list[PhotoData], list[str]]:
-    """Every photo with its hash, embedded capture time, tags and recorded weather."""
+    """Every photo with its hash, embedded capture time, vision analysis and recorded weather."""
     problems: list[str] = []
     try:
         weather = _read_json(paths.weather)
@@ -175,16 +179,16 @@ def load_photo_data(paths: Paths) -> tuple[list[PhotoData], list[str]]:
         if entry_captured != capture.captured_at:
             problems.append(f"{image.name}: weather entry captured_at differs from embedded metadata")
             continue
-        raw_tags = vision.get(sha)
-        if raw_tags is None:
-            problems.append(f"{image.name}: no tags in {paths.vision.name} for its SHA-256")
+        raw_analysis = vision.get(sha)
+        if raw_analysis is None:
+            problems.append(f"{image.name}: no entry in {paths.vision.name} for its SHA-256")
             continue
         try:
-            tags = ClothingTags.model_validate(raw_tags)
+            analysis = VisionAnalysis.model_validate(raw_analysis)
         except ValidationError:
-            problems.append(f"{image.name}: invalid tags in {paths.vision.name}")
+            problems.append(f"{image.name}: invalid VisionAnalysis in {paths.vision.name}")
             continue
-        photos.append(PhotoData(image.name, sha, capture.captured_at, tags, reading))
+        photos.append(PhotoData(image.name, sha, capture.captured_at, analysis, reading))
     if not photos and not problems:
         problems.append(f"no images in {paths.photos}")
     return photos, problems
@@ -236,14 +240,18 @@ def _today(scenario: dict[str, Any]) -> WeatherContext:
 def simulate(
     photos: list[PhotoData], votes: dict[str, ThermalVote], scenarios_doc: dict[str, Any]
 ) -> dict[str, Any]:
-    """Run rule_based_v1 for each scenario. Outfit id = 1-based position in file name order."""
-    ordered = sorted(photos, key=lambda p: p.file)
+    """Run rule_based_v1 for each scenario on the photos a scan stores.
+
+    Outfit id = 1-based position in file name order among the stored photos
+    (the order a scan inserts them).
+    """
+    ordered = sorted((p for p in photos if p.outfit_photo().stored_as_outfit), key=lambda p: p.file)
     by_id = {index: photo for index, photo in enumerate(ordered, start=1)}
     candidates = [
         OutfitWithWeatherAndFeedback(
             outfit_id=index,
             captured_at=photo.captured_at,
-            tags=photo.tags,
+            tags=photo.analysis.tags,
             weather=photo.weather,
             effective_vote=votes.get(photo.file),
         )
@@ -283,7 +291,10 @@ def simulate(
         "generated_by": "scripts/select_scenarios.py",
         "algorithm_version": ALGORITHM_VERSION,
         "tolerance_c": float(DEFAULT_TOLERANCE_C),
-        "note": "fixture 모드로 data/demo/photos 전체를 스캔한 결과의 기대값. 항목은 파일 이름으로 비교한다",
+        "note": (
+            "fixture 모드로 data/demo/photos 전체를 스캔한 결과의 기대값. 착장으로 저장되는 사진만 후보이고 "
+            "착장 아닌 사진(non_outfit)과 uncertain 사진은 저장되지 않는다. 항목은 파일 이름으로 비교한다"
+        ),
         "scenarios": results,
     }
 
@@ -506,7 +517,9 @@ def main(argv: list[str] | None = None) -> int:
     removed, written = write_sidecars(paths.photos, result.seed_votes)
     write_json_atomic(paths.expectations, result.expectations)
 
-    print(f"photos: {len(photos)} ({sum(p.outfit_photo().non_outfit for p in photos)} non-outfit)")
+    gated = [apply_confidence_gate(p.analysis).photo_type for p in photos]
+    print(f"photos: {len(photos)} (stored as outfit {gated.count('outfit')}, "
+          f"non_outfit {gated.count('non_outfit')}, uncertain {gated.count('uncertain')})")
     print(f"wrote {paths.scenarios.name}, today_default in {paths.weather.name}, {paths.expectations.name}")
     print(f"sidecars: removed {removed}, wrote {written}")
     _summary(result)

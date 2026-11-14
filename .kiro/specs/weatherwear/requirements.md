@@ -59,7 +59,7 @@ Phase 1 구현을 마친 뒤 사용자가 다음을 결정했고, 이 문서에 
 - **Embedded_Metadata**: 이미지 파일 안에 저장된 EXIF 메타데이터. 우선 출처는 Exif IFD(0x8769)의 UserComment 태그(0x9286)로, 8바이트 문자 코드 헤더(`ASCII\0\0\0`) 뒤에 date(YYYY-MM-DD), time(HH:MM:SS), timezone(IANA 이름), utc_offset(±HH:MM), latitude, longitude, synthetic 등을 담은 JSON이 있다. 대체 출처는 표준 EXIF의 DateTimeOriginal(0x9003)과 OffsetTimeOriginal(0x9011), GPS IFD(0x8825)의 위도·경도(도·분·초)와 GPSProcessingMethod이다
 - **Metadata_Source**: Outfit의 촬영 시각·위치를 어디서 읽었는지 나타내는 source 값. Embedded_Metadata이면 `exif`, Sidecar_Metadata이면 `demo_sidecar`이다
 - **Synthetic_Metadata**: 실제 촬영 기록이 아닌 가상(합성) 메타데이터. Embedded_Metadata의 UserComment JSON에서 synthetic이 true이거나 GPSProcessingMethod 값이 `SYNTHETIC`인 경우, 그리고 Sidecar_Metadata에서 읽은 경우가 해당한다
-- **Non_Outfit_Photo**: 착장이 아닌 사진(음식, 풍경 등). 의류 태그의 upper_type, outer_type, lower_type이 모두 `unknown`이고 confidence가 0.0인 Outfit을 말한다
+- **Non_Outfit_Photo**: 착장이 아닌 사진(음식, 풍경 등). VisionAnalysis의 photo_type이 `non_outfit`이고 tags가 UNKNOWN_TAGS(upper_type, outer_type, lower_type이 모두 `unknown`, confidence 0.0)인 사진을 말한다. Requirement 3.10에 따라 Outfit으로 저장되지 않는다
 - **Weather_Scenario**: `data/demo/scenarios.json`에 정의된 고정 "오늘 날씨" 시나리오
 - **Scenario_Rules**: 4개 Weather_Scenario가 Recorded_Weather_Fixture에 대해 만족해야 하는 규칙 S1(일반 추천), S2(경계값 3.0°C), S3(범위 확장), S4(데이터 부족). Scenario_Checker가 검사한다
 - **Scenario_Checker**: Recorded_Weather_Fixture와 Fixture_Vision_Provider 데이터로 Scenario_Rules를 검사하는 `scripts/select_scenarios.py`의 검사 기능과 같은 규칙을 쓰는 자동화 테스트
@@ -79,7 +79,7 @@ Phase 1 구현을 마친 뒤 사용자가 다음을 결정했고, 이 문서에 
 #### Acceptance Criteria
 
 1. WHEN POST /api/demo/scan 요청이 수신되면, THE Ingestion_Service SHALL Photo_Dir 최상위 경로에 있는 파일 중 확장자가 `.jpg`, `.jpeg`, `.png`, `.webp`(대소문자 무시)인 파일만 이미지 파일로 스캔하고, 하위 폴더, Sidecar_Metadata 파일, 그 밖의 확장자를 가진 파일은 scanned 건수에 포함하지 않는다
-2. WHEN 스캔이 완료되면, THE API_Server SHALL scanned, succeeded, duplicate, failed 건수와 실패 파일별 오류 상세(파일 이름, 실패 단계: 검증/분석/저장 중 하나, 실패 사유)를 응답 본문에 포함하여 반환하며, scanned 건수는 succeeded, duplicate, failed 건수의 합과 같고, Photo_Dir에 이미지 파일이 0건이면 모든 건수를 0으로 반환한다
+2. WHEN 스캔이 완료되면, THE API_Server SHALL scanned, succeeded, duplicate, skipped_non_outfit, uncertain, failed 건수와 실패 파일별 오류 상세 및 저장하지 않은 사진별 판정 결과를 반환한다. scanned는 succeeded, duplicate, skipped_non_outfit, uncertain, failed의 합과 같고, Photo_Dir에 이미지 파일이 0건이면 모든 건수를 0으로 반환한다
 3. WHEN 이미지 파일이 발견되면, THE Ingestion_Service SHALL 해당 파일 내용 전체의 SHA-256 해시를 계산한다
 4. IF 이미 저장된 Outfit 또는 같은 스캔에서 앞서 처리된 파일과 동일한 SHA-256 해시를 가진 파일이 발견되면, THEN THE Ingestion_Service SHALL 해당 파일에 대해 Vision_Provider와 Weather_Provider를 호출하지 않고, 새 Outfit을 생성하지 않으며, 해당 파일을 duplicate로 집계한다
 5. WHEN 파일 변경 없이 동일한 Photo_Dir에 대해 스캔이 반복 실행되면, THE Outfit_Repository SHALL 첫 스캔 이후와 동일한 Outfit 건수와 Weather_Snapshot 건수를 유지한다 (멱등성)
@@ -98,7 +98,7 @@ Phase 1 구현을 마친 뒤 사용자가 다음을 결정했고, 이 문서에 
 
 #### Acceptance Criteria
 
-1. WHEN Ingestion_Service가 Photo_Dir 내 이미지 파일 1건을 처리하면, THE Metadata_Reader SHALL Vision_Provider와 Weather_Provider를 호출하기 전에 해당 이미지 바이트의 Embedded_Metadata에서 촬영 시각(captured_at), latitude, longitude, 합성 여부를 읽는다
+1. WHEN Ingestion_Service가 이미지 형식 검증과 Vision_Provider의 착장 판정을 통과한 `outfit` 사진 1건을 처리하면, THE Metadata_Reader SHALL Weather_Provider를 호출하기 전에 해당 이미지 바이트의 Embedded_Metadata에서 촬영 시각(captured_at), latitude, longitude, 합성 여부를 읽는다. `non_outfit` 또는 `uncertain` 사진에는 메타데이터를 요구하지 않는다
 2. WHEN captured_at을 저장하면, THE Outfit_Repository SHALL captured_at을 메타데이터에 기재된 것과 같은 지역 시각과 같은 타임존 오프셋을 가진 ISO 8601 형식(예: UserComment JSON의 date `2025-01-08`, time `08:15:00`, utc_offset `+09:00` → `2025-01-08T08:15:00+09:00`)으로 저장한다
 3. IF 이미지에 유효한 Embedded_Metadata가 없고 Sidecar_Metadata도 없거나, 사용할 출처에서 촬영 시각·latitude·longitude 중 하나 이상이 누락되었거나 null이거나, UserComment JSON 또는 Sidecar_Metadata의 JSON 파싱에 실패하면, THEN THE Ingestion_Service SHALL 해당 사진을 failed로 집계하고 오류 상세에 파일명과 원인 유형(메타데이터 없음, 파싱 실패, 누락된 필드 이름 중 하나)을 기록한다
 4. IF 촬영 시각이 날짜·시각으로 파싱되지 않거나(UserComment JSON의 date가 YYYY-MM-DD, time이 HH:MM:SS 형식이 아님, 표준 EXIF의 DateTimeOriginal이 `YYYY:MM:DD HH:MM:SS` 형식이 아님, Sidecar_Metadata의 captured_at이 ISO 8601이 아님) 타임존 오프셋을 정할 수 없으면, THEN THE Ingestion_Service SHALL 해당 사진을 failed로 집계하고 오류 상세에 촬영 시각 형식 오류를 기록한다
@@ -122,16 +122,19 @@ Phase 1 구현을 마친 뒤 사용자가 다음을 결정했고, 이 문서에 
 
 #### Acceptance Criteria
 
-1. WHEN Ingestion_Service가 신규 이미지(기존 Outfit과 SHA-256 해시가 일치하지 않는 이미지)를 수집하면, THE Vision_Provider SHALL 한 번의 스캔에서 이미지 1장당 정확히 1회 분석을 수행하고, 다음 6개 필드를 모두 가진 의류 태그 JSON을 반환한다: upper_type(문자열, 1~50자), outer_type(문자열, 1~50자, 겉옷이 없으면 `none`), lower_type(문자열, 1~50자), colors(문자열 0~5개 목록, 각 1~30자), layers_visible(0 이상 5 이하 정수), confidence(0.0 이상 1.0 이하 실수)
+1. WHEN Ingestion_Service가 신규 이미지(기존 Outfit과 SHA-256 해시가 일치하지 않는 이미지)를 수집하면, THE Vision_Provider SHALL 이미지 1장당 정확히 1회 분석하고 `photo_type`(`outfit`, `non_outfit`, `uncertain`), `photo_type_confidence`(0.0~1.0), 판정 근거 `reason`(1~200자), `tags`를 가진 VisionAnalysis JSON을 반환한다. `tags`는 upper_type(UpperType enum), outer_type(OuterType enum, 겉옷이 없으면 `none`), lower_type(LowerType enum), colors(문자열 최대 5개), layers_visible(0~5), confidence(0.0~1.0)를 포함한다. 세 의류 타입은 snake_case canonical 식별자만 허용하며 최소한 `long_puffer`, `short_puffer`, `t_shirt`, `shorts`, `none`, `unknown`을 포함한다
 2. WHERE VISION_PROVIDER가 `gemini`로 설정되면, THE WeatherWear_System SHALL Gemini_Vision_Provider를 사용하고, Gemini 공식 Python SDK(google-genai)로 Agent_Platform_Express_Mode 클라이언트(`genai.Client(enterprise=True, api_key=GEMINI_API_KEY 값)`, 프로젝트 ID와 위치 없음)를 만들어 Config_Loader가 읽은 GEMINI_MODEL 환경 변수의 모델 ID로 호출하며, Google AI Studio(Gemini Developer API) 엔드포인트로는 요청하지 않는다
-3. WHERE VISION_PROVIDER가 `fixture`로 설정되면, THE WeatherWear_System SHALL Fixture_Vision_Provider를 사용하고, 외부 네트워크 호출을 0회 수행하며, 같은 이미지(같은 SHA-256 해시)에 대해 매번 같은 의류 태그 JSON을 반환한다
-4. WHEN Gemini_Vision_Provider가 응답을 받으면, THE Gemini_Vision_Provider SHALL 응답을 Pydantic 스키마로 검증하고, 6개 필수 필드가 모두 있으면서 기준 1의 타입과 범위를 모두 만족하는 구조화 JSON만 반환한다
+3. WHERE VISION_PROVIDER가 `fixture`로 설정되면, THE WeatherWear_System SHALL Fixture_Vision_Provider를 사용하고, 외부 네트워크 호출을 0회 수행하며, 같은 이미지(같은 SHA-256 해시)에 대해 매번 같은 VisionAnalysis JSON을 반환한다. fixture에 없는 해시는 `uncertain`과 빈 의류 태그를 반환한다
+4. WHEN Gemini_Vision_Provider가 응답을 받으면, THE Gemini_Vision_Provider SHALL 응답을 VisionAnalysis Pydantic 스키마로 검증하고 기준 1의 모든 필드·타입·범위를 만족하는 구조화 JSON만 반환한다
 5. IF Gemini_Vision_Provider의 응답이 스키마 검증에 실패하거나, API 호출이 오류를 반환하거나, API 호출이 30초 안에 응답하지 않으면, THEN THE Ingestion_Service SHALL 오류를 로그에 기록하고, 해당 사진을 failed로 집계하고, 실패 원인(스키마 검증 실패, API 오류, 시간 초과 중 하나)을 오류 상세에 기록하고, 해당 사진의 Outfit과 Weather_Snapshot을 저장하지 않고, 같은 스캔 안에서 해당 사진의 분석을 재시도하지 않은 채 나머지 파일의 처리를 계속한다
 6. IF upper_type, outer_type, lower_type 중 어떤 의류 속성을 사진에서 확인할 수 없으면, THEN THE Vision_Provider SHALL 해당 필드에 문자열 `unknown`을 반환한다. 사진으로 판단할 수 없는 속성(속옷, 원단 두께, 보온성 등)은 추측값이 아닌 `unknown`으로 표현한다
 7. WHEN Gemini_Vision_Provider가 외부 API를 호출하면, THE Gemini_Vision_Provider SHALL EXIF(GPS 포함)와 그 밖의 메타데이터 블록을 제거한 이미지 바이트와 분석 프롬프트만 전송하고, Embedded_Metadata와 Sidecar_Metadata의 촬영 시각, latitude, longitude, UserComment JSON 내용, 파일 이름은 요청에 포함하지 않는다
 8. WHEN Outfit_Repository가 Vision 분석 결과를 저장하면, THE Outfit_Repository SHALL 결과를 생성한 Vision_Provider 구현체에 따라 vision_provider 필드에 `gemini` 또는 `fixture`를 저장한다
-9. FOR ALL 기준 1을 만족하는 유효한 의류 태그 객체에 대해, 객체를 JSON으로 직렬화한 뒤 다시 파싱한 결과 SHALL 6개 필드 각각에서 원래 객체와 값이 같고 colors 목록의 순서도 같다 (round-trip 속성)
-10. IF Agent_Platform_Express_Mode가 GEMINI_MODEL의 모델 ID를 지원하지 않아 오류를 반환하면, THEN THE Ingestion_Service SHALL 기준 5와 같이 해당 사진을 API 오류로 failed 집계하고, 오류 상세와 로그에 모델 ID와 HTTP 상태 코드만 기록하며 GEMINI_API_KEY 값은 기록하지 않는다
+9. FOR ALL 기준 1을 만족하는 유효한 VisionAnalysis 객체에 대해, 객체를 JSON으로 직렬화한 뒤 다시 파싱한 결과 SHALL 모든 필드에서 원래 객체와 값이 같고 colors 목록의 순서도 같다 (round-trip 속성)
+10. WHEN VisionAnalysis의 photo_type이 `non_outfit`이면, THE Ingestion_Service SHALL 해당 사진을 skipped_non_outfit으로 집계하고 Sidecar_Metadata 또는 Weather_Provider를 사용하지 않으며 Outfit을 저장하지 않는다
+11. WHEN VisionAnalysis의 photo_type이 `uncertain`이거나 `outfit`/`non_outfit` 판정의 photo_type_confidence가 0.70 미만이면, THE Ingestion_Service SHALL 해당 사진을 uncertain으로 집계하고 Sidecar_Metadata 또는 Weather_Provider를 사용하지 않으며 Outfit을 저장하지 않는다
+12. WHEN VisionAnalysis의 photo_type이 `non_outfit`이면, THE Vision_Provider SHALL tags를 UNKNOWN_TAGS와 같은 값으로 반환한다
+13. IF Agent_Platform_Express_Mode가 GEMINI_MODEL의 모델 ID를 지원하지 않아 오류를 반환하면, THEN THE Ingestion_Service SHALL 기준 5와 같이 해당 사진을 API 오류로 failed 집계하고, 오류 상세와 로그에 모델 ID와 HTTP 상태 코드만 기록하며 GEMINI_API_KEY 값은 기록하지 않는다
 
 ### Requirement 4: 촬영 시점 날씨 연결
 
@@ -185,7 +188,7 @@ Phase 1 구현을 마친 뒤 사용자가 다음을 결정했고, 이 문서에 
 7. THE Rule_Based_V1 SHALL 과거 기온과 오늘 기온의 차이를 소수점 첫째 자리로 반올림한 뒤 허용 오차와 비교하고, 반올림한 차이가 적용 중인 허용 오차(Temperature_Tolerance 또는 Fallback_Tolerance)와 정확히 같은 Outfit을 후보에 포함한다 (경계값 포함)
 8. IF 오늘 WeatherContext에 actual_temperature_c가 없으면, THEN THE API_Server SHALL 추천을 계산하지 않고, 오류 상태 코드와 오늘 기온 정보 누락을 나타내는 오류 메시지를 반환하며, 저장된 Outfit, Weather_Snapshot, feedback 데이터를 변경하지 않는다
 9. IF Weather_Snapshot이 없거나 Weather_Snapshot의 actual_temperature_c 값이 없는 Outfit이 있으면, THEN THE Rule_Based_V1 SHALL 해당 Outfit을 Temperature_Tolerance 검색과 Fallback_Tolerance 검색 모두에서 후보에서 제외하고, 나머지 Outfit으로 추천을 계속 계산한다
-10. IF 후보 Outfit이 Non_Outfit_Photo(upper_type, outer_type, lower_type이 모두 `unknown`이고 confidence가 0.0)이면, THEN THE Rule_Based_V1 SHALL 해당 Outfit을 Temperature_Tolerance 검색과 Fallback_Tolerance 검색 모두에서 후보에서 제외하고(후보 0건 판정과 fallback 판정에도 포함하지 않음), 착장 기록 화면과 GET /api/outfits 응답에서는 해당 Outfit을 제외하지 않는다
+10. IF 후보 Outfit의 의류 태그가 Non_Outfit_Photo와 같은 값(upper_type, outer_type, lower_type이 모두 `unknown`이고 confidence가 0.0)이면, THEN THE Rule_Based_V1 SHALL 해당 Outfit을 Temperature_Tolerance 검색과 Fallback_Tolerance 검색 모두에서 후보에서 제외한다(후보 0건 판정과 fallback 판정에도 포함하지 않음). Non_Outfit_Photo는 Requirement 3.10에 따라 저장되지 않으므로 이 기준은 그렇게 저장된 기록에 대한 안전장치다
 
 ### Requirement 7: 피드백 가중 랭킹
 
@@ -309,7 +312,7 @@ Phase 1 구현을 마친 뒤 사용자가 다음을 결정했고, 이 문서에 
 1. WHILE 애플리케이션이 개발 모드로 실행되는 동안, THE Mobile_Web_Client SHALL 메인 화면과 분리된 별도 경로로 Demo_Admin_Panel을 제공하고, 메인 화면에 1회 탭으로 해당 경로로 이동하는 진입 링크를 표시한다
 2. WHILE 애플리케이션이 개발 모드가 아닌 모드로 실행되는 동안, THE Mobile_Web_Client SHALL Demo_Admin_Panel 진입 링크를 표시하지 않고, Demo_Admin_Panel 경로에 직접 접근하면 폴더 스캔·Weather_Scenario 선택·추천 재계산 컨트롤 대신 사용할 수 없다는 안내를 표시한다
 3. THE Demo_Admin_Panel SHALL 폴더 스캔 실행 버튼, `data/demo/scenarios.json`에 정의된 모든 Weather_Scenario를 담은 선택 목록(현재 선택된 Weather_Scenario 표시 포함), Weather_Scenario 목록 새로고침 버튼, 추천 재계산 버튼을 하나의 화면에 제공한다
-4. WHEN 폴더 스캔이 완료되면, THE Demo_Admin_Panel SHALL API_Server 응답의 scanned, succeeded, duplicate, failed 건수를 표시하고, 실패한 파일마다 파일명과 오류 사유를 표시하며, failed 건수가 0이면 오류 상세 대신 실패 항목이 없다는 표시를 한다
+4. WHEN 폴더 스캔이 완료되면, THE Demo_Admin_Panel SHALL API_Server 응답의 scanned, succeeded, duplicate, skipped_non_outfit, uncertain, failed 건수를 표시하고, 저장하지 않은 사진의 파일명·판정·신뢰도·근거와 실패한 파일의 파일명·오류 사유를 표시하며, failed가 0이면 실패 항목이 없다는 표시를 한다
 5. WHILE 폴더 스캔, Weather_Scenario 선택 또는 추천 재계산 요청이 처리 중인 동안, THE Demo_Admin_Panel SHALL 해당 동작의 버튼을 비활성화하고 진행 중 표시를 보여 같은 동작의 중복 요청을 막는다
 6. IF 폴더 스캔, Weather_Scenario 목록 조회, Weather_Scenario 선택 또는 추천 재계산 요청이 오류 응답을 받거나 30초 안에 응답을 받지 못하면, THEN THE Demo_Admin_Panel SHALL 어느 동작이 실패했는지 알리는 오류 메시지를 표시하고, 이전에 표시한 스캔 결과와 선택된 Weather_Scenario를 그대로 유지하며, 해당 버튼을 다시 활성화한다
 7. WHEN Weather_Scenario 선택 또는 추천 재계산이 성공적으로 완료되면, THE Demo_Admin_Panel SHALL 현재 적용된 Weather_Scenario의 이름과 actual_temperature_c 값, 그리고 동작이 완료되었다는 표시를 보여준다
@@ -327,12 +330,12 @@ Phase 1 구현을 마친 뒤 사용자가 다음을 결정했고, 이 문서에 
 5. THE WeatherWear_System SHALL Fixture_Vision_Provider 결과를 vision_provider=`fixture`로, Gemini_Vision_Provider 결과를 vision_provider=`gemini`로 저장하여 두 결과가 API 응답에서 구분되도록 한다
 6. IF 기동 시 VISION_PROVIDER가 `gemini`이고 GEMINI_API_KEY 또는 GEMINI_MODEL이 설정되지 않았거나 빈 문자열이면, THEN THE Config_Loader SHALL 누락된 변수 이름(값은 제외)을 나타내는 설정 오류 메시지를 로그에 기록하고, 기동을 중단하지 않고 Fixture_Vision_Provider로 Vision_Provider를 설정한다
 7. IF 사용 권한이 기록된 데모 사진이 0장이면, THEN THE WeatherWear_System SHALL 6장 이상 10장 이하의 플레이스홀더 이미지(각 이미지에 UserComment JSON Embedded_Metadata를 기록하고 synthetic을 true로 둠)와 각 이미지에 대응하는 시드 fixture(의류 태그와 Recorded_Weather_Fixture 형식의 날씨 항목)를 데모 데이터로 사용한다
-8. IF Fixture_Vision_Provider에 스캔된 사진의 SHA-256 해시에 해당하는 사전 정의 결과가 없으면, THEN THE Fixture_Vision_Provider SHALL upper_type, outer_type, lower_type을 모두 `unknown`, colors를 빈 목록, layers_visible을 0, confidence를 0.0으로 하는 기본 결과를 반환하고, THE Outfit_Repository SHALL 그 결과를 vision_provider=`fixture`로 저장하여 스캔이 실패하지 않도록 한다
+8. IF Fixture_Vision_Provider에 스캔된 사진의 SHA-256 해시에 해당하는 사전 정의 결과가 없으면, THEN THE Fixture_Vision_Provider SHALL photo_type `uncertain`, photo_type_confidence 0.0과 UNKNOWN_TAGS(upper_type, outer_type, lower_type을 모두 `unknown`, colors를 빈 목록, layers_visible을 0, confidence를 0.0)를 가진 기본 결과를 반환하고, THE Ingestion_Service SHALL 그 사진을 Requirement 3.11에 따라 uncertain으로 집계하여 스캔이 실패하지 않도록 한다
 9. THE WeatherWear_System SHALL `data/demo/scenarios.json`에 Weather_Scenario 4개(`chilly-morning`, `cold-snap`, `early-heat`, `heatwave`)를 제공하고, 각 Weather_Scenario의 actual_temperature_c를 Recorded_Weather_Fixture에서 Non_Outfit_Photo를 뺀 착장 사진의 기온으로부터 다음 Scenario_Rules를 만족하도록 고른다(기온 차이는 Requirement 6.7과 같이 소수 첫째 자리 반올림, 기본 Temperature_Tolerance 3.0°C 기준): S1 `chilly-morning`은 기온 차이 3.0°C 이내 착장 사진이 5장 이상, S2 `cold-snap`은 기온 차이가 정확히 3.0°C인 착장 사진이 1장이고 3.0°C 이내의 다른 착장 사진이 0장, S3 `early-heat`은 3.0°C 이내 착장 사진이 0장이고 5.0°C 이내 착장 사진이 1장 이상, S4 `heatwave`는 5.0°C 이내 착장 사진이 0장
 10. WHEN Recorded_Weather_Fixture나 Fixture_Vision_Provider 데이터가 바뀌면, THE Scenario_Checker SHALL 4개 Weather_Scenario가 기준 9의 Scenario_Rules를 모두 만족하는지 검사하고, 하나라도 만족하지 않으면 위반한 규칙 이름과 Weather_Scenario 식별자를 출력하며 실패(0이 아닌 종료 코드 또는 pytest 실패)로 끝난다
 11. THE WeatherWear_System SHALL 데모 사진의 사전 체감 피드백을 설계 문서의 시드 투표 규칙에 따라 결정적으로 정하고, Non_Outfit_Photo에는 사전 체감 피드백을 두지 않으며, S1 `chilly-morning`의 3.0°C 이내 후보 중 1장 이상은 `comfortable`, 1장 이상은 `cold` 또는 `hot` 사전 체감 피드백을 갖게 한다
-12. THE WeatherWear_System SHALL `ex_img/clothing_tags.json`(schema "WeatherWear ClothingTags", 174개 항목)의 태그를 파일 이름으로 `data/demo/photos`의 사진과 연결하고, 각 사진 파일 바이트 전체의 SHA-256 해시를 키로 `data/demo/fixtures/vision.json`에 기록하여 Fixture_Vision_Provider 데이터로 사용하며, 태그가 Requirement 3.1의 제약을 만족하지 않거나 사진과 연결되지 않는 항목이 있으면 가져오기를 실패로 끝낸다
-13. THE WeatherWear_System SHALL Non_Outfit_Photo(현재 JPG 20장)를 데모 사진과 착장 기록에 포함하되, Requirement 6.10에 따라 추천 후보에서 제외한다
+12. THE WeatherWear_System SHALL `ex_img/clothing_tags.json`(schema "WeatherWear ClothingTags", 174개 항목)의 태그를 파일 이름으로 `data/demo/photos`의 사진과 연결하고, 각 사진 파일 바이트 전체의 SHA-256 해시를 키로 `data/demo/fixtures/vision.json`에 없는 사진의 VisionAnalysis를 보충하여 Fixture_Vision_Provider 데이터로 사용하며, 태그가 Requirement 3.1의 제약을 만족하지 않거나 사진과 연결되지 않는 항목이 있거나 이미 있는 항목을 바꾸게 되면 가져오기를 실패로 끝낸다
+13. THE WeatherWear_System SHALL Non_Outfit_Photo(현재 JPG 20장)를 데모 사진에 포함하고, 스캔은 Requirement 3.10에 따라 이 사진들을 skipped_non_outfit으로 집계하며 착장 기록과 추천 후보에 넣지 않는다
 
 ### Requirement 16: 환경 변수와 비밀값 관리
 
@@ -359,7 +362,7 @@ Phase 1 구현을 마친 뒤 사용자가 다음을 결정했고, 이 문서에 
 
 1. THE WeatherWear_System SHALL 저장소 최상위에 README를 제공하고, README에 다음 항목을 각각 별도 절로 기재한다: API_Server 로컬 실행 명령, Mobile_Web_Client 로컬 실행 명령, Config_Loader가 읽는 모든 환경 변수의 이름과 기본값(PHOTO_DIR, TEMPERATURE_TOLERANCE_C, VISION_PROVIDER, WEATHER_PROVIDER 포함), API 키 설정 방법(GEMINI_API_KEY에 Agent_Platform_Express_Mode API 키를 넣고, Google AI Studio 키는 동작하지 않는다는 안내 포함), VISION_PROVIDER와 WEATHER_PROVIDER 값 변경을 통한 Fixture_Mode와 Live_Mode 전환 방법
 2. THE WeatherWear_System SHALL README에 5분 데모 절차를 번호가 매겨진 단계 목록으로 기재하고, 각 단계에 수행할 동작과 화면에서 확인할 결과를 명시하며, 이 절차는 API 키 없이 Fixture_Mode에서 처음부터 끝까지 수행 가능해야 한다
-3. THE WeatherWear_System SHALL README에 다음 사실을 명시한다: 촬영 시각과 위치는 각 사진에 내장된 합성(synthetic) EXIF 메타데이터(UserComment JSON, JPG는 표준 EXIF도)에서 읽고 Sidecar_Metadata는 대체 수단과 사전 체감 피드백에만 쓴다는 점, 데모 사진의 위치와 시각은 실제 촬영 기록이 아닌 가상 값이라는 점, Fixture_Mode의 날씨는 Weather_Recording_Script가 Open-Meteo Archive API에서 기록한 재분석값이며 기록 날짜가 `weather.json`에 있다는 점, Fixture_Mode에서는 `ex_img/clothing_tags.json`에서 가져온 Fixture_Vision_Provider의 mock Vision 결과를 사용한다는 점, Gemini 호출 전에 EXIF와 위치 정보를 이미지에서 제거한다는 점, Non_Outfit_Photo는 기록 화면에는 보이지만 추천에서는 제외된다는 점
+3. THE WeatherWear_System SHALL README에 다음 사실을 명시한다: 촬영 시각과 위치는 각 사진에 내장된 합성(synthetic) EXIF 메타데이터(UserComment JSON, JPG는 표준 EXIF도)에서 읽고 Sidecar_Metadata는 대체 수단과 사전 체감 피드백에만 쓴다는 점, 데모 사진의 위치와 시각은 실제 촬영 기록이 아닌 가상 값이라는 점, Fixture_Mode의 날씨는 Weather_Recording_Script가 Open-Meteo Archive API에서 기록한 재분석값이며 기록 날짜가 `weather.json`에 있다는 점, Fixture_Mode에서는 `ex_img/clothing_tags.json`에서 가져온 Fixture_Vision_Provider의 mock Vision 결과를 사용한다는 점, Gemini 호출 전에 EXIF와 위치 정보를 이미지에서 제거한다는 점, Non_Outfit_Photo는 스캔에서 비착장으로 집계되어 기록 화면과 추천에 나오지 않는다는 점
 4. THE WeatherWear_System SHALL 다음 영역마다 1개 이상의 pytest 자동화 테스트를 제공한다: (a) 수집 및 중복 제거(동일 SHA-256 해시 사진을 다시 스캔해도 Outfit이 추가로 생성되지 않음), (b) 날씨 정규화, (c) 허용 오차 경계값(기온 차이가 정확히 Temperature_Tolerance 3.0°C인 후보는 포함되고 3.0°C를 넘는 후보는 제외되며, 기본 허용 오차 내 후보가 0건이면 Fallback_Tolerance 5.0°C로 같은 경계 규칙을 적용함), (d) 데이터 부족 처리, (e) 피드백 갱신(가장 최근 Thermal_Vote가 Effective_Vote가 됨), (f) API 상태 코드(정상 요청 1건 이상과 유효하지 않은 입력 요청 1건 이상), (g) 내장 메타데이터 읽기(UserComment JSON, 표준 EXIF, Sidecar_Metadata 대체 순서와 메타데이터 누락·형식 오류 처리)
 5. WHEN 개발자가 API 키 환경 변수를 설정하지 않은 상태에서 README에 기재된 테스트 명령을 실행하면, THE WeatherWear_System SHALL Gemini와 Open-Meteo 외부 API를 0회 호출하면서 모든 pytest 자동화 테스트를 실행하고, 전체 테스트 통과 시 종료 코드 0으로 종료한다
 6. THE WeatherWear_System SHALL README에 pytest 테스트 실행 명령 1개와 전체 통과로 판정하는 기준(실패 0건, 종료 코드 0)을 기재한다

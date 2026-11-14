@@ -28,6 +28,7 @@ from app.recommendation.service import RecommendationService
 from app.repository import OutfitCreate, OutfitRepository
 from app.schemas import RecommendationResponse
 from app.today_weather import DEFAULT_SCENARIOS_PATH, ScenarioStore, TodayWeatherService, WeatherScenario, load_scenarios
+from tests.test_demo_data import first_scan_counts
 
 KST = timezone(timedelta(hours=9))
 SEOUL = ZoneInfo("Asia/Seoul")
@@ -209,11 +210,15 @@ def test_outfit_with_no_displayable_tags_still_listed(tmp_path: Path) -> None:
     assert item.outfit.effective_vote is None
 
 
-def test_non_outfit_photo_still_listed_in_outfits(tmp_path: Path) -> None:
+def test_stored_row_without_garment_evidence_is_never_recommended(tmp_path: Path) -> None:
+    # A scan never stores a non-outfit photo (the ingestion gate reports it as
+    # non_outfit or uncertain; see test_ingestion_service). This row is inserted
+    # through the repository without the gate, so it is listed, and the
+    # recommendation safety net (Req 6.10) still keeps it out of the results.
     env = _Env(tmp_path)
-    non_outfit = env.add(9.0, tags=UNKNOWN_TAGS)
+    no_garments = env.add(9.0, tags=UNKNOWN_TAGS)
     assert env.run().items == []
-    assert [r.id for r in env.repo.list_outfits()] == [non_outfit]
+    assert [r.id for r in env.repo.list_outfits()] == [no_garments]
 
 
 # --- Real demo data (fixture mode) -------------------------------------------
@@ -232,7 +237,9 @@ def demo_env(tmp_path_factory: pytest.TempPathFactory) -> tuple[RecommendationSe
     report = ImageIngestionService(DEMO_PHOTO_DIR, FixtureVisionProvider.from_file(), weather, repo, SEOUL).scan()
     assert report.failed == 0, report.errors
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    assert report.succeeded == report.scanned == sum(1 for p in manifest["photos"] if p["rights_confirmed"] is True)
+    assert report.scanned == sum(1 for p in manifest["photos"] if p["rights_confirmed"] is True)
+    counts = first_scan_counts()  # from the vision.json photo types (ingestion gate)
+    assert {key: getattr(report, key) for key in counts} == counts
 
     scenarios, errors = load_scenarios(DEFAULT_SCENARIOS_PATH)
     assert errors == []

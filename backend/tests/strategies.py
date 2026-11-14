@@ -30,6 +30,9 @@ from typing import Any
 from hypothesis import strategies as st
 
 from app.domain import (
+    LOWER_TYPES,
+    OUTER_TYPES,
+    UPPER_TYPES,
     ClothingTags,
     OutfitWithWeatherAndFeedback,
     SidecarMetadata,
@@ -137,16 +140,8 @@ def aware_datetimes(
 
 # ---------------------------------------------------------------- clothing tags
 
-_TAG_WORDS = (
-    "none", "unknown", "coat", "padded_jacket", "trench", "cardigan", "blazer",
-    "knit", "t_shirt", "shirt", "blouse", "hoodie", "slacks", "jeans", "skirt",
-)
 _COLOR_WORDS = ("black", "white", "navy", "cream", "beige", "grey", "sage", "rust")
 _TEXT = st.characters(codec="utf-8")
-
-
-def _tag_type() -> st.SearchStrategy[str]:
-    return st.one_of(st.sampled_from(_TAG_WORDS), st.text(_TEXT, min_size=1, max_size=50))
 
 
 def _color() -> st.SearchStrategy[str]:
@@ -154,12 +149,12 @@ def _color() -> st.SearchStrategy[str]:
 
 
 def clothing_tags() -> st.SearchStrategy[ClothingTags]:
-    """Valid ClothingTags (Req 3.1), including all-``none``/``unknown`` combinations."""
+    """Valid ClothingTags drawn only from the canonical garment taxonomy."""
     return st.builds(
         ClothingTags,
-        upper_type=_tag_type(),
-        outer_type=_tag_type(),
-        lower_type=_tag_type(),
+        upper_type=st.sampled_from(UPPER_TYPES),
+        outer_type=st.sampled_from(OUTER_TYPES),
+        lower_type=st.sampled_from(LOWER_TYPES),
         colors=st.lists(_color(), min_size=0, max_size=5),
         layers_visible=st.integers(0, 5),
         confidence=st.floats(0.0, 1.0, allow_nan=False, allow_infinity=False),

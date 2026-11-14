@@ -175,7 +175,7 @@ sequenceDiagram
     end
   end
   ING-->>API: ScanReport
-  API-->>Admin: scanned/succeeded/duplicate/failed + errors[]
+  API-->>Admin: scanned/succeeded/duplicate/skipped_non_outfit/uncertain/failed + errors/decisions[]
 ```
 
 ### 주요 흐름: 오늘 추천과 피드백
@@ -284,17 +284,40 @@ ThermalVote = Literal["cold", "comfortable", "hot"]
 FeedbackSource = Literal["user_action", "demo_seed"]
 WeatherProviderName = Literal["open_meteo", "fixture"]
 
+UpperType = Literal["unknown", "t_shirt", "long_sleeve_t_shirt", "shirt", "blouse", "knit",
+                    "turtleneck", "sweatshirt", "hoodie", "sleeveless_top", "cardigan",
+                    "fleece", "jersey", "dress", "jumpsuit", "coveralls"]
+OuterType = Literal["unknown", "none", "long_puffer", "short_puffer", "puffer_jacket",
+                    "parka", "coat", "trench_coat", "jacket", "blazer", "cardigan",
+                    "denim_jacket", "leather_jacket", "bomber_jacket", "fleece_jacket",
+                    "rain_jacket", "windbreaker", "track_jacket", "utility_jacket",
+                    "shirt_jacket", "varsity_jacket", "vest", "jersey"]
+LowerType = Literal["unknown", "none", "jeans", "trousers", "slacks", "chinos",
+                    "cargo_pants", "corduroy_pants", "leggings", "shorts", "skirt",
+                    "track_pants", "jogger_pants", "parachute_pants"]
+
 class ClothingTags(BaseModel):            # Req 3.1, 3.6
     model_config = ConfigDict(extra="forbid")
-    upper_type: constr(min_length=1, max_length=50)
-    outer_type: constr(min_length=1, max_length=50)    # 겉옷 없음: "none"
-    lower_type: constr(min_length=1, max_length=50)
+    upper_type: UpperType
+    outer_type: OuterType                  # 겉옷 없음: "none"
+    lower_type: LowerType
     colors: conlist(constr(min_length=1, max_length=30), min_length=0, max_length=5)
     layers_visible: conint(ge=0, le=5)
     confidence: confloat(ge=0.0, le=1.0)
 
 UNKNOWN_TAGS = ClothingTags(upper_type="unknown", outer_type="unknown", lower_type="unknown",
                             colors=[], layers_visible=0, confidence=0.0)   # Req 15.8
+
+PhotoType = Literal["outfit", "non_outfit", "uncertain"]
+
+class VisionAnalysis(BaseModel):
+    photo_type: PhotoType
+    photo_type_confidence: confloat(ge=0.0, le=1.0)
+    reason: constr(min_length=1, max_length=200)
+    tags: ClothingTags
+
+UNKNOWN_ANALYSIS = VisionAnalysis(photo_type="uncertain", photo_type_confidence=0.0,
+                                  reason="No fixture analysis is available.", tags=UNKNOWN_TAGS)
 
 class SidecarMetadata(BaseModel):         # Req 2.6, 2.9, 2.16 (선택적 파일)
     captured_at: AwareDatetime | None = None   # 오프셋 필수. 내장 메타데이터가 없을 때만 필수
@@ -370,8 +393,9 @@ class ScanError(BaseModel):
     message: str            # 한국어 사유
 
 class ScanReport(BaseModel):
-    scanned: int; succeeded: int; duplicate: int; failed: int
+    scanned: int; succeeded: int; duplicate: int; skipped_non_outfit: int; uncertain: int; failed: int
     errors: list[ScanError]
+    decisions: list[ScanDecision]
 
 class ImageIngestionService:
     def __init__(self, photo_dir: Path, vision: VisionProvider, weather: WeatherProvider,
@@ -464,7 +488,7 @@ def build_vision_provider(cfg: AppConfig) -> VisionProvider: ...
 
 **`scripts/check_gemini_model.py`** (Req 3.2, 17.10): `GEMINI_API_KEY`가 비어 있으면 호출하지 않고 안내만 출력한다(종료 코드 0). 키가 있으면 위와 같은 `_build_client`로 express mode 클라이언트를 만들고, `client.models.get(model=GEMINI_MODEL)` 대신 텍스트 1단어 `generate_content` 요청 1건(`max_output_tokens` 작게)을 보내 실제 호출 가능 여부를 확인한다. express mode가 지원 모델 표에 없는 모델을 거부하는지가 확인 대상이기 때문이다. 성공하면 모델 ID와 "Agent Platform express mode 호출 성공"을, 실패하면 오류 종류와 HTTP 상태 코드, 그리고 대체 모델 ID `gemini-3-flash-preview`를 시도하라는 안내를 출력한다(종료 코드 1). 키 값과 응답 본문은 출력하지 않는다. pytest는 이 스크립트를 실행하지 않는다.
 
-**FixtureVisionProvider** (Req 3.3, 15.8, 15.12): 기동 시 `data/demo/fixtures/vision.json`(`{sha256: ClothingTags}`)을 읽는다. 해시가 있으면 그 값을, 없으면 `UNKNOWN_TAGS`를 반환한다. 네트워크 호출이 없다. `vision.json`은 `scripts/import_clothing_tags.py`가 `ex_img/clothing_tags.json`에서 만든다("데모 데이터 파일" 절).
+**FixtureVisionProvider** (Req 3.3, 15.8, 15.12): 기동 시 `data/demo/fixtures/vision.json`(`{sha256: VisionAnalysis}`)을 읽는다. 해시가 있으면 그 값을, 없으면 `UNKNOWN_ANALYSIS`(`photo_type="uncertain"`)를 반환한다. 네트워크 호출이 없다.
 
 ### 5. Weather_Provider (`app/providers/weather/`, 소유자 A)
 
@@ -663,7 +687,7 @@ def build_explanation(today_c: Decimal, past_c: Decimal, diff: Decimal, tags: li
 - 투표 없음 → `체감 피드백 기록 없음.`(Req 8.4)
 - `cold` → `체감: 추웠음 (과거에 추웠음, −15.0점).`, `hot` → `체감: 더웠음 (과거에 더웠음, −15.0점).`(Req 7.4)
 - fallback → 끝에 `기온 허용 범위를 5.0°C로 확장하여 선택되었습니다.` 추가(Req 8.3)
-- 300자를 넘으면 태그 문자열을 각 20자로 자른 뒤 다시 만든다. 태그 3개 × 50자 + 고정 문구로도 300자를 넘지 않도록 상한을 테스트로 확인한다(Req 8.1).
+- 300자를 넘으면 태그 문자열을 각 20자로 자른 뒤 다시 만든다. canonical enum의 가장 긴 식별자를 포함해도 300자를 넘지 않는지 테스트로 확인한다(Req 8.1).
 
 ### 11. REST API (`app/api/`, 리드 소유)
 
@@ -924,8 +948,8 @@ Phase 1 구현 후 결정(요구사항 서론 참고)에 따라 이전 계획의
 
 1. `ex_img/clothing_tags.json`을 읽고 `schema == "WeatherWear ClothingTags"`, `images` 항목 수가 `image_count`와 같은지 확인한다.
 2. `images`의 각 파일 이름을 `data/demo/photos/<file>`과 연결하고 각 `tags`를 `ClothingTags.model_validate`로 검증한다. 사진이 없거나 검증에 실패한 항목, 또는 태그가 없는 사진이 있으면 목록을 출력하고 종료 코드 1로 끝난다(파일을 쓰지 않음).
-3. 키는 `data/demo/photos/<file>` 바이트 전체의 SHA-256이다. `clothing_tags.json`의 `sha256`은 메타데이터를 넣기 전 바이트의 해시라서(리서치 요약) 키로 쓰지 않는다. 결과 형식은 기존과 같은 `{ "<sha256>": ClothingTags }`이고, 같은 폴더의 `vision.sources.json`에 `{ "<sha256>": { "file": ..., "source_sha256": ... } }`를 남겨 추적할 수 있게 한다.
-4. 이전 에이전트 작성 태그(159개 키)와 작업 중 생긴 `data/demo/fixtures/ex_img_vision.json`(이전 해시 키)은 더 쓰지 않는다. `scripts/build_fixtures.py`의 태그 작성 부분은 이 스크립트로 대체한다.
+3. 키는 `data/demo/photos/<file>` 바이트 전체의 SHA-256이다. `clothing_tags.json`의 `sha256`은 메타데이터를 넣기 전 바이트의 해시라서(리서치 요약) 키로 쓰지 않는다. 결과 형식은 `{ "<sha256>": VisionAnalysis }`이고, 같은 폴더의 `vision.sources.json`에 `{ "<sha256>": { "file": ..., "source_sha256": ... } }`를 남겨 추적할 수 있게 한다.
+4. 보충 방식이다. `vision.json`에 이미 있는 항목은 바꾸지 않고, 해시가 없는 사진만 추가한다. 원본의 자유 표기 의류 이름은 `normalize_*_type`으로 표준 분류 값으로 바꾸고(분류에 없는 이름은 실패), 태그가 `UNKNOWN_TAGS`면 `non_outfit`, 아니면 `outfit`으로 `build_fixtures.py`와 같은 관례(photo_type_confidence 1.0, 고정 reason)로 적는다. 원본이 기존 항목과 다른 값을 내면 아무것도 쓰지 않고 실패한다. 작업 중 생긴 `data/demo/fixtures/ex_img_vision.json`(이전 해시 키)은 더 쓰지 않는다. `scripts/build_fixtures.py`는 Phase 1 변경 전 데이터용이라 `weather.json`에 `recorded` 블록이 있으면 실행을 거부한다.
 
 `clothing_tags.json`에서 세 타입이 모두 `unknown`이고 confidence가 0.0인 사진은 음식·풍경 JPG 20장이다(Non_Outfit_Photo, Req 15.13).
 
@@ -944,7 +968,7 @@ Phase 1 구현 후 결정(요구사항 서론 참고)에 따라 이전 계획의
 
 **시나리오 규칙과 선택 알고리즘** (`scripts/select_scenarios.py`, 순수 함수는 `backend/app/demo_scenarios.py`, Req 15.9, 15.10):
 
-입력은 `weather.json` 항목 중 `vision.json` 태그가 Non_Outfit_Photo가 아닌 착장 사진의 기온 목록 `T`다. `d(x, t) = round_half_up(|x − t|, 1)`(Req 6.7과 같은 Decimal 계산), `N(t, r) = #{x ∈ T : d(x, t) ≤ r}`. 기본 `TEMPERATURE_TOLERANCE_C=3.0` 기준이다.
+입력은 `weather.json` 항목 중 `vision.json` 판정이 수집 게이트(`apply_confidence_gate`)를 거쳐 `outfit`인 사진, 곧 스캔이 Outfit으로 저장하는 사진의 기온 목록 `T`다. `d(x, t) = round_half_up(|x − t|, 1)`(Req 6.7과 같은 Decimal 계산), `N(t, r) = #{x ∈ T : d(x, t) ≤ r}`. 기본 `TEMPERATURE_TOLERANCE_C=3.0` 기준이다.
 
 | 규칙 | 조건 | 보장하는 결과 |
 |---|---|---|
@@ -987,7 +1011,7 @@ V2 때문에 S1에서 기온이 가장 가까운 사진이 감점(−15)을 받�
 
 **Fixture 파일**:
 
-- `data/demo/fixtures/vision.json`: `{ "<sha256>": ClothingTags }`, 174개 키. `import_clothing_tags.py`가 만든다.
+- `data/demo/fixtures/vision.json`: `{ "<sha256>": VisionAnalysis }`, 174개 키(현재 사진 바이트의 SHA-256, 모두 서로 다름). 159개는 `scripts/build_fixtures.py`가 사람이 각 사진을 보고 적은 태그 표에서 만들었고, 나머지 15장(`126_…`~`140_…`)은 `scripts/import_clothing_tags.py`가 `clothing_tags.json`에서 보충했다. 두 출처의 태그는 표준 분류로 바꾸면 174장 모두 같다. 착장 사진 154장은 `photo_type="outfit"`, 비착장 JPG 20장은 `photo_type="non_outfit"`과 `UNKNOWN_TAGS`로 기록한다. fixture에 없는 사진은 `uncertain`이다.
 - `data/demo/fixtures/weather.json`: `{ "recorded": {...}, "entries": [...174건...], "today_default": {...} }`. `record_fixture_weather.py`가 만들고 `select_scenarios.py`가 `today_default`를 채운다(Weather_Provider 절의 형식).
 - `data/demo/scenario_expectations.json`: `select_scenarios.py`가 만든다.
 
@@ -996,7 +1020,7 @@ V2 때문에 S1에서 기온이 가장 가까운 사진이 감점(−15)을 받�
 모든 스크립트는 저장소 루트에서 `backend/.venv/bin/python scripts/<이름>.py`로 실행한다. 네트워크를 쓰는 것은 3번뿐이다.
 
 1. `prepare_demo_photos.py`: manifest의 `rights_confirmed: true` 항목(174장)을 `ex_img/`에서 `data/demo/photos/`로 `shutil.copyfile`로 복사한다. 바이트를 그대로 복사해야 내장 메타데이터와 해시가 유지된다(Pillow로 다시 저장하지 않는다). 이전 복사본(메타데이터를 넣기 전 159장)은 덮어쓴다. 사이드카 템플릿은 더 만들지 않는다. 복사 후 각 사진이 `read_embedded_metadata`로 읽히는지 확인하고, 읽히지 않으면 파일 이름을 출력하고 종료 코드 1. 복사본은 약 325MB다.
-2. `import_clothing_tags.py`: `vision.json` 생성.
+2. `import_clothing_tags.py`: `vision.json`에 빠진 사진 보충.
 3. `record_fixture_weather.py`: Open-Meteo Archive에서 174장의 날씨를 기록한다(네트워크 필요, 1회).
 4. `select_scenarios.py`: 시나리오 기온 선택 → 시드 투표 사이드카 작성 → `today_default` 채우기 → 기대 결과 기록 → `check_scenarios`. 위반이 있으면 종료 코드 1. `--check` 옵션은 파일을 쓰지 않고 검사만 한다.
 5. pytest의 데모 데이터 테스트(`test_demo_data_layout`, `test_demo_scenarios_satisfy_rules`)와 통합 테스트를 돌린다.
@@ -1013,7 +1037,7 @@ V2 때문에 S1에서 기온이 가장 가까운 사진이 감점(−15)을 받�
 
 ### Property 1: 스캔 집계가 참조 모델과 일치한다
 
-*For any* 임의로 생성한 PHOTO_DIR(대소문자가 섞인 지원/비지원 확장자 파일, 하위 폴더, 사이드카, 내용이 같은 파일, 디코딩되지 않는 바이트, 내장 메타데이터가 있거나 없거나 잘못된 이미지, 잘못된 사이드카, 무작위로 실패하도록 주입된 Vision 호출을 포함)에 대해, 스캔 보고서의 scanned·succeeded·duplicate·failed 건수와 실패 파일별 단계·코드가 참조 모델의 결과와 같고, `scanned = succeeded + duplicate + failed`이며, DB의 Outfit/Weather_Snapshot은 succeeded 파일에 대해서만 존재하고, Vision·Weather Provider는 검증을 통과한 신규 파일에 대해서만 파일당 정확히 1회 호출된다.
+*For any* 임의로 생성한 PHOTO_DIR(대소문자가 섞인 지원/비지원 확장자 파일, 하위 폴더, 사이드카, 내용이 같은 파일, 디코딩되지 않는 바이트, 내장 메타데이터가 있거나 없거나 잘못된 이미지, 잘못된 사이드카, outfit/non_outfit/uncertain 판정, 무작위 Vision 실패를 포함)에 대해, 스캔 보고서의 모든 건수가 참조 모델과 같고, `scanned = succeeded + duplicate + skipped_non_outfit + uncertain + failed`이며, DB의 Outfit/Weather_Snapshot은 succeeded 파일에 대해서만 존재한다. Vision은 이미지 형식 검증을 통과한 신규 파일에 1회 호출되고, 캡처 메타데이터와 Weather는 확정된 outfit에만 사용된다.
 
 **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.6, 1.8, 2.1, 2.10, 3.1, 3.5, 4.1**
 
@@ -1049,7 +1073,7 @@ V2 때문에 S1에서 기온이 가장 가까운 사진이 감점(−15)을 받�
 
 ### Property 7: Fixture Vision은 해시별로 결정적이고 미등록 해시에는 unknown 기본값을 준다
 
-*For any* 이미지 바이트와 fixture 맵에 대해, FixtureVisionProvider를 두 번 호출하면 같은 결과가 나오고, 해시가 맵에 있으면 그 값, 없으면 `UNKNOWN_TAGS`(세 타입 `unknown`, colors 빈 목록, layers 0, confidence 0.0)를 반환하며, 네트워크 호출은 0회다.
+*For any* 이미지 바이트와 fixture 맵에 대해, FixtureVisionProvider를 두 번 호출하면 같은 결과가 나오고, 해시가 맵에 있으면 그 VisionAnalysis, 없으면 `UNKNOWN_ANALYSIS`(`photo_type="uncertain"`, 빈 태그)를 반환하며, 네트워크 호출은 0회다.
 
 **Validates: Requirements 3.3, 15.8**
 

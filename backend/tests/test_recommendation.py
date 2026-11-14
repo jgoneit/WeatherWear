@@ -285,10 +285,10 @@ def test_strategy_module_imports_no_providers_or_repo(module_file: str) -> None:
     assert app_imports <= {"app.domain", "app.recommendation.base", "app.recommendation.explain"}
 
 
-LONG_TAGS = ClothingTags(
-    upper_type="가" * 50,
-    outer_type="나" * 50,
-    lower_type="다" * 50,
+CANONICAL_TAGS = ClothingTags(
+    upper_type="long_sleeve_t_shirt",
+    outer_type="varsity_jacket",
+    lower_type="parachute_pants",
     colors=["c" * 30] * 5,
     layers_visible=5,
     confidence=1.0,
@@ -296,9 +296,8 @@ LONG_TAGS = ClothingTags(
 
 
 @pytest.mark.parametrize("vote", ["cold", "comfortable", "hot", None])
-def test_explanation_max_length_with_50_char_tags(vote: ThermalVote | None) -> None:
-    # Longest realistic case: three 50-char tags, a vote, fallback, negative temps.
-    tags = display_tags(LONG_TAGS)
+def test_explanation_max_length_with_canonical_tags(vote: ThermalVote | None) -> None:
+    tags = display_tags(CANONICAL_TAGS)
     assert len(tags) == 3
     explanation, reasons = build_explanation(
         Decimal("-25.5"),
@@ -315,7 +314,7 @@ def test_explanation_max_length_with_50_char_tags(vote: ThermalVote | None) -> N
     assert reasons
 
     # Same limit through the strategy, for every selected result.
-    outcome = _recommend(-25.5, [_outfit(i, -20.5, vote, LONG_TAGS) for i in range(1, 7)])
+    outcome = _recommend(-25.5, [_outfit(i, -20.5, vote, CANONICAL_TAGS) for i in range(1, 7)])
     assert len(outcome.results) == 5
     for r in outcome.results:
         assert 1 <= len(r.explanation) <= MAX_EXPLANATION_LENGTH

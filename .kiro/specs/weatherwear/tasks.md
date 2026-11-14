@@ -185,7 +185,7 @@
   - [x] 6.4 ImageIngestionService 구현 (`backend/app/ingestion/service.py`)
     - PHOTO_DIR 검사(`exists`, `is_dir`, `os.access`) 실패 시 `PhotoDirUnavailable`(경로 비노출)
     - 파일별 처리 순서: 크기 검사(내용 안 읽음) → SHA-256 → DB/이번 스캔 성공 집합 중복 검사 → `check_image` → 사이드카 → Vision 1회 → Weather → `create_outfit_bundle`. 실패 단계에서 중단하고 `ScanError(file_name, stage, code, message)` 기록
-    - `ScanReport` 집계(`scanned = succeeded + duplicate + failed`)
+    - `ScanReport` 집계(`scanned = succeeded + duplicate + skipped_non_outfit + uncertain + failed`), 비착장/불확실 사진은 저장하지 않고 decisions에 보고
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.6, 1.7, 1.8, 1.10, 1.11, 1.12, 2.1, 2.10, 3.1, 3.5, 4.1_
 
   - [ ]* 6.5 스캔 집계 참조 모델 property test 작성 (`backend/tests/test_ingestion_props.py`)

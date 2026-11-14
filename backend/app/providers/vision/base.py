@@ -1,14 +1,15 @@
 """Vision_Provider interface (design.md §4).
 
-Implementations take raw image bytes and return validated ``ClothingTags``.
-They are called once per new image in a scan and never retry (Req 3.1, 3.5).
+Implementations take raw image bytes and return a validated ``VisionAnalysis``
+containing the photo type and visible ``ClothingTags``. They are called once
+per new image in a scan and never retry.
 """
 
 from __future__ import annotations
 
 from typing import Literal, Protocol, runtime_checkable
 
-from app.domain import ClothingTags, VisionProviderName
+from app.domain import VisionAnalysis, VisionProviderName
 
 VisionErrorKind = Literal["schema_invalid", "api_error", "timeout"]
 VISION_ERROR_KINDS: tuple[VisionErrorKind, ...] = ("schema_invalid", "api_error", "timeout")
@@ -36,13 +37,13 @@ class VisionError(Exception):
 
 @runtime_checkable
 class VisionProvider(Protocol):
-    """Analyzes one outfit photo.
+    """Classifies one photo and analyzes visible garments in a single call.
 
-    ``sha256`` is the hex digest the ingestion service already computed for the
-    bytes. Implementations may ignore it (Gemini) or use it as a lookup key
-    (Fixture). Raises ``VisionError`` on failure.
+    ``sha256`` is the digest the ingestion service already computed. Fixture
+    providers use it as a lookup key while network providers may ignore it.
+    Raises ``VisionError`` on failure.
     """
 
     name: VisionProviderName
 
-    def analyze(self, image: bytes, mime_type: str, sha256: str) -> ClothingTags: ...
+    def analyze(self, image: bytes, mime_type: str, sha256: str) -> VisionAnalysis: ...

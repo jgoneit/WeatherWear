@@ -35,7 +35,7 @@ function makeItem(overrides: Partial<RecommendationItem> = {}): RecommendationIt
     confidence_level: "high",
     reasons: ["과거에 적당했음 (+15.0점)"],
     explanation:
-      "오늘 9.0°C, 지난 9.0°C 기록과 기온 차이 0.0°C입니다. 당시 착장: varsity_jacket+hoodie+baggy_denim. 체감: 적당함 (과거에 적당했음, +15.0점).",
+      "오늘 9.0°C, 지난 9.0°C 기록과 기온 차이 0.0°C입니다. 당시 착장: varsity_jacket+hoodie+jeans. 체감: 적당함 (과거에 적당했음, +15.0점).",
     outfit: {
       id: 81,
       captured_at: "2025-11-20T08:30:00+09:00",
@@ -47,7 +47,7 @@ function makeItem(overrides: Partial<RecommendationItem> = {}): RecommendationIt
       tags: {
         upper_type: "hoodie",
         outer_type: "varsity_jacket",
-        lower_type: "baggy_denim",
+        lower_type: "jeans",
         colors: ["navy"],
         layers_visible: 2,
         confidence: 0.9,
@@ -203,7 +203,7 @@ describe("RecommendationCard", () => {
     expect(card).toHaveTextContent(STRINGS.recommendation.rank(1));
     expect(card).toHaveTextContent(`${STRINGS.recommendation.pastTemperature} 9.0°C`);
     expect(card).toHaveTextContent(`${STRINGS.recommendation.temperatureDiff} 0.0°C`);
-    for (const tag of ["varsity_jacket", "hoodie", "baggy_denim"]) {
+    for (const tag of ["varsity_jacket", "hoodie", "jeans"]) {
       expect(within(card).getByText(tag)).toBeInTheDocument();
     }
     expect(within(card).getByText(STRINGS.confidence.high)).toBeInTheDocument();

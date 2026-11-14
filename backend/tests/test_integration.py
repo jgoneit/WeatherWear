@@ -26,7 +26,7 @@ from PIL import Image
 
 from app.config import resolve_config
 from app.deps import get_vision_provider
-from app.domain import ClothingTags
+from app.domain import ClothingTags, VisionAnalysis
 from app.ingestion.image_check import SUPPORTED_EXTENSIONS
 from app.main import create_app
 from app.providers.vision.fixture import FixtureVisionProvider
@@ -137,19 +137,19 @@ SYNTHETIC_PHOTOS: list[tuple[str, str, str | None, ClothingTags | None]] = [
      ClothingTags(upper_type="hoodie", outer_type="none", lower_type="jeans",
                   colors=["gray"], layers_visible=1, confidence=0.7)),
     ("d_trench", "2024-11-25T11:05:00+09:00", "hot",
-     ClothingTags(upper_type="blouse", outer_type="trench coat", lower_type="skirt",
+     ClothingTags(upper_type="blouse", outer_type="trench_coat", lower_type="skirt",
                   colors=["beige"], layers_visible=2, confidence=0.85)),
     ("e_untagged", "2024-03-09T14:30:00+00:00", None, None),  # not in fixture map
     ("f_parka", "2024-11-28T07:45:00+09:00", None,
-     ClothingTags(upper_type="sweater", outer_type="parka", lower_type="trousers",
+     ClothingTags(upper_type="knit", outer_type="parka", lower_type="trousers",
                   colors=["black"], layers_visible=3, confidence=0.95)),
 ]
 
 
-def build_synthetic_photo_dir(photo_dir: Path) -> dict[str, ClothingTags]:
-    """Write the synthetic photos + sidecars; return the vision fixture map."""
+def build_synthetic_photo_dir(photo_dir: Path) -> dict[str, VisionAnalysis]:
+    """Write synthetic photos + sidecars and return the vision fixture map."""
     photo_dir.mkdir()
-    tags_by_hash: dict[str, ClothingTags] = {}
+    analyses_by_hash: dict[str, VisionAnalysis] = {}
     for index, (stem, captured_at, vote, tags) in enumerate(SYNTHETIC_PHOTOS):
         data = png_bytes((index * 40 % 256, 120, 200 - index * 20))
         (photo_dir / f"{stem}.png").write_bytes(data)
@@ -160,7 +160,12 @@ def build_synthetic_photo_dir(photo_dir: Path) -> dict[str, ClothingTags]:
             sidecar["thermal_vote"] = vote
         (photo_dir / f"{stem}.metadata.json").write_text(json.dumps(sidecar), encoding="utf-8")
         if tags is not None:
-            tags_by_hash[hashlib.sha256(data).hexdigest()] = tags
+            analyses_by_hash[hashlib.sha256(data).hexdigest()] = VisionAnalysis(
+                photo_type="outfit",
+                photo_type_confidence=0.99,
+                reason="A full outfit is visible.",
+                tags=tags,
+            )
     # One file that fails validation, so the failure path is part of the run too.
     (photo_dir / "z_broken.png").write_bytes(b"not an image")
     (photo_dir / "z_broken.metadata.json").write_text(
@@ -168,7 +173,7 @@ def build_synthetic_photo_dir(photo_dir: Path) -> dict[str, ClothingTags]:
                     "latitude": 37.5665, "longitude": 126.978}),
         encoding="utf-8",
     )
-    return tags_by_hash
+    return analyses_by_hash
 
 
 def run_demo_flow(client: TestClient, feedback_vote: str) -> dict[str, Any]:
@@ -248,16 +253,16 @@ def test_fixture_mode_end_to_end_deterministic(
     """Two fresh databases give the same tags, weather and rankings (Req 15.1)."""
     if photo_source == "synthetic":
         photo_dir = tmp_path / "photos"
-        tags_by_hash = build_synthetic_photo_dir(photo_dir)
+        analyses_by_hash = build_synthetic_photo_dir(photo_dir)
     else:
         photo_dir = DEMO_PHOTO_DIR
-        tags_by_hash = None
+        analyses_by_hash = None
 
     results = []
     for run in ("first", "second"):
         app = make_app(tmp_path / f"{run}.db", photo_dir)
-        if tags_by_hash is not None:
-            vision = FixtureVisionProvider(tags_by_hash)
+        if analyses_by_hash is not None:
+            vision = FixtureVisionProvider(analyses_by_hash)
             app.dependency_overrides[get_vision_provider] = lambda vision=vision: vision
         with TestClient(app) as client:
             results.append(run_demo_flow(client, feedback_vote="cold"))
@@ -268,19 +273,33 @@ def test_fixture_mode_end_to_end_deterministic(
     # The run did real work, not an empty comparison.
     report = first["report"]
     assert report["succeeded"] > 0
-    assert report["scanned"] == report["succeeded"] + report["duplicate"] + report["failed"]
+    assert report["scanned"] == (
+        report["succeeded"]
+        + report["duplicate"]
+        + report["skipped_non_outfit"]
+        + report["uncertain"]
+        + report["failed"]
+    )
     assert all(o["weather"] is not None and o["weather"]["is_fixture"] for o in first["outfits"].values())
     assert first["before"]["today"]["provider"] == "scenario"
     assert first["after"] != first["before"]  # the feedback changed the ranking/explanation
 
     if photo_source == "synthetic":
         assert report == {
-            "scanned": 7, "succeeded": 6, "duplicate": 0, "failed": 1,
+            "scanned": 7,
+            "succeeded": 5,
+            "duplicate": 0,
+            "failed": 1,
+            "skipped_non_outfit": 0,
+            "uncertain": 1,
             "errors": [report["errors"][0]],
+            "decisions": [report["decisions"][0]],
         }
         assert report["errors"][0]["file_name"] == "z_broken.png"
         assert report["errors"][0]["code"] == "INVALID_IMAGE_FORMAT"
-        assert first["outfits"]["e_untagged.png"]["tags"]["upper_type"] == "unknown"
+        assert report["decisions"][0]["file_name"] == "e_untagged.png"
+        assert report["decisions"][0]["photo_type"] == "uncertain"
+        assert "e_untagged.png" not in first["outfits"]
         assert first["outfits"]["a_coat.png"]["tags"]["outer_type"] == "coat"
         assert first["outfits"]["c_hoodie.png"]["effective_vote"] == "cold"
 
@@ -297,8 +316,11 @@ def test_demo_scenarios_cover_cases(tmp_path: Path, connect_log: list[object]) -
     with TestClient(make_app(tmp_path / "demo.db", DEMO_PHOTO_DIR)) as client:
         report = client.post("/api/demo/scan").json()
         assert report["scanned"] == expected_total, "data/demo/photos is incomplete"
-        assert report["succeeded"] == expected_total
+        assert report["succeeded"] == 139
+        assert report["skipped_non_outfit"] == 20
+        assert report["uncertain"] == 0
         assert report["failed"] == 0 and report["errors"] == []
+        assert len(report["decisions"]) == 20
 
         # 쌀쌀한 아침 9.0: 5 items within 3.0, no fallback, 081 first with 115.0.
         select_scenario(client, "chilly-morning")
@@ -358,9 +380,9 @@ def test_five_minute_demo_walkthrough(tmp_path: Path, connect_log: list[object])
 
     1. 상태 확인: ``GET /api/demo/status`` → vision/weather 모두 ``fixture``,
        ``gemini_api_key_configured=false``, 착장 0건.
-    2. 폴더 스캔: ``POST /api/demo/scan`` → scanned 159, succeeded 159,
-       duplicate 0, failed 0.
-    3. 기록 화면: ``GET /api/outfits`` → 159건, 촬영 시각 최신순.
+    2. 폴더 스캔: ``POST /api/demo/scan`` → scanned 159, succeeded 139,
+       skipped_non_outfit 20, duplicate 0, failed 0.
+    3. 기록 화면: ``GET /api/outfits`` → 착장 사진 139건, 촬영 시각 최신순.
        첫 항목의 ``GET /api/outfits/{id}/photo`` → 200 이미지.
     4. 시나리오 선택: ``GET /api/demo/scenarios`` → 4개.
        ``PUT /api/demo/scenarios/selected`` ``{"scenario_id": "chilly-morning"}``.
@@ -371,7 +393,8 @@ def test_five_minute_demo_walkthrough(tmp_path: Path, connect_log: list[object])
     7. 추천 재조회: ``GET /api/recommendations/today`` → 081은 85.0점으로 떨어져
        상위 5건에서 빠지고, 1위가 ``052_burgundy_sweater_skirt_full``(110.0점)로 바뀐다.
        ``GET /api/outfits/{id}``의 ``effective_vote``는 ``hot``.
-    8. 재스캔: ``POST /api/demo/scan`` → duplicate 159, succeeded 0, 착장 수 그대로.
+    8. 재스캔: ``POST /api/demo/scan`` → duplicate 139, skipped_non_outfit 20,
+       succeeded 0, 착장 수 그대로.
     """
     with TestClient(make_app(tmp_path / "walkthrough.db", DEMO_PHOTO_DIR)) as client:
         # 1. 상태 확인
@@ -383,13 +406,24 @@ def test_five_minute_demo_walkthrough(tmp_path: Path, connect_log: list[object])
 
         # 2. 폴더 스캔
         report = client.post("/api/demo/scan").json()
-        assert {k: report[k] for k in ("scanned", "succeeded", "duplicate", "failed")} == {
-            "scanned": 159, "succeeded": 159, "duplicate": 0, "failed": 0,
+        assert {
+            k: report[k]
+            for k in (
+                "scanned", "succeeded", "duplicate", "failed",
+                "skipped_non_outfit", "uncertain",
+            )
+        } == {
+            "scanned": 159,
+            "succeeded": 139,
+            "duplicate": 0,
+            "failed": 0,
+            "skipped_non_outfit": 20,
+            "uncertain": 0,
         }
 
         # 3. 기록 화면
         outfits = client.get("/api/outfits").json()
-        assert len(outfits) == 159
+        assert len(outfits) == 139
         instants = [datetime.fromisoformat(o["captured_at"]) for o in outfits]
         assert instants == sorted(instants, reverse=True)
         photo = client.get(outfits[0]["photo_url"])
@@ -435,9 +469,20 @@ def test_five_minute_demo_walkthrough(tmp_path: Path, connect_log: list[object])
 
         # 8. 재스캔
         report = client.post("/api/demo/scan").json()
-        assert {k: report[k] for k in ("scanned", "succeeded", "duplicate", "failed")} == {
-            "scanned": 159, "succeeded": 0, "duplicate": 159, "failed": 0,
+        assert {
+            k: report[k]
+            for k in (
+                "scanned", "succeeded", "duplicate", "failed",
+                "skipped_non_outfit", "uncertain",
+            )
+        } == {
+            "scanned": 159,
+            "succeeded": 0,
+            "duplicate": 139,
+            "failed": 0,
+            "skipped_non_outfit": 20,
+            "uncertain": 0,
         }
-        assert client.get("/api/demo/status").json()["outfit_count"] == 159
+        assert client.get("/api/demo/status").json()["outfit_count"] == 139
 
     assert [a for a in connect_log if not _is_local_address(a)] == []

@@ -8,6 +8,7 @@ providers (no network).
 
 from __future__ import annotations
 
+import hashlib
 import io
 from pathlib import Path
 
@@ -17,8 +18,9 @@ from PIL import Image
 
 from app.config import AppConfig, resolve_config
 from app.deps import get_today_weather_service, scan_lock
-from app.domain import WeatherContext
+from app.domain import ClothingTags, VisionAnalysis, WeatherContext
 from app.main import REPO_ROOT, create_app
+from app.providers.vision.fixture import FixtureVisionProvider
 
 DEMO_PHOTO_DIR = REPO_ROOT / "data" / "demo" / "photos"
 FAKE_KEY = "fake-test-key-0123456789abcdef"
@@ -62,11 +64,38 @@ def test_scan_reports_counts_and_ignores_body(tmp_path: Path, client: TestClient
     photo_dir = tmp_path / "photos"
     write_photo(photo_dir, "a", "2025-01-10T08:00:00+09:00", "comfortable")
     write_photo(photo_dir, "b", "2025-01-11T08:00:00+09:00")
+    tags = ClothingTags(
+        upper_type="knit",
+        outer_type="coat",
+        lower_type="slacks",
+        colors=["navy"],
+        layers_visible=2,
+        confidence=0.9,
+    )
+    analysis = VisionAnalysis(
+        photo_type="outfit",
+        photo_type_confidence=0.99,
+        reason="A full outfit is visible.",
+        tags=tags,
+    )
+    client.app.state.container.vision_provider = FixtureVisionProvider({
+        hashlib.sha256(path.read_bytes()).hexdigest(): analysis
+        for path in photo_dir.glob("*.png")
+    })
 
     # A path in the body must not change the scanned folder (Req 1.9).
     first = client.post("/api/demo/scan", json={"photo_dir": str(DEMO_PHOTO_DIR)})
     assert first.status_code == 200
-    assert first.json() == {"scanned": 2, "succeeded": 2, "duplicate": 0, "failed": 0, "errors": []}
+    assert first.json() == {
+        "scanned": 2,
+        "succeeded": 2,
+        "duplicate": 0,
+        "failed": 0,
+        "skipped_non_outfit": 0,
+        "uncertain": 0,
+        "errors": [],
+        "decisions": [],
+    }
 
     second = client.post("/api/demo/scan")
     assert second.json()["duplicate"] == 2 and second.json()["succeeded"] == 0
@@ -296,7 +325,9 @@ def test_demo_data_end_to_end(tmp_path: Path) -> None:
     repo = app.state.container.repository
     with TestClient(app, raise_server_exceptions=False) as test_client:
         report = test_client.post("/api/demo/scan").json()
-        assert report["succeeded"] == 159, report["errors"][:3]
+        assert report["succeeded"] == 139, report["errors"][:3]
+        assert report["skipped_non_outfit"] == 20
+        assert report["uncertain"] == 0
         assert report["failed"] == 0 and report["duplicate"] == 0
 
         file_by_id = {r.id: r.file_name for r in repo.list_outfits()}

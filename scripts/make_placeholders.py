@@ -159,7 +159,12 @@ def generate(dest_dir: Path, vision_fixture: Path) -> list[str]:
         if not sidecar.exists():
             sidecar.write_text(json.dumps(p.sidecar(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             written.append(sidecar.name)
-        tags_by_hash[hashlib.sha256(png).hexdigest()] = p.tags()
+        tags_by_hash[hashlib.sha256(png).hexdigest()] = {
+            "photo_type": "outfit",
+            "photo_type_confidence": 1.0,
+            "reason": "A placeholder outfit is the main subject.",
+            "tags": p.tags(),
+        }
 
     existing: dict[str, object] = {}
     if vision_fixture.is_file():

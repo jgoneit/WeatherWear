@@ -11,7 +11,7 @@ Failure handling (Req 3.5), no retries anywhere:
   ``concurrent.futures`` timeout as a second guard.
 - Timeout → ``VisionError("timeout")``; any other SDK/transport error →
   ``VisionError("api_error")``; a response that fails
-  ``ClothingTags.model_validate_json`` → ``VisionError("schema_invalid")``.
+  ``VisionAnalysis.model_validate_json`` → ``VisionError("schema_invalid")``.
 
 Error messages and logs carry only the error type and HTTP status, never the
 exception text, so the API key cannot leak through them (Req 16.5).
@@ -28,7 +28,7 @@ import httpx
 from PIL import Image, ImageOps
 from pydantic import SecretStr, ValidationError
 
-from app.domain import LOWER_TYPES, OUTER_TYPES, UPPER_TYPES, ClothingTags
+from app.domain import LOWER_TYPES, OUTER_TYPES, UPPER_TYPES, VisionAnalysis
 from app.providers.vision.base import VisionError
 
 logger = logging.getLogger(__name__)
@@ -38,11 +38,18 @@ TIMEOUT_SECONDS = 30.0
 # Fixed analysis prompt. Category lists are derived from the same constants as
 # the Pydantic schema, preventing prompt/schema drift.
 PROMPT = (
-    "사진 속 인물의 착장만 분석하라. 결과는 주어진 JSON 스키마의 6개 필드로만 답하라.\n"
-    "- 사진에서 실제로 보이는 의류만 분류하고 보이지 않는 옷은 추측하지 마라.\n"
-    f"- upper_type 허용값: {', '.join(UPPER_TYPES)}.\n"
-    f"- outer_type 허용값: {', '.join(OUTER_TYPES)}.\n"
-    f"- lower_type 허용값: {', '.join(LOWER_TYPES)}.\n"
+    "사진이 착장 기록인지 판정하고, 착장인 경우 사진 속 인물에게 실제로 보이는 의류만 분석하라. "
+    "주어진 JSON 스키마 이외의 필드는 답하지 마라.\n"
+    "- photo_type: 사람이 주요 피사체이고 몸통의 옷차림을 식별할 수 있으면 outfit, 사람이나 착장이 "
+    "없거나 손·얼굴만 보이면 non_outfit, 경계가 모호하면 uncertain.\n"
+    "- photo_type_confidence: 위 판정의 확신도(0.0~1.0).\n"
+    "- reason: 신원·외모를 언급하지 말고 착장이 보이는 범위만 영어 200자 이내로 설명.\n"
+    "- photo_type이 non_outfit이면 tags는 세 종류 모두 unknown, colors는 빈 목록, layers_visible은 0, "
+    "confidence는 0.0으로 답하라.\n"
+    "- photo_type이 outfit이면 tags에서 보이는 의류만 분류하고 가려진 옷은 추측하지 마라.\n"
+    f"- tags.upper_type 허용값: {', '.join(UPPER_TYPES)}.\n"
+    f"- tags.outer_type 허용값: {', '.join(OUTER_TYPES)}.\n"
+    f"- tags.lower_type 허용값: {', '.join(LOWER_TYPES)}.\n"
     "- 롱패딩은 long_puffer, 짧은 패딩은 short_puffer, 길이를 확정할 수 없는 패딩 재킷은 "
     "puffer_jacket으로 분류하라.\n"
     "- 겉옷을 입지 않았으면 outer_type은 none이다. 원피스·점프수트처럼 별도 하의가 없으면 "
@@ -51,21 +58,19 @@ PROMPT = (
     "- 원단 두께, 보온성, 속옷, 브랜드는 판단하지 마라.\n"
     "- colors: 착장의 주요 색상을 영어 소문자 최대 5개.\n"
     "- layers_visible: 겉으로 보이는 옷 겹 수(0~5 정수).\n"
-    "- confidence: 분석 전체에 대한 확신도(0.0~1.0).\n"
-    "사진에 사람이 없거나 착장을 볼 수 없으면 세 종류 필드를 모두 unknown, colors는 빈 목록, "
-    "layers_visible은 0, confidence는 0.0으로 답하라."
+    "- tags.confidence: 의류 종류 분석 전체에 대한 확신도(0.0~1.0)."
 )
 
 
 
 def _response_schema() -> dict[str, Any]:
-    """``ClothingTags`` JSON schema in a form the Gemini API accepts.
+    """``VisionAnalysis`` JSON schema in a form the Gemini API accepts.
 
     Passing the model class directly makes the SDK send
     ``additional_properties: false`` (from ``extra="forbid"``), which the API
     rejects with 400 INVALID_ARGUMENT. The schema is otherwise unchanged
     (same fields, types, lengths and ranges). Extra keys are still rejected
-    locally by ``ClothingTags.model_validate_json``.
+    locally by ``VisionAnalysis.model_validate_json``.
     """
 
     def clean(node: Any, *, is_properties_map: bool = False) -> Any:
@@ -81,7 +86,7 @@ def _response_schema() -> dict[str, Any]:
             return [clean(v) for v in node]
         return node
 
-    return clean(ClothingTags.model_json_schema())
+    return clean(VisionAnalysis.model_json_schema())
 
 
 RESPONSE_SCHEMA: dict[str, Any] = _response_schema()
@@ -180,8 +185,8 @@ class GeminiVisionProvider:
             ),
         }
 
-    def analyze(self, image: bytes, mime_type: str, sha256: str | None = None) -> ClothingTags:
-        """Analyze one image once. ``sha256`` is unused (the API never sees it)."""
+    def analyze(self, image: bytes, mime_type: str, sha256: str | None = None) -> VisionAnalysis:
+        """Classify and analyze one image once. ``sha256`` is not sent to the API."""
         try:
             request = self.build_request(image, mime_type)
         except Exception as exc:  # never send unstripped bytes
@@ -210,7 +215,7 @@ class GeminiVisionProvider:
             logger.warning("Gemini 응답에 JSON 본문이 없습니다.")
             raise VisionError("schema_invalid", "Gemini 응답이 비어 있습니다.")
         try:
-            return ClothingTags.model_validate_json(text)
+            return VisionAnalysis.model_validate_json(text)
         except ValidationError as exc:
             logger.warning("Gemini 응답 스키마 검증 실패 (%d건)", exc.error_count())
             raise VisionError("schema_invalid", "Gemini 응답이 의류 태그 스키마와 맞지 않습니다.") from None

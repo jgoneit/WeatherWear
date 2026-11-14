@@ -395,8 +395,36 @@ function ScanCard({
             <BentoTile label={STRINGS.demo.scanned} value={report.scanned} testId="scan-scanned" />
             <BentoTile label={STRINGS.demo.succeeded} value={report.succeeded} testId="scan-succeeded" />
             <BentoTile label={STRINGS.demo.duplicate} value={report.duplicate} testId="scan-duplicate" />
+            <BentoTile
+              label={STRINGS.demo.skippedNonOutfit}
+              value={report.skipped_non_outfit}
+              testId="scan-non-outfit"
+            />
+            <BentoTile label={STRINGS.demo.uncertain} value={report.uncertain} testId="scan-uncertain" />
             <BentoTile label={STRINGS.demo.failed} value={report.failed} testId="scan-failed" />
           </div>
+          {report.decisions.length > 0 ? (
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-slate-900">{STRINGS.demo.decisionsTitle}</h3>
+              <ul className="mt-2 flex min-w-0 flex-col gap-2">
+                {report.decisions.map((item, index) => (
+                  <li
+                    key={`${item.file_name}-${index}`}
+                    data-testid="scan-decision"
+                    className="min-w-0 rounded-2xl bg-white/50 px-3 py-2 text-sm"
+                  >
+                    <p className="min-w-0 font-medium break-all text-slate-900">{item.file_name}</p>
+                    <p className="min-w-0 break-words text-slate-700">
+                      {item.photo_type === "non_outfit"
+                        ? STRINGS.demo.nonOutfitDecision
+                        : STRINGS.demo.uncertainDecision}{" "}
+                      · {Math.round(item.confidence * 100)}% · {item.reason}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {report.failed === 0 || report.errors.length === 0 ? (
             <p className="text-sm text-slate-700">{STRINGS.demo.noFailures}</p>
           ) : (

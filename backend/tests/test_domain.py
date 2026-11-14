@@ -15,8 +15,10 @@ from app.domain import (
     LowerType,
     OuterType,
     UpperType,
+    UNKNOWN_ANALYSIS,
     UNKNOWN_TAGS,
     ClothingTags,
+    VisionAnalysis,
     RecommendationResult,
     SidecarMetadata,
     WeatherReading,
@@ -99,6 +101,32 @@ def test_unknown_tags_default() -> None:
     assert UNKNOWN_TAGS.colors == []
     assert UNKNOWN_TAGS.layers_visible == 0
     assert UNKNOWN_TAGS.confidence == 0.0
+
+
+def test_vision_analysis_enforces_photo_type_contract() -> None:
+    non_outfit = VisionAnalysis(
+        photo_type="non_outfit",
+        photo_type_confidence=0.9,
+        reason="No person is visible.",
+        tags=UNKNOWN_TAGS,
+    )
+    assert non_outfit.photo_type == "non_outfit"
+    assert UNKNOWN_ANALYSIS.photo_type == "uncertain"
+
+    with pytest.raises(ValidationError):
+        VisionAnalysis(
+            photo_type="non_outfit",
+            photo_type_confidence=0.9,
+            reason="Contradictory garment output.",
+            tags=ClothingTags(**VALID_TAGS),
+        )
+    with pytest.raises(ValidationError):
+        VisionAnalysis(
+            photo_type="other",
+            photo_type_confidence=0.9,
+            reason="Invalid type.",
+            tags=UNKNOWN_TAGS,
+        )
 
 
 def test_sidecar_requires_offset_and_range() -> None:

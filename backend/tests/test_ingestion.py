@@ -23,10 +23,9 @@ from sqlalchemy import text
 from sqlmodel import Session, select
 
 from app.db import Feedback, Outfit, create_db_engine
-from app.domain import ClothingTags
+from app.domain import ClothingTags, VisionAnalysis
 from app.ingestion.image_check import MAX_IMAGE_BYTES
 from app.ingestion.service import ImageIngestionService, PhotoDirUnavailable
-from app.providers.vision.fixture import FixtureVisionProvider
 from app.providers.weather.fixture import FixtureWeatherProvider
 from app.repository import OutfitRepository
 
@@ -39,17 +38,45 @@ DEFAULT_SIDECAR = {
 }
 
 
-class CountingVision:
-    """Real FixtureVisionProvider plus a call counter and a configurable name."""
+DEFAULT_TAGS = ClothingTags(
+    upper_type="t_shirt",
+    outer_type="none",
+    lower_type="jeans",
+    colors=["white", "blue"],
+    layers_visible=1,
+    confidence=0.9,
+)
+DEFAULT_ANALYSIS = VisionAnalysis(
+    photo_type="outfit",
+    photo_type_confidence=0.99,
+    reason="A full outfit is visible.",
+    tags=DEFAULT_TAGS,
+)
 
-    def __init__(self, name: str = "fixture", tags: dict[str, ClothingTags] | None = None) -> None:
+
+class CountingVision:
+    """Deterministic vision fake with a call counter and configurable results."""
+
+    def __init__(
+        self,
+        name: str = "fixture",
+        tags: dict[str, ClothingTags] | None = None,
+        analyses: dict[str, VisionAnalysis] | None = None,
+    ) -> None:
         self.name = name
-        self._inner = FixtureVisionProvider(tags or {})
+        self._analyses = dict(analyses or {})
+        for sha, value in (tags or {}).items():
+            self._analyses[sha] = VisionAnalysis(
+                photo_type="outfit",
+                photo_type_confidence=0.99,
+                reason="A full outfit is visible.",
+                tags=value,
+            )
         self.calls: list[str] = []
 
-    def analyze(self, image: bytes, mime_type: str, sha256: str) -> ClothingTags:
+    def analyze(self, image: bytes, mime_type: str, sha256: str) -> VisionAnalysis:
         self.calls.append(sha256)
-        return self._inner.analyze(image, mime_type, sha256)
+        return self._analyses.get(sha256, DEFAULT_ANALYSIS).model_copy(deep=True)
 
 
 class CountingWeather:

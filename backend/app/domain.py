@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal, cast
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 ThermalVote = Literal["cold", "comfortable", "hot"]
 FeedbackSource = Literal["user_action", "demo_seed"]
@@ -243,6 +243,36 @@ UNKNOWN_TAGS = ClothingTags(
     colors=[],
     layers_visible=0,
     confidence=0.0,
+)
+
+PhotoType = Literal["outfit", "non_outfit", "uncertain"]
+DecisionReason = Annotated[str, StringConstraints(min_length=1, max_length=200)]
+
+
+class VisionAnalysis(BaseModel):
+    """Photo-type decision and visible garment analysis from one vision call."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    photo_type: PhotoType
+    photo_type_confidence: Annotated[
+        float, Field(ge=0.0, le=1.0, allow_inf_nan=False)
+    ]
+    reason: DecisionReason
+    tags: ClothingTags
+
+    @model_validator(mode="after")
+    def non_outfit_has_no_garments(self) -> VisionAnalysis:
+        if self.photo_type == "non_outfit" and self.tags != UNKNOWN_TAGS:
+            raise ValueError("non_outfit analysis must use UNKNOWN_TAGS")
+        return self
+
+
+UNKNOWN_ANALYSIS = VisionAnalysis(
+    photo_type="uncertain",
+    photo_type_confidence=0.0,
+    reason="No fixture analysis is available.",
+    tags=UNKNOWN_TAGS,
 )
 
 

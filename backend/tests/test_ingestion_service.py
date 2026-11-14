@@ -16,10 +16,9 @@ import pytest
 from PIL import Image
 
 from app.db import create_db_engine
-from app.domain import ClothingTags
+from app.domain import UNKNOWN_TAGS, ClothingTags, VisionAnalysis
 from app.ingestion.service import ImageIngestionService, PhotoDirUnavailable
 from app.providers.vision.base import VisionError
-from app.providers.vision.fixture import FixtureVisionProvider
 from app.providers.weather.fixture import FixtureWeatherProvider
 from app.repository import OutfitRepository
 from app.schemas import ScanReport
@@ -27,22 +26,42 @@ from app.schemas import ScanReport
 TZ = ZoneInfo("Asia/Seoul")
 
 
+DEFAULT_ANALYSIS = VisionAnalysis(
+    photo_type="outfit",
+    photo_type_confidence=0.99,
+    reason="A full outfit is visible.",
+    tags=ClothingTags(
+        upper_type="t_shirt",
+        outer_type="none",
+        lower_type="jeans",
+        colors=["white", "blue"],
+        layers_visible=1,
+        confidence=0.9,
+    ),
+)
+
+
 class CountingVision:
-    """Wraps the real FixtureVisionProvider, counts calls, and can fail chosen calls."""
+    """Vision fake that counts calls and can fail selected calls."""
 
     name = "fixture"
 
-    def __init__(self, fail_calls: set[int] | None = None, kind: str = "timeout") -> None:
-        self._inner = FixtureVisionProvider({})
+    def __init__(
+        self,
+        fail_calls: set[int] | None = None,
+        kind: str = "timeout",
+        analysis: VisionAnalysis = DEFAULT_ANALYSIS,
+    ) -> None:
         self.fail_calls = fail_calls or set()
         self.kind = kind
+        self.analysis = analysis
         self.calls: list[str] = []
 
-    def analyze(self, image: bytes, mime_type: str, sha256: str) -> ClothingTags:
+    def analyze(self, image: bytes, mime_type: str, sha256: str) -> VisionAnalysis:
         self.calls.append(sha256)
         if len(self.calls) in self.fail_calls:
             raise VisionError(self.kind)  # type: ignore[arg-type]
-        return self._inner.analyze(image, mime_type, sha256)
+        return self.analysis.model_copy(deep=True)
 
 
 class FailingStoreRepository(OutfitRepository):
@@ -90,8 +109,15 @@ def make_service(photo_dir: Path, repo: OutfitRepository, vision=None) -> ImageI
 
 
 def assert_invariant(report: ScanReport) -> None:
-    assert report.scanned == report.succeeded + report.duplicate + report.failed
+    assert report.scanned == (
+        report.succeeded
+        + report.duplicate
+        + report.skipped_non_outfit
+        + report.uncertain
+        + report.failed
+    )
     assert len(report.errors) == report.failed
+    assert len(report.decisions) == report.skipped_non_outfit + report.uncertain
 
 
 def test_mixed_folder_reports_each_failure_stage_and_code(photo_dir: Path, repo) -> None:
@@ -121,9 +147,53 @@ def test_mixed_folder_reports_each_failure_stage_and_code(photo_dir: Path, repo)
         "e_no_sidecar.png": ("validation", "SIDECAR_NOT_FOUND"),
         "f_bad_vote.png": ("validation", "SIDECAR_THERMAL_VOTE_INVALID"),
     }
-    assert len(vision.calls) == 2  # only files that passed validation
+    assert len(vision.calls) == 4  # every decodable image is classified before sidecar validation
     assert repo.counts() == {"outfits": 2, "weather_snapshots": 2, "feedback": 0}
     assert all(str(photo_dir) not in e.message for e in report.errors)
+
+
+def test_non_outfit_is_skipped_before_sidecar_and_weather(photo_dir: Path, repo) -> None:
+    (photo_dir / "food.png").write_bytes(png_bytes())  # deliberately no sidecar
+    analysis = VisionAnalysis(
+        photo_type="non_outfit",
+        photo_type_confidence=0.98,
+        reason="Only a meal is visible.",
+        tags=UNKNOWN_TAGS,
+    )
+    vision = CountingVision(analysis=analysis)
+
+    class WeatherMustNotRun:
+        name = "fixture"
+
+        def get_weather(self, *args):
+            raise AssertionError("weather must not be called for a non-outfit photo")
+
+    report = ImageIngestionService(photo_dir, vision, WeatherMustNotRun(), repo, TZ).scan()
+
+    assert_invariant(report)
+    assert (report.succeeded, report.skipped_non_outfit, report.uncertain, report.failed) == (
+        0, 1, 0, 0
+    )
+    assert repo.counts()["outfits"] == 0
+    assert report.decisions[0].file_name == "food.png"
+    assert report.decisions[0].photo_type == "non_outfit"
+
+
+def test_low_confidence_outfit_becomes_uncertain_before_sidecar(photo_dir: Path, repo) -> None:
+    (photo_dir / "ambiguous.png").write_bytes(png_bytes())  # deliberately no sidecar
+    analysis = DEFAULT_ANALYSIS.model_copy(
+        update={"photo_type_confidence": 0.69, "reason": "A partly visible person."}
+    )
+
+    report = make_service(photo_dir, repo, CountingVision(analysis=analysis)).scan()
+
+    assert_invariant(report)
+    assert (report.succeeded, report.skipped_non_outfit, report.uncertain, report.failed) == (
+        0, 0, 1, 0
+    )
+    assert repo.counts()["outfits"] == 0
+    assert report.decisions[0].photo_type == "uncertain"
+    assert "0.70 acceptance threshold" in report.decisions[0].reason
 
 
 def test_same_bytes_in_one_scan_analyzed_once(photo_dir: Path, repo) -> None:

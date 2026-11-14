@@ -22,12 +22,22 @@ from sqlalchemy import func
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, col, select
 
-from app.db import Feedback, Outfit, WeatherSnapshot, from_iso, session_scope, to_iso, to_utc_iso
+from app.db import (
+    Feedback,
+    Outfit,
+    PhotoAnalysisRow,
+    WeatherSnapshot,
+    from_iso,
+    session_scope,
+    to_iso,
+    to_utc_iso,
+)
 from app.domain import (
     ClothingTags,
     FeedbackSource,
     OutfitWithWeatherAndFeedback,
     ThermalVote,
+    VisionAnalysis,
     VisionProviderName,
     WeatherReading,
 )
@@ -46,6 +56,8 @@ class OutfitCreate(BaseModel):
     longitude: float
     tags: ClothingTags
     vision_provider: VisionProviderName
+    photo_type_confidence: float = 1.0
+    photo_type_reason: str = "Accepted as an outfit by the caller."
 
 
 class FeedbackRecord(BaseModel):
@@ -73,8 +85,26 @@ class OutfitRecord(BaseModel):
     effective_vote: ThermalVote | None
 
 
+class StoredPhotoAnalysis(BaseModel):
+    sha256: str
+    file_name: str
+    analysis: VisionAnalysis
+    vision_provider: VisionProviderName
+    created_at: AwareDatetime
+
+
 def _utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+def _stored_photo_analysis(row: PhotoAnalysisRow) -> StoredPhotoAnalysis:
+    return StoredPhotoAnalysis(
+        sha256=row.sha256,
+        file_name=row.file_name,
+        analysis=VisionAnalysis.model_validate_json(row.analysis_json),
+        vision_provider=row.vision_provider,
+        created_at=from_iso(row.created_at),
+    )
 
 
 def _feedback_record(row: Feedback) -> FeedbackRecord:
@@ -142,6 +172,64 @@ class OutfitRepository:
             stmt = select(Outfit.id).where(Outfit.sha256 == sha256).limit(1)
             return session.exec(stmt).first() is not None
 
+    def save_photo_analysis(
+        self,
+        sha256: str,
+        file_name: str,
+        analysis: VisionAnalysis,
+        vision_provider: VisionProviderName,
+    ) -> StoredPhotoAnalysis:
+        """Insert or replace the latest classification for one image hash."""
+        now = to_utc_iso(_utc_now())
+        with session_scope(self._engine) as session:
+            row = session.exec(
+                select(PhotoAnalysisRow).where(PhotoAnalysisRow.sha256 == sha256)
+            ).first()
+            if row is None:
+                row = PhotoAnalysisRow(
+                    sha256=sha256,
+                    file_name=file_name,
+                    photo_type=analysis.photo_type,
+                    analysis_json=analysis.model_dump_json(),
+                    vision_provider=vision_provider,
+                    created_at=now,
+                )
+                session.add(row)
+            else:
+                row.file_name = file_name
+                row.photo_type = analysis.photo_type
+                row.analysis_json = analysis.model_dump_json()
+                row.vision_provider = vision_provider
+                row.created_at = now
+                session.add(row)
+            session.flush()
+            return _stored_photo_analysis(row)
+
+    def update_existing_outfit_analysis(
+        self,
+        sha256: str,
+        analysis: VisionAnalysis,
+        vision_provider: VisionProviderName,
+    ) -> bool:
+        """Refresh tags on a legacy Outfit after it is reclassified as outfit."""
+        if analysis.photo_type != "outfit":
+            raise ValueError("only outfit analysis can update an Outfit")
+        with session_scope(self._engine) as session:
+            row = session.exec(select(Outfit).where(Outfit.sha256 == sha256)).first()
+            if row is None:
+                return False
+            tags = analysis.tags
+            row.upper_type = tags.upper_type
+            row.outer_type = tags.outer_type
+            row.lower_type = tags.lower_type
+            row.colors_json = json.dumps(tags.colors, ensure_ascii=False)
+            row.layers_visible = tags.layers_visible
+            row.vision_confidence = tags.confidence
+            row.vision_provider = vision_provider
+            session.add(row)
+            session.flush()
+            return True
+
     def create_outfit_bundle(
         self, outfit: OutfitCreate, weather: WeatherReading, seed_vote: ThermalVote | None
     ) -> int:
@@ -152,7 +240,33 @@ class OutfitRepository:
         """
         now = to_utc_iso(_utc_now())
         tags = outfit.tags
+        analysis = VisionAnalysis(
+            photo_type="outfit",
+            photo_type_confidence=outfit.photo_type_confidence,
+            reason=outfit.photo_type_reason,
+            tags=tags,
+        )
         with session_scope(self._engine) as session:
+            stored_analysis = session.exec(
+                select(PhotoAnalysisRow).where(PhotoAnalysisRow.sha256 == outfit.sha256)
+            ).first()
+            if stored_analysis is None:
+                stored_analysis = PhotoAnalysisRow(
+                    sha256=outfit.sha256,
+                    file_name=outfit.file_name,
+                    photo_type="outfit",
+                    analysis_json=analysis.model_dump_json(),
+                    vision_provider=outfit.vision_provider,
+                    created_at=now,
+                )
+            else:
+                stored_analysis.file_name = outfit.file_name
+                stored_analysis.photo_type = "outfit"
+                stored_analysis.analysis_json = analysis.model_dump_json()
+                stored_analysis.vision_provider = outfit.vision_provider
+                stored_analysis.created_at = now
+            session.add(stored_analysis)
+
             row = Outfit(
                 sha256=outfit.sha256,
                 file_name=outfit.file_name,
@@ -221,9 +335,20 @@ class OutfitRepository:
 
     # -- reads ----------------------------------------------------------------
 
+    def get_photo_analysis(self, sha256: str) -> StoredPhotoAnalysis | None:
+        with Session(self._engine) as session:
+            row = session.exec(
+                select(PhotoAnalysisRow).where(PhotoAnalysisRow.sha256 == sha256)
+            ).first()
+            return None if row is None else _stored_photo_analysis(row)
+
     def get_outfit(self, outfit_id: int) -> OutfitRecord | None:
         with Session(self._engine) as session:
-            row = session.get(Outfit, outfit_id)
+            row = session.exec(
+                select(Outfit)
+                .join(PhotoAnalysisRow, PhotoAnalysisRow.sha256 == Outfit.sha256)
+                .where(Outfit.id == outfit_id, PhotoAnalysisRow.photo_type == "outfit")
+            ).first()
             if row is None:
                 return None
             snapshot = session.exec(
@@ -236,7 +361,10 @@ class OutfitRepository:
         """All Outfits ordered by ``captured_at_utc DESC, id DESC`` (Req 10.1)."""
         with Session(self._engine) as session:
             rows = session.exec(
-                select(Outfit).order_by(col(Outfit.captured_at_utc).desc(), col(Outfit.id).desc())
+                select(Outfit)
+                .join(PhotoAnalysisRow, PhotoAnalysisRow.sha256 == Outfit.sha256)
+                .where(PhotoAnalysisRow.photo_type == "outfit")
+                .order_by(col(Outfit.captured_at_utc).desc(), col(Outfit.id).desc())
             ).all()
             snapshots = {s.outfit_id: s for s in session.exec(select(WeatherSnapshot))}
             feedback: dict[int, list[Feedback]] = defaultdict(list)
@@ -261,7 +389,12 @@ class OutfitRepository:
         """Row counts per table: ``outfits``, ``weather_snapshots``, ``feedback``."""
         with Session(self._engine) as session:
             return {
-                "outfits": session.exec(select(func.count()).select_from(Outfit)).one(),
+                "outfits": session.exec(
+                    select(func.count())
+                    .select_from(Outfit)
+                    .join(PhotoAnalysisRow, PhotoAnalysisRow.sha256 == Outfit.sha256)
+                    .where(PhotoAnalysisRow.photo_type == "outfit")
+                ).one(),
                 "weather_snapshots": session.exec(
                     select(func.count()).select_from(WeatherSnapshot)
                 ).one(),

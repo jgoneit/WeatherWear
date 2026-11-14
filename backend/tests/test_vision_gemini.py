@@ -17,7 +17,7 @@ from PIL import Image
 from pydantic import SecretStr
 
 from app.config import resolve_config
-from app.domain import ClothingTags
+from app.domain import VisionAnalysis
 from app.providers.vision.base import VisionError
 from app.providers.vision.factory import build_vision_provider
 from app.providers.vision.gemini import (
@@ -41,6 +41,12 @@ VALID_TAGS = {
     "colors": ["navy", "cream"],
     "layers_visible": 2,
     "confidence": 0.8,
+}
+VALID_ANALYSIS = {
+    "photo_type": "outfit",
+    "photo_type_confidence": 0.95,
+    "reason": "A full outfit is visible.",
+    "tags": VALID_TAGS,
 }
 
 
@@ -155,7 +161,7 @@ def test_strip_metadata_applies_orientation() -> None:
 
 
 def test_request_contains_only_stripped_image_and_fixed_prompt() -> None:
-    provider, client = _provider(_returns(json.dumps(VALID_TAGS)))
+    provider, client = _provider(_returns(json.dumps(VALID_ANALYSIS)))
 
     provider.analyze(_jpeg_with_gps(), "image/jpeg", "ab" * 32)
 
@@ -176,21 +182,26 @@ def test_request_contains_only_stripped_image_and_fixed_prompt() -> None:
     assert config.temperature == 0
 
 
-def test_response_schema_matches_clothing_tags_without_additional_properties() -> None:
-    expected = ClothingTags.model_json_schema()
+def test_response_schema_matches_vision_analysis_without_additional_properties() -> None:
+    expected = VisionAnalysis.model_json_schema()
     assert RESPONSE_SCHEMA["required"] == expected["required"]
     assert set(RESPONSE_SCHEMA["properties"]) == set(expected["properties"])
-    assert RESPONSE_SCHEMA["properties"]["colors"]["maxItems"] == 5
-    assert RESPONSE_SCHEMA["properties"]["confidence"]["maximum"] == 1.0
-    assert "long_puffer" in RESPONSE_SCHEMA["properties"]["outer_type"]["enum"]
-    assert "t_shirt" in RESPONSE_SCHEMA["properties"]["upper_type"]["enum"]
-    assert "shorts" in RESPONSE_SCHEMA["properties"]["lower_type"]["enum"]
+    assert RESPONSE_SCHEMA["properties"]["photo_type"]["enum"] == [
+        "outfit", "non_outfit", "uncertain"
+    ]
+    garment_schema = RESPONSE_SCHEMA["$defs"]["ClothingTags"]
+    assert garment_schema["properties"]["colors"]["maxItems"] == 5
+    assert garment_schema["properties"]["confidence"]["maximum"] == 1.0
+    assert "long_puffer" in garment_schema["properties"]["outer_type"]["enum"]
+    assert "t_shirt" in garment_schema["properties"]["upper_type"]["enum"]
+    assert "shorts" in garment_schema["properties"]["lower_type"]["enum"]
     # The API rejects additional_properties with 400 INVALID_ARGUMENT.
     sdk_schema = _transformers.t_schema(_build_client(SecretStr(FAKE_KEY)), RESPONSE_SCHEMA)
     assert "additional_properties" not in json.dumps(sdk_schema.model_dump(exclude_none=True), default=str)
 
 
-def test_prompt_instructs_canonical_categories_unknown_and_none() -> None:
+def test_prompt_instructs_photo_types_and_canonical_categories() -> None:
+    assert all(value in PROMPT for value in ("outfit", "non_outfit", "uncertain"))
     assert "unknown" in PROMPT
     assert "none" in PROMPT
     assert "long_puffer" in PROMPT
@@ -202,9 +213,9 @@ def test_prompt_instructs_canonical_categories_unknown_and_none() -> None:
 # --- response validation and failures (Req 3.4, 3.5) ---
 
 
-def test_valid_response_returns_tags() -> None:
-    provider, _ = _provider(_returns(json.dumps(VALID_TAGS)))
-    assert provider.analyze(_png_with_text(), "image/png") == ClothingTags(**VALID_TAGS)
+def test_valid_response_returns_analysis() -> None:
+    provider, _ = _provider(_returns(json.dumps(VALID_ANALYSIS)))
+    assert provider.analyze(_png_with_text(), "image/png") == VisionAnalysis(**VALID_ANALYSIS)
 
 
 @pytest.mark.parametrize(
@@ -213,11 +224,29 @@ def test_valid_response_returns_tags() -> None:
         None,
         "",
         "not json",
-        json.dumps({**VALID_TAGS, "confidence": 1.5}),
-        json.dumps({**VALID_TAGS, "colors": ["a", "b", "c", "d", "e", "f"]}),
-        json.dumps({**VALID_TAGS, "outer_type": "puffer coat"}),
-        json.dumps({k: v for k, v in VALID_TAGS.items() if k != "lower_type"}),
-        json.dumps({**VALID_TAGS, "fabric": "wool"}),
+        json.dumps({**VALID_ANALYSIS, "photo_type_confidence": 1.5}),
+        json.dumps({**VALID_ANALYSIS, "photo_type": "holiday"}),
+        json.dumps({
+            **VALID_ANALYSIS,
+            "tags": {**VALID_TAGS, "colors": ["a", "b", "c", "d", "e", "f"]},
+        }),
+        json.dumps({
+            **VALID_ANALYSIS,
+            "tags": {**VALID_TAGS, "outer_type": "puffer coat"},
+        }),
+        json.dumps({
+            **VALID_ANALYSIS,
+            "tags": {k: v for k, v in VALID_TAGS.items() if k != "lower_type"},
+        }),
+        json.dumps({
+            **VALID_ANALYSIS,
+            "tags": {**VALID_TAGS, "fabric": "wool"},
+        }),
+        json.dumps({
+            **VALID_ANALYSIS,
+            "photo_type": "non_outfit",
+            "tags": VALID_TAGS,
+        }),
     ],
 )
 def test_invalid_response_is_schema_invalid_without_retry(text: str | None) -> None:
@@ -258,7 +287,7 @@ def test_hung_call_hits_futures_timeout() -> None:
 
     def hang(**_):
         release.wait(5)
-        return _FakeResponse(json.dumps(VALID_TAGS))
+        return _FakeResponse(json.dumps(VALID_ANALYSIS))
 
     provider, client = _provider(hang, timeout_seconds=0.2)
     try:
@@ -271,7 +300,7 @@ def test_hung_call_hits_futures_timeout() -> None:
 
 
 def test_undecodable_image_is_not_sent() -> None:
-    provider, client = _provider(_returns(json.dumps(VALID_TAGS)))
+    provider, client = _provider(_returns(json.dumps(VALID_ANALYSIS)))
     with pytest.raises(VisionError) as info:
         provider.analyze(b"not an image", "image/jpeg")
     assert info.value.kind == "api_error"
@@ -298,7 +327,7 @@ def test_default_client_disables_retries_and_sets_30s_timeout() -> None:
 
 def test_factory_builds_gemini_provider_with_configured_model() -> None:
     cfg, _ = resolve_config({"VISION_PROVIDER": "gemini", "GEMINI_API_KEY": FAKE_KEY, "GEMINI_MODEL": "gemini-x-test"})
-    fake = FakeClient(_returns(json.dumps(VALID_TAGS)))
+    fake = FakeClient(_returns(json.dumps(VALID_ANALYSIS)))
 
     provider = build_vision_provider(cfg, gemini_client=fake)
 

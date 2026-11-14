@@ -12,6 +12,8 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
+from app.domain import VisionAnalysis
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -25,6 +27,7 @@ def _load(name: str):
 
 prepare_mod = _load("prepare_demo_photos")
 placeholders_mod = _load("make_placeholders")
+build_mod = _load("build_fixtures")
 
 
 def _png_bytes(color: tuple[int, int, int]) -> bytes:
@@ -100,6 +103,25 @@ def test_prepare_rejects_origin_outside_source(layout):
     with pytest.raises(prepare_mod.ManifestError):
         prepare_mod.prepare(manifest, source, dest, repo_root=root)
     assert not dest.exists()
+
+
+def test_personal_album_fixture_labels_twenty_outfits_and_twenty_non_outfits() -> None:
+    outfit_stems = sorted(key for key in build_mod.TAGS if key.startswith("2025-"))
+    non_outfit_stems = sorted(build_mod.NON_OUTFIT)
+    assert len(outfit_stems) == 20
+    assert len(non_outfit_stems) == 20
+    assert set(outfit_stems).isdisjoint(non_outfit_stems)
+
+    analyses = {
+        stem: VisionAnalysis.model_validate(build_mod.vision_analysis_for(stem))
+        for stem in outfit_stems + non_outfit_stems
+    }
+    assert {stem for stem, value in analyses.items() if value.photo_type == "outfit"} == set(
+        outfit_stems
+    )
+    assert {
+        stem for stem, value in analyses.items() if value.photo_type == "non_outfit"
+    } == set(non_outfit_stems)
 
 
 def test_placeholders_refuse_when_photos_confirmed(layout, tmp_path):

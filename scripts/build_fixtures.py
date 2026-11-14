@@ -12,12 +12,12 @@ What it writes (design.md "데모 데이터 파일"):
 - ``fixtures/weather.json``: one entry per photo with the temperature from the
   design table ``TEMPERATURES`` plus derived apparent temperature, humidity,
   wind and precipitation, and ``today_default`` (9.0°C).
-- ``fixtures/vision.json``: ``{sha256: ClothingTags}`` for every photo. Tag values
-  were written by looking at each photo (``TAGS``). The 20 non-outfit JPGs get
-  the same value as ``UNKNOWN_TAGS``.
+- ``fixtures/vision.json``: ``{sha256: VisionAnalysis}`` for every photo. Values
+  were written by looking at each photo (``TAGS``). The 20 non-outfit JPGs are
+  labeled ``non_outfit`` and carry ``UNKNOWN_TAGS``.
 
 ``--check`` validates the written files instead of building them: sidecars
-against ``SidecarMetadata``, vision entries against ``ClothingTags``, the
+against ``SidecarMetadata``, vision entries against ``VisionAnalysis``, the
 temperature rules T1-T6, and the expected outcome of each demo scenario.
 
 The script is deterministic: running it twice produces identical files.
@@ -405,6 +405,21 @@ def tags_for(stem: str) -> dict:
     raise KeyError(f"no hand-checked tags for {stem}")
 
 
+def vision_analysis_for(stem: str) -> dict:
+    tags = tags_for(stem)
+    is_non_outfit = stem in NON_OUTFIT
+    return {
+        "photo_type": "non_outfit" if is_non_outfit else "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": (
+            "No person with a visible outfit."
+            if is_non_outfit
+            else "A person with visible clothing is the main subject."
+        ),
+        "tags": tags,
+    }
+
+
 def sha256_of(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as fh:
@@ -582,7 +597,7 @@ def build(photo_dir: Path, fixtures_dir: Path) -> None:
         digest = sha256_of(photo)
         if digest in vision:
             raise SystemExit(f"duplicate SHA-256 for {photo.name}")
-        vision[digest] = tags_for(photo.stem)
+        vision[digest] = vision_analysis_for(photo.stem)
     _write_json(fixtures_dir / "vision.json", vision)
 
     _write_json(SCENARIOS_PATH, {"scenarios": SCENARIOS})
@@ -612,7 +627,7 @@ def _reference_recommend(today: float, rows: list[dict], tolerance: Decimal = De
 
 def check(photo_dir: Path, fixtures_dir: Path) -> int:
     sys.path.insert(0, str(REPO_ROOT / "backend"))
-    from app.domain import ClothingTags, SidecarMetadata  # noqa: PLC0415
+    from app.domain import SidecarMetadata, VisionAnalysis  # noqa: PLC0415
 
     problems: list[str] = []
     photos = list_photos(photo_dir)
@@ -659,12 +674,15 @@ def check(photo_dir: Path, fixtures_dir: Path) -> int:
             problems.append(f"vision.json missing {photo.name}")
             continue
         try:
-            tags = ClothingTags.model_validate(vision[digest])
+            analysis = VisionAnalysis.model_validate(vision[digest])
         except Exception as exc:  # noqa: BLE001
-            problems.append(f"invalid tags for {photo.name}: {exc}")
+            problems.append(f"invalid vision analysis for {photo.name}: {exc}")
             continue
-        if photo.stem in NON_OUTFIT and tags.model_dump() != UNKNOWN_TAGS:
-            problems.append(f"non-outfit {photo.name} is not UNKNOWN_TAGS")
+        if photo.stem in NON_OUTFIT:
+            if analysis.photo_type != "non_outfit" or analysis.tags.model_dump() != UNKNOWN_TAGS:
+                problems.append(f"non-outfit {photo.name} has invalid analysis")
+        elif analysis.photo_type != "outfit":
+            problems.append(f"outfit {photo.name} is not labeled outfit")
     if len(vision) != len(photos):
         problems.append(f"vision.json has {len(vision)} entries for {len(photos)} photos")
 

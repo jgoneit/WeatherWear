@@ -16,7 +16,9 @@ from sqlmodel import Session, select
 from app.db import (
     Feedback,
     Outfit,
+    PhotoAnalysisRow,
     WeatherSnapshot,
+    backfill_photo_analyses,
     create_db_engine,
     from_iso,
     migrate_legacy_garment_types,
@@ -111,6 +113,29 @@ def test_migrates_legacy_garment_categories_idempotently(engine) -> None:
     assert (unknown.upper_type, unknown.outer_type, unknown.lower_type) == (
         "unknown", "unknown", "unknown"
     )
+
+
+def test_backfills_photo_type_and_excludes_unknown_legacy_evidence(engine) -> None:
+    add_outfit(engine, sha="d" * 64)
+    add_outfit(
+        engine,
+        sha="e" * 64,
+        upper_type="unknown",
+        outer_type="unknown",
+        lower_type="unknown",
+        colors_json="[]",
+        layers_visible=0,
+        vision_confidence=0.0,
+    )
+
+    assert backfill_photo_analyses(engine) == 2
+    assert backfill_photo_analyses(engine) == 0
+
+    with Session(engine) as session:
+        rows = session.exec(select(PhotoAnalysisRow).order_by(PhotoAnalysisRow.id)).all()
+    by_sha = {row.sha256: json.loads(row.analysis_json) for row in rows}
+    assert by_sha["d" * 64]["photo_type"] == "outfit"
+    assert by_sha["e" * 64]["photo_type"] == "uncertain"
 
 
 def test_pragmas_on_every_connection(engine) -> None:

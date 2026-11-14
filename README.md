@@ -1,72 +1,169 @@
 # WeatherWear
 
-WeatherWear는 저장해 둔 착장 사진에 촬영 당시 날씨를 붙여 두고, 오늘과 기온이 비슷했던 날의 과거 착장을 그때 남긴 체감 피드백(추웠어 / 적당했어 / 더웠어)으로 가중해 추천하는 모바일 브라우저용 웹 앱이다. Kirothon 6시간 데모용 Phase 1(MVP)이며, 머신러닝 없이 규칙 기반 추천(`rule_based_v1`)만 쓴다.
+아침마다 "오늘 뭐 입지?"를 기온 숫자만 보고 고르다 춥거나 덥게 입는 사람에게, 내가 예전에 비슷한 기온에서 실제로 입었던 옷과 그날의 체감("추웠어 / 적당했어 / 더웠어")을 보여 주는 모바일 브라우저용 착장 추천 웹 앱이다.
 
-- 백엔드: FastAPI + SQLModel + SQLite (`backend/`)
-- 프론트엔드: React + Vite + TypeScript + Tailwind v4 (`frontend/`)
-- 데모 데이터: `data/demo/` (사이드카 메타데이터, 시나리오, fixture)
-- 보조 스크립트: `scripts/`
+**Demo:** TODO(팀): 데모 영상 링크
 
-기본 설정은 Fixture 모드라서 API 키와 외부 네트워크 없이 기동, 스캔, 추천, 피드백, 테스트가 모두 동작한다.
+---
 
-라이선스: [LICENSE](LICENSE) (MIT)
+## 1. 문제 정의
 
-## 요구 환경
+### 대상 사용자
+날씨 앱의 기온을 보고 매일 아침 옷을 고르는 사람. 휴대폰 갤러리에 그날 입은 착장 사진(거울 셀카 등)이 쌓여 있지만, 그 사진을 옷 고르기에 다시 쓰지는 않는 사람.
 
-- Python 3.10 이상 (개발·검증 환경: Python 3.14.8)
-- Node.js와 npm (개발·검증 환경: Node 26.12.1, npm 11.20.0)
+### 문제 상황
+아침에 옷을 고를 때(상황) 날씨 앱은 "14°C"라는 숫자만 알려 주고, 내가 14°C에 무엇을 입었을 때 춥거나 더웠는지는 알려 주지 않는다. 그래서 같은 실수를 반복해 하루 종일 춥거나 덥게 지낸다(불편). 과거 착장 사진은 갤러리에 있지만 사진마다 그날 날씨가 붙어 있지 않아, 비슷한 기온의 날을 찾아볼 수 없다.
 
-## 백엔드 실행
+### 기존 방식과 한계
+- 날씨 앱의 일반적인 기온별 옷차림 표: 모든 사람에게 같은 답이라 추위·더위를 타는 정도 같은 개인 차이를 반영하지 못한다.
+- 갤러리를 직접 넘겨 보기: 사진에 날씨 정보가 없어 "비슷한 기온이었던 날"을 찾을 수 없고, 그 옷이 그날 적당했는지도 기록되어 있지 않다.
+- 옷장 관리 앱: 옷을 하나씩 수동으로 등록해야 해서 계속 쓰기 번거롭다.
 
-처음 한 번 가상 환경을 만들고 의존성을 설치한다.
+### 근거
+- 레포에 사용자 설문이나 통계 자료는 없다. TODO(팀): 직접 조사한 근거(설문 응답 수, 인터뷰 등)가 있으면 숫자와 출처를 적는다.
+- 이 프로젝트가 검증하려는 가설(`.kiro/specs/weatherwear/requirements.md` Introduction): "머신러닝 없이도, 과거 실제 경험과 유사 기온 검색을 결합하면 일반적인 기온 기반 추천보다 유용하다."
+
+### 목표
+- 이미 찍어 둔 착장 사진만으로, 오늘과 기온이 비슷했던 날(기본 ±3.0°C)의 내 착장과 그때의 체감을 한 화면에 보여 준다.
+- 사용자가 하는 일을 체감 피드백 버튼 한 번으로 줄인다. 옷 등록이나 날씨 입력은 하지 않는다.
+- (Phase 2 계획) 새 사진 감지와 아침 알림까지 자동으로 해서, 앱을 열지 않아도 추천을 받게 한다.
+
+---
+
+## 2. 핵심 기능
+
+Phase 1(MVP)은 구현과 테스트를 마쳤다. Phase 2는 spec만 완료했고 구현 예정이다.
+
+| 기능 | 해결하는 불편 | 코드 위치 |
+|---|---|---|
+| 사진 폴더 스캔과 수집 (확장자·크기·디코딩 검증, SHA-256 중복 제거, 재스캔 멱등) | 갤러리 사진을 하나씩 등록하는 수고 | `backend/app/ingestion/service.py`, `backend/app/ingestion/image_check.py` |
+| 사진 분류 게이트 (착장 / 비착장 / 불확실, 신뢰도 0.70 미만은 불확실) | 음식·풍경 같은 착장 아닌 사진이 추천에 섞이는 문제 | `backend/app/providers/vision/`, `backend/app/ingestion/service.py` |
+| 의류 태그 추출 (Gemini Vision 또는 Fixture) | 옷 종류를 직접 입력하는 수고 | `backend/app/providers/vision/gemini.py`, `backend/app/providers/vision/fixture.py` |
+| 내장 EXIF 촬영 시각·위치 읽기 (사이드카 JSON은 선택적 대체) | 사진마다 언제·어디서 찍었는지 적는 수고 | `backend/app/ingestion/metadata.py`, `backend/app/ingestion/sidecar.py` |
+| 촬영 시점 날씨 연결 (Open-Meteo Archive 또는 기록된 Fixture) | 과거 사진에 그날 날씨가 없는 문제 | `backend/app/providers/weather/open_meteo.py`, `backend/app/providers/weather/fixture.py`, `backend/app/providers/weather/normalize.py` |
+| 오늘 날씨와 데모 시나리오 (쌀쌀한 아침, 기록적 한파, 때 이른 무더위, 기록적 폭염) | 오늘 기온 기준을 정하는 일 | `backend/app/today_weather.py`, `backend/app/api/weather.py` |
+| 유사 기온 추천 `rule_based_v1` (±3.0°C, 후보 부족 시 5.0°C 1회 확장, 피드백 가중 점수, 설명 문장, 신뢰도) | 숫자만 보고 옷을 고르는 문제 | `backend/app/recommendation/rule_based_v1.py`, `backend/app/recommendation/explain.py`, `backend/app/recommendation/service.py` |
+| 체감 피드백 원클릭 저장과 즉시 재추천 | 그 옷이 그날 적당했는지 기록이 없는 문제 | `backend/app/feedback.py`, `backend/app/api/outfits.py`, `frontend/src/components/FeedbackButtons.tsx`, `frontend/src/components/NotificationCard.tsx` |
+| 모바일 홈(오늘 날씨, 알림 카드, 추천), 기록 그리드, 상세 화면 | 과거 착장을 날씨와 함께 다시 보기 | `frontend/src/pages/HomePage.tsx`, `frontend/src/pages/HistoryPage.tsx`, `frontend/src/pages/OutfitDetailPage.tsx` |
+| 데모 관리 화면 (상태 확인, 폴더 스캔, 시나리오 선택) | 발표 중 데이터 준비 | `frontend/src/pages/DemoPage.tsx`, `backend/app/api/demo.py` |
+| Vision 정확도 평가 도구 (opt-in) | 분류·태그 품질을 숫자로 확인 | `backend/app/evaluation/`, `scripts/evaluate_vision.py`, `data/eval/`, `docs/evaluation.md` |
+| Docker Compose 실행 | 설치 없이 한 번에 실행 | `compose.yaml`, `backend/Dockerfile`, `frontend/Dockerfile` |
+| **계획(spec 완료, 구현 예정)** 새 사진 자동 감지: 갤러리 역할 폴더에 새 사진이 생기면 버튼 없이 분석·저장 | 사진을 찍을 때마다 스캔 버튼을 누르는 수고 | `.kiro/specs/weatherwear-automation/` (아직 코드 없음) |
+| **계획(spec 완료, 구현 예정)** 매일 위치 기반 Web Push 브리핑: 정해진 시각에 현재 위치의 기온·습도와 비슷했던 날의 착장·체감을 알림 | 앱을 열어야만 추천을 볼 수 있는 문제 | `.kiro/specs/weatherwear-automation/` (아직 코드 없음) |
+
+## 3. 사용 시나리오
+
+1. 사용자가 착장 사진이 든 폴더를 앱에 연결하고 "폴더 스캔"을 누른다. 앱은 착장 사진만 골라 옷 태그를 뽑고, 사진의 촬영 시각·위치로 그날 날씨를 붙여 기록한다(데모 사진 189장 기준: 착장 154, 비착장 20, 불확실 15).
+2. 아침에 홈 화면을 열면 오늘 기온(예: 쌀쌀한 아침 9.0°C)과 함께, 기온 차이 3.0°C 이내였던 날의 내 착장 추천 5개와 근거("과거에 적당했음" 등)가 보인다.
+3. 알림 카드에서 어제 입은 옷에 대해 "🥶 추웠어 / 😊 적당했어 / 🥵 더웠어" 중 하나를 누른다. 확인 단계 없이 저장된다.
+4. 추천이 새로고침 없이 다시 계산된다. "더웠어"를 받은 착장은 점수가 내려가 순위가 바뀐다.
+5. "기록" 탭에서 과거 착장을 촬영 시각 순으로 보고, 상세 화면에서 그날 날씨와 체감 기록을 확인한다.
+6. (Phase 2 계획) 새로 찍은 사진은 자동으로 기록에 들어가고, 매일 아침 정해진 시각에 "오늘 서울 14.5°C, 습도 55%. 비슷했던 14.4°C 날 크림 니트를 입고 '적당했어'라고 했어요" 같은 알림을 받는다.
+
+## 4. 기대 효과
+
+아래는 측정 결과가 아니라 **목표와 가설**이다. 레포에 사용자 대상 측정 데이터는 없다.
+
+- (목표) 옷 고르기에 필요한 사용자 입력: 옷 등록 0건, 날씨 입력 0건, 체감 피드백 버튼 1회.
+- (가설) 개인의 과거 경험(유사 기온 착장 + 체감)을 쓰면, 모든 사람에게 같은 기온별 옷차림 표보다 춥거나 덥게 입는 날이 줄어든다.
+- (목표, Phase 2) 처음 한 번 알림·위치 권한을 허용하고 설정을 켠 뒤에는, 사진 등록과 추천 확인에 버튼을 누르지 않는다.
+- 레포로 확인할 수 있는 현재 수치: 데모 사진 189장(저장소에 포함된 생성 착장 15장 포함), 유사 기온 허용 오차 ±3.0°C, 데모 날씨 시나리오 4개, 데모 시나리오 −12.0°C ~ 38.0°C에서 각각 추천 5개.
+- TODO(팀): 사용자 테스트를 했다면 "춥거나 덥게 입은 날 비율" 같은 측정값을 숫자와 단위로 적는다.
+
+## 5. 차별점
+
+- **내 사진, 내 체감 기준**: 일반적인 기온별 옷차림 표가 아니라, 내가 비슷한 기온에서 실제로 입었던 옷과 그날 남긴 체감으로 순위를 매긴다.
+- **입력 부담이 거의 없음**: 옷장 앱처럼 옷을 하나씩 등록하지 않는다. 이미 있는 사진의 EXIF와 기록 날씨(Open-Meteo Archive)로 자동으로 날씨를 붙인다.
+- **설명 가능한 규칙 기반 추천**: 머신러닝 없이 `rule_based_v1`로 점수와 근거 문장을 보여 준다. 추천 전략은 `RecommendationStrategy` 인터페이스로 분리되어 나중에 학습 기반 전략으로 바꿀 수 있다(`backend/app/recommendation/base.py`, `factory.py`).
+- **착장 사진만 고르는 분류 게이트**: 갤러리에 섞인 음식·풍경 사진을 추천에서 뺀다.
+- **API 키 없이 동작하는 Fixture 모드**: 외부 호출 0건으로 기동, 스캔, 추천, 피드백, 테스트가 모두 재현된다.
+
+---
+
+## 6. 설치와 실행
+
+요구 환경: Python 3.10 이상, Node.js와 npm. 기본은 Fixture 모드라 API 키가 필요 없다. 자세한 설정은 아래 [부록](#부록)을 본다.
 
 ```bash
+# 1. 의존성 설치
 cd backend
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-```
-
-서버 실행(`backend/`에서):
-
-```bash
-.venv/bin/uvicorn app.main:app --port 8000
-```
-
-- 설정은 저장소 루트의 `.env`에서 읽는다. 백엔드를 `backend/`에서 실행해도 루트 `.env`를 읽는다.
-- `PHOTO_DIR`, `DATABASE_URL`의 상대 경로는 저장소 루트 기준으로 해석한다. 기본 DB 파일은 `data/weatherwear.db`이고 기동 시 자동으로 만든다.
-- 동작 확인: `http://localhost:8000/api/meta`가 `{"app_timezone":"Asia/Seoul","algorithm_version":"rule_based_v1",...}`를 반환한다. API 문서는 `http://localhost:8000/docs`에 있다.
-
-## 프론트엔드 실행
-
-```bash
-cd frontend
+cd ../frontend
 npm ci
-VITE_API_BASE_URL=http://localhost:8000 npm run dev
+
+# 2. 실행 (터미널 두 개)
+# 백엔드: http://localhost:8000/api/meta, API 문서 http://localhost:8000/docs
+cd backend && .venv/bin/uvicorn app.main:app --port 8000
+# 프론트엔드: 브라우저에서 http://localhost:5173 (개발자 도구 기기 모드 360~430px 권장)
+cd frontend && VITE_API_BASE_URL=http://localhost:8000 npm run dev
 ```
 
-- 브라우저에서 `http://localhost:5173`을 연다. 휴대폰 크기로 보려면 개발자 도구의 기기 모드(360~430px)를 쓴다.
-- Vite는 `frontend/` 폴더의 env 파일만 읽고 저장소 루트 `.env`는 읽지 않는다. 매번 변수를 붙이기 싫으면 `frontend/.env.local`에 `VITE_API_BASE_URL=http://localhost:8000` 한 줄을 넣는다(`*.local`은 git에서 제외된다). 값이 없으면 프론트엔드는 같은 출처(`localhost:5173`)로 요청하므로 API 호출이 실패한다.
-- 데모 관리 화면(`/demo`)과 하단 "데모" 탭은 `npm run dev`(개발 모드)에서만 보인다.
-
-## Docker Compose 실행
-
-백엔드, 프론트엔드, 데이터 볼륨을 한 번에 실행한다. 기본은 Fixture 모드라 API 키가 필요 없다.
+Docker Compose로 한 번에 실행할 수도 있다.
 
 ```bash
-docker compose up --build        # 빌드 후 실행. -d를 붙이면 백그라운드, --wait를 붙이면 health check 통과까지 대기
+docker compose up --build        # 백엔드 :8000, 프론트엔드 :5173
 docker compose ps                # 두 서비스가 (healthy)여야 한다
-curl localhost:8000/api/meta     # 백엔드 확인. 프론트엔드는 http://localhost:5173
 docker compose down              # 종료. SQLite 볼륨(db-data)은 유지한다
-docker compose down -v           # 종료와 함께 DB 볼륨 삭제
 ```
 
-- 백엔드(`backend/Dockerfile`)와 프론트엔드(`frontend/Dockerfile`)는 멀티스테이지 빌드이고 비루트 사용자로 실행한다. 백엔드는 `/api/meta`, 프론트엔드는 `/healthz`로 health check 한다.
-- SQLite는 이름 있는 볼륨 `db-data`(`/data/db`)에 저장한다. 사진 폴더는 호스트의 `./data/demo/photos`를 `/data/photos`에 읽기 전용으로 마운트한다. 사진이 없으면 스캔 결과가 0건이다(`scripts/prepare_demo_photos.py`로 먼저 복사). 다른 폴더를 쓰려면 `PHOTO_HOST_DIR=/절대/경로`를 지정한다.
-- Gemini live 모드: 호스트 환경 변수 또는 `.env`에 `GEMINI_API_KEY`를 두고 `VISION_PROVIDER=gemini docker compose up --build`로 실행한다. 키는 컨테이너 실행 시 환경 변수로만 전달하며 이미지 레이어에 들어가지 않는다. 키를 `--build-arg`로 넘기지 않는다.
-- 호스트 포트가 사용 중이면 `BACKEND_PORT`, `FRONTEND_PORT`로 바꾼다. 백엔드 포트를 바꾸면 브라우저가 호출할 주소도 빌드 시점에 맞춰야 하므로 `BACKEND_PORT=8010 VITE_API_BASE_URL=http://localhost:8010 docker compose up --build`처럼 함께 지정한다.
-- 이미지에 키가 없는지 확인: `docker history --no-trunc weatherwear-backend | grep -c "$GEMINI_API_KEY"`가 0이어야 한다.
+- 설정은 루트 `.env`에서 읽는다. `.env.example`을 복사해 쓴다. Live 모드(`VISION_PROVIDER=gemini`, `WEATHER_PROVIDER=open_meteo`)와 API 키 설정은 부록을 본다.
+- 데모 사진: 저장소에 생성 착장 15장이 들어 있어 바로 한파·무더위·폭염 추천을 볼 수 있다. 전체 189장 준비 방법은 부록 "데모 사진 준비"를 본다.
 
-## 환경 변수
+## 7. 테스트
+
+```bash
+# 백엔드 (pytest)
+cd backend && .venv/bin/python -m pytest -q
+
+# 프론트엔드 (vitest, 타입 검사, 번들 비밀값 검사)
+cd frontend
+npx vitest --run
+npm run typecheck
+npm run check:bundle
+```
+
+- 통과 기준: 모든 명령이 실패 0건으로 끝나고 종료 코드가 0이다.
+- 테스트는 API 키와 외부 네트워크 없이 돈다. Open-Meteo는 `respx`, Gemini는 가짜 클라이언트로 대체한다.
+- 기존 README에 기록된 결과(데모 사진 159장 준비 상태): 백엔드 489 passed, 프론트엔드 11개 파일 90 tests passed. 이번 문서 갱신에서는 테스트를 다시 실행하지 않았다.
+- 5분 데모 흐름은 `backend/tests/test_integration.py`의 `test_five_minute_demo_walkthrough`가 같은 순서로 API를 호출해 확인한다.
+- Vision 정확도 평가(opt-in): `python scripts/evaluate_vision.py`, 자세한 내용은 [docs/evaluation.md](docs/evaluation.md).
+
+---
+
+## 팀
+
+- **팀 번호:** team-020 (레포 `jgoneit/kirothon-020`)
+- **팀명:** TODO(팀): 팀명
+
+| 이름 | 역할 |
+|---|---|
+| TODO(팀): 이름 | TODO(팀): 역할 |
+
+---
+
+## 부록
+
+아래는 기존 README의 자세한 기술 내용이다.
+
+### 기술 구성
+
+- 백엔드: FastAPI + SQLModel + SQLite (`backend/`)
+- 프론트엔드: React + Vite + TypeScript + Tailwind v4 (`frontend/`)
+- 데모 데이터: `data/demo/` (사진 목록, 시드 투표 사이드카, 시나리오, fixture)
+- 보조 스크립트: `scripts/`
+- Kiro spec: `.kiro/specs/weatherwear/`(Phase 1), `.kiro/specs/weatherwear-automation/`(Phase 2 계획)
+- 라이선스: [LICENSE](LICENSE) (MIT)
+
+### 실행 세부 사항
+
+- 백엔드를 `backend/`에서 실행해도 루트 `.env`를 읽는다. `PHOTO_DIR`, `DATABASE_URL`의 상대 경로는 저장소 루트 기준이다. 기본 DB 파일은 `data/weatherwear.db`이고 기동 시 자동으로 만든다.
+- Vite는 `frontend/` 폴더의 env 파일만 읽는다. 매번 변수를 붙이기 싫으면 `frontend/.env.local`에 `VITE_API_BASE_URL=http://localhost:8000`을 넣는다. 값이 없으면 API 호출이 실패한다.
+- 데모 관리 화면(`/demo`)과 하단 "데모" 탭은 `npm run dev`(개발 모드)에서만 보인다.
+- Docker: 백엔드·프론트엔드 이미지는 멀티스테이지 빌드이고 비루트 사용자로 실행한다. 사진 폴더는 호스트의 `./data/demo/photos`를 읽기 전용으로 마운트한다(다른 폴더는 `PHOTO_HOST_DIR`). 포트는 `BACKEND_PORT`, `FRONTEND_PORT`로 바꾼다. 백엔드 포트를 바꾸면 `VITE_API_BASE_URL`도 함께 지정한다. Gemini live 모드는 `VISION_PROVIDER=gemini docker compose up --build`로 실행하며, 키는 실행 시 환경 변수로만 전달하고 `--build-arg`로 넘기지 않는다.
+- 참고: Phase 1 구현 뒤 사용자 결정으로 Gemini 호출은 Google Cloud Agent Platform API(express mode, API 키 인증)로, 촬영 시각·위치는 내장 EXIF 우선으로, Fixture 날씨는 Open-Meteo에서 기록한 값으로 바뀌었다(`.kiro/specs/weatherwear/requirements.md` "Phase 1 구현 후 변경 사항"). 아래 일부 문장은 변경 전 README 그대로라 사이드카 기준으로 적혀 있다.
+
+### 환경 변수
 
 루트의 `.env.example`을 `.env`로 복사해 쓴다. 우선순위는 프로세스 환경 변수 > 루트 `.env` > 아래 기본값이다. 설정은 서버 기동 시 한 번 읽으므로 바꾼 뒤에는 서버를 다시 시작한다.
 
@@ -87,7 +184,7 @@ docker compose down -v           # 종료와 함께 DB 볼륨 삭제
 
 잘못된 값(허용 목록 밖 provider 이름, 범위 밖 숫자 등)은 기동을 막지 않는다. 로그에 변수 이름과 허용값만 남기고 기본값을 쓴다.
 
-## API 키 설정
+### API 키 설정
 
 1. 루트 `.env`에 `GEMINI_API_KEY=<발급받은 키>`와 `VISION_PROVIDER=gemini`를 적는다.
 2. 키는 루트 `.env`에만 둔다. `.env`는 `.gitignore`에 들어 있어 커밋되지 않는다. `.env.example`의 `GEMINI_API_KEY`는 빈 값으로 둔다.
@@ -96,7 +193,7 @@ docker compose down -v           # 종료와 함께 DB 볼륨 삭제
 
 백엔드는 키를 로그, 오류 메시지, API 응답에 출력하지 않는다. 데모 관리 화면에는 "설정됨" 또는 "미설정"만 보인다. `VISION_PROVIDER=gemini`인데 키나 모델이 비어 있으면 누락된 변수 이름만 로그에 남기고 Fixture Vision으로 기동한다.
 
-## Fixture 모드와 Live 모드 전환
+### Fixture 모드와 Live 모드 전환
 
 | 모드 | 설정 | 동작 |
 |---|---|---|
@@ -108,7 +205,7 @@ docker compose down -v           # 종료와 함께 DB 볼륨 삭제
 
 이미 스캔한 사진은 같은 SHA-256 해시라 다시 분석하지 않는다(duplicate). Fixture로 스캔한 DB에서 Live Vision으로 바꿔도 기존 태그는 그대로다. Live 결과를 보려면 `DATABASE_URL=sqlite:///./data/weatherwear-live.db`처럼 새 DB 파일을 지정한다.
 
-## 데모 사진 준비
+### 데모 사진 준비
 
 기존 개인 사진(`ex_img/`, `data/demo/photos/`의 174장)은 git에 올리지 않는다. 이번에 생성한 가상 인물 착장 15장(141~155번, 약 43MB)은 저장소에 포함되어 별도 다운로드 없이 사용할 수 있다. 저장소에는 사진별 사이드카(`data/demo/photos/*.metadata.json`), 목록(`data/demo/photos.manifest.json`), fixture(`data/demo/fixtures/`), 시나리오(`data/demo/scenarios.json`)만 들어 있다.
 
@@ -123,14 +220,14 @@ docker compose down -v           # 종료와 함께 DB 볼륨 삭제
 
 권한이 확인된 사진이 0장일 때만 `backend/.venv/bin/python scripts/make_placeholders.py`로 플레이스홀더 8장과 사이드카, vision fixture를 만든다. 확인된 사진이 있으면 이 스크립트는 실행을 거부한다. 현재 데모는 플레이스홀더를 쓰지 않는다.
 
-### 사진 출처와 사용 권한
+#### 사진 출처와 사용 권한
 
 - 기존 174장은 프로젝트 소유자가 제공했고 manifest에 사용 권한이 확인되어 있다. 126~140번 15장은 착장·날씨 fixture가 아직 없다.
 - 추가한 141~155번 15장은 사용자 요청으로 OpenAI image_gen에서 생성한 가상 성인 인물의 착장이다. 한파·무더위·폭염용으로 각각 5장씩이며, 생성 프롬프트·SHA-256·출처를 `data/demo/generated_outfits.json`에 보관한다.
 - 생성 사진의 촬영 날짜·위치·기온은 데모를 위해 작성한 가상 데이터다. 실제 관측값이나 착용자의 체감 경험을 뜻하지 않으며, 체감 피드백은 미리 넣지 않았다. 기존 live 평가용 `data/eval/labels.json`에는 추가하지 않았다.
 - JPG 40장 중 20장은 착장이 아닌 사진으로, 추천에서 제외된다.
 
-## 5분 데모 절차 (Fixture 모드, API 키 없음)
+### 5분 데모 절차 (Fixture 모드, API 키 없음)
 
 이 절차는 `backend/tests/test_integration.py`의 `test_five_minute_demo_walkthrough`가 같은 순서로 API를 호출해 확인한다.
 
@@ -154,7 +251,7 @@ docker compose down -v           # 종료와 함께 DB 볼륨 삭제
 
 "기록적 한파"(−12.0°C), "때 이른 무더위"(30.0°C), "기록적 폭염"(38.0°C)에서도 각각 기온 차이 3.0°C 이내의 추천 5개가 나온다. 범위 확장·데이터 부족 동작은 독립적인 합성 데이터 단위 테스트로 검증한다.
 
-## 데이터와 제공자에 관한 사실
+### 데이터와 제공자에 관한 사실
 
 - **촬영 시각과 위치**: 실제 EXIF가 아니라 사진마다 같은 이름의 `*.metadata.json` 사이드카(가상 메타데이터)에서 읽는다. 수집 서비스는 EXIF를 읽지 않는다. 화면에는 "가상 데이터" 라벨이 붙는다.
 - **Fixture 날씨**: Fixture 모드의 날씨는 `data/demo/fixtures/weather.json`의 고정 값이다. 사진별 기온은 착장 단서와 촬영 날짜로 정한 값이며 실제 관측값이 아니다. 화면에는 "fixture" 배지가 붙는다.
@@ -165,7 +262,7 @@ docker compose down -v           # 종료와 함께 DB 볼륨 삭제
 - **Live Vision은 끝까지 검증하지 못했다**: 실제 사진으로 보낸 Gemini 분석 요청은 HTTP 402(선불 크레딧 소진)로 실패해, Live 모드의 태그 추출 결과는 확인하지 못했다. Gemini 경로는 가짜 클라이언트를 쓰는 pytest로만 검증했다.
 - **Live 모드 첫 스캔**: 159장을 처음 스캔하면 Gemini를 159회 호출한다. 데모 관리 화면은 30초가 지나면 실패로 표시하지만 서버 스캔은 끝까지 진행된다. 발표 전에 미리 한 번 스캔해 두면 발표 중 재스캔은 모두 중복으로 처리되어 바로 끝난다.
 
-## 테스트
+### 테스트 세부 사항
 
 비전 정확도 평가(실제 사진 기반, opt-in)는 [docs/evaluation.md](docs/evaluation.md)를 본다. `python scripts/evaluate_vision.py`가 Fixture로 파이프라인을 점검하고, `--provider gemini`는 키가 있을 때만 live로 측정한다.
 
@@ -190,16 +287,16 @@ npm run check:bundle
 - 이 README 작성 시점 결과(데모 사진 159장 준비 상태): 백엔드 489 passed, 프론트엔드 11개 파일 90 tests passed, typecheck 오류 0, check:bundle OK.
 - 데모 사진이 없으면 사진을 쓰는 테스트 일부(`test_integration.py`의 3개 등)는 skip된다. 단, 현재 `tests/test_api_routes.py::test_demo_data_end_to_end`와 `tests/test_image_check.py::test_all_demo_photos_pass_check_image`는 사이드카만 있고 사진이 없는 상태(새로 클론한 직후)에서 skip되지 않고 실패한다. 전체 통과를 확인하려면 먼저 데모 사진을 준비한다.
 
-## 의존성 고정
+### 의존성 고정
 
 `backend/requirements.txt`와 `frontend/package.json`의 직접 의존성은 모두 `==`(npm은 정확한 버전)으로 고정했고, 위 테스트가 통과한 버전이다. 설계 문서의 후보 버전과 다른 점은 다음과 같다.
 
 - TypeScript는 7.0.2 대신 5.9.3을 쓴다. `openapi-typescript` 7.13.0의 peer 의존성 범위가 TypeScript `^5.x`이기 때문이다.
 - `sqlalchemy`(2.1.8)와 `starlette`(1.10.0)는 `sqlmodel`·`fastapi`의 전이 의존성이지만 앱 코드가 직접 import하므로 직접 의존성으로 고정했다.
 
-## 기능 상태
+### 기능 상태
 
-### 완료 (pytest/vitest 통과 또는 5분 데모에서 재현)
+#### 완료 (pytest/vitest 통과 또는 5분 데모에서 재현)
 
 - 사진 폴더 스캔: 확장자 필터, 20MB 제한, 이미지 디코딩 검증, SHA-256 중복 제거, 재스캔 멱등성, 파일 단위 실패 집계, 스캔 중복 실행 거부(409)
 - 사이드카 메타데이터 파싱·검증과 `demo_seed` 체감 피드백 저장
@@ -213,7 +310,7 @@ npm run check:bundle
 - 설정 로더(기본값 대체, 잘못된 값 로그)와 API 키 마스킹, 번들 비밀값 검사
 - 모바일 웹: 홈(오늘 날씨, 알림 카드, 추천), 기록 그리드, 상세, 데모 관리 화면(vitest smoke 테스트와 5분 데모 절차)
 
-### 미완료 또는 미검증
+#### 미완료 또는 미검증
 
 - Live Gemini Vision 분석: HTTP 402(선불 크레딧 소진)로 실제 응답을 확인하지 못했다.
 - Live Open-Meteo 호출: `respx`로 응답 형태만 테스트했고, 실제 네트워크 호출 결과는 이 README 작성 시점에 확인 기록이 없다.
@@ -223,7 +320,7 @@ npm run check:bundle
 - 선택 항목(`tasks.md`에서 `*` 표시)인 property-based test(Hypothesis, fast-check)와 화면별 상세 UI 테스트, 저장소 위생 테스트는 구현하지 않았다. 대신 단위·smoke·통합 테스트가 있다.
 - 사진이 없는 클론에서 테스트 2개가 실패한다(위 "테스트" 절).
 
-## Phase 2 개선 목록
+### Phase 2 개선 목록 (기존 README, 구체화된 계획은 `.kiro/specs/weatherwear-automation/`)
 
 - **실제 갤러리 접근**: 사이드카 대신 사용자 동의를 받은 휴대폰 갤러리 업로드에서 사진과 EXIF 촬영 시각·위치를 읽는다. 위치는 개인정보이므로 저장 범위와 삭제 방법을 함께 설계해야 한다.
 - **Web Push 알림**: 지금의 앱 내부 알림 카드를 Web Push(FCM 등) 실제 알림으로 바꿔, 앱을 열지 않아도 아침에 추천과 체감 기록 버튼을 받게 한다.

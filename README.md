@@ -1,5 +1,9 @@
 # WeatherWear
 
+[![WeatherWear 데모 미리보기 — 클릭하면 전체 영상 열기](docs/demo/WeatherWear-demo-preview.gif)](docs/demo/WeatherWear-demo-edited.mp4)
+
+▶ **[전체 데모 영상 보기 (48초)](docs/demo/WeatherWear-demo-edited.mp4)** · 위 미리보기는 영상의 첫 20초입니다.
+
 WeatherWear는 저장해 둔 착장 사진에 촬영 당시 날씨를 붙여 두고, 오늘과 기온이 비슷했던 날의 과거 착장을 그때 남긴 체감 피드백(추웠어 / 적당했어 / 더웠어)으로 가중해 추천하는 모바일 브라우저용 웹 앱이다. Kirothon 6시간 데모용 Phase 1(MVP)이며, 머신러닝 없이 규칙 기반 추천(`rule_based_v1`)만 쓴다.
 
 - 백엔드: FastAPI + SQLModel + SQLite (`backend/`)

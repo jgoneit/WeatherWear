@@ -48,6 +48,24 @@ VITE_API_BASE_URL=http://localhost:8000 npm run dev
 - Vite는 `frontend/` 폴더의 env 파일만 읽고 저장소 루트 `.env`는 읽지 않는다. 매번 변수를 붙이기 싫으면 `frontend/.env.local`에 `VITE_API_BASE_URL=http://localhost:8000` 한 줄을 넣는다(`*.local`은 git에서 제외된다). 값이 없으면 프론트엔드는 같은 출처(`localhost:5173`)로 요청하므로 API 호출이 실패한다.
 - 데모 관리 화면(`/demo`)과 하단 "데모" 탭은 `npm run dev`(개발 모드)에서만 보인다.
 
+## Docker Compose 실행
+
+백엔드, 프론트엔드, 데이터 볼륨을 한 번에 실행한다. 기본은 Fixture 모드라 API 키가 필요 없다.
+
+```bash
+docker compose up --build        # 빌드 후 실행. -d를 붙이면 백그라운드, --wait를 붙이면 health check 통과까지 대기
+docker compose ps                # 두 서비스가 (healthy)여야 한다
+curl localhost:8000/api/meta     # 백엔드 확인. 프론트엔드는 http://localhost:5173
+docker compose down              # 종료. SQLite 볼륨(db-data)은 유지한다
+docker compose down -v           # 종료와 함께 DB 볼륨 삭제
+```
+
+- 백엔드(`backend/Dockerfile`)와 프론트엔드(`frontend/Dockerfile`)는 멀티스테이지 빌드이고 비루트 사용자로 실행한다. 백엔드는 `/api/meta`, 프론트엔드는 `/healthz`로 health check 한다.
+- SQLite는 이름 있는 볼륨 `db-data`(`/data/db`)에 저장한다. 사진 폴더는 호스트의 `./data/demo/photos`를 `/data/photos`에 읽기 전용으로 마운트한다. 사진이 없으면 스캔 결과가 0건이다(`scripts/prepare_demo_photos.py`로 먼저 복사). 다른 폴더를 쓰려면 `PHOTO_HOST_DIR=/절대/경로`를 지정한다.
+- Gemini live 모드: 호스트 환경 변수 또는 `.env`에 `GEMINI_API_KEY`를 두고 `VISION_PROVIDER=gemini docker compose up --build`로 실행한다. 키는 컨테이너 실행 시 환경 변수로만 전달하며 이미지 레이어에 들어가지 않는다. 키를 `--build-arg`로 넘기지 않는다.
+- 호스트 포트가 사용 중이면 `BACKEND_PORT`, `FRONTEND_PORT`로 바꾼다. 백엔드 포트를 바꾸면 브라우저가 호출할 주소도 빌드 시점에 맞춰야 하므로 `BACKEND_PORT=8010 VITE_API_BASE_URL=http://localhost:8010 docker compose up --build`처럼 함께 지정한다.
+- 이미지에 키가 없는지 확인: `docker history --no-trunc weatherwear-backend | grep -c "$GEMINI_API_KEY"`가 0이어야 한다.
+
 ## 환경 변수
 
 루트의 `.env.example`을 `.env`로 복사해 쓴다. 우선순위는 프로세스 환경 변수 > 루트 `.env` > 아래 기본값이다. 설정은 서버 기동 시 한 번 읽으므로 바꾼 뒤에는 서버를 다시 시작한다.

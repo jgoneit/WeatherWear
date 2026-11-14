@@ -373,6 +373,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629011943
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794634960443
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794635060005
       }
     ],
     "8.1 FeedbackService 구현 (`backend/app/feedback.py`)": [
@@ -584,6 +594,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012014
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794635065495
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794635173598
       }
     ],
     "12.1 Vite + React + TypeScript + Tailwind v4 골격 만들기 (`frontend/`)": [
@@ -778,6 +798,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012093
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794635179458
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794635459154
       }
     ],
     "17.1 Fixture 모드 통합 테스트 작성 (`backend/tests/test_integration.py`)": [
@@ -802,6 +832,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012099
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794634317554
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794634439856
       }
     ],
     "17.4 README 작성 (`README.md`)": [
@@ -809,6 +849,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012101
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794634444939
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794634948121
       }
     ],
     "18. Final checkpoint - 전체 테스트 통과 확인": [
@@ -816,6 +866,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012103
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794635463889
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794635711006
       }
     ],
     "1. 공유 계약과 프로젝트 골격": [
@@ -907,6 +967,13 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794633996543
+      }
+    ],
+    "17. 통합, README, 5분 데모 확인": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794634948125
       }
     ]
   }

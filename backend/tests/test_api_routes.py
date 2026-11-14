@@ -19,6 +19,7 @@ from PIL import Image
 from app.config import AppConfig, resolve_config
 from app.deps import get_today_weather_service, scan_lock
 from app.domain import ClothingTags, VisionAnalysis, WeatherContext
+from app.ingestion.image_check import SUPPORTED_EXTENSIONS
 from app.main import REPO_ROOT, create_app
 from app.providers.vision.fixture import FixtureVisionProvider
 
@@ -318,7 +319,22 @@ def test_export_openapi_script_matches_app(tmp_path: Path) -> None:
 # --- End to end with the real demo data -------------------------------------
 
 
-@pytest.mark.skipif(not DEMO_PHOTO_DIR.is_dir(), reason="demo photos not present")
+def demo_images_present() -> bool:
+    # The sidecar *.metadata.json files are tracked but the photos are
+    # git-ignored, so a fresh clone has the folder without any images.
+    return DEMO_PHOTO_DIR.is_dir() and any(
+        p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
+        for p in DEMO_PHOTO_DIR.iterdir()
+    )
+
+
+@pytest.mark.skipif(
+    not demo_images_present(),
+    reason=(
+        "data/demo/photos has no images (they are git-ignored); "
+        "run scripts/prepare_demo_photos.py to copy the 159 demo photos"
+    ),
+)
 def test_demo_data_end_to_end(tmp_path: Path) -> None:
     config = make_config(tmp_path, PHOTO_DIR=str(DEMO_PHOTO_DIR))
     app = create_app(config)

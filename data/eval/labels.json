@@ -1,0 +1,1120 @@
+{
+  "version": "2026-11-14.1",
+  "description": "Ground-truth labels for the WeatherWear vision evaluation: photo type and the three garment categories (upper/outer/lower). Colors and layer counts are not evaluated.",
+  "labeling": "Hand-checked per photo by the project owner (the same labels scripts/build_fixtures.py uses for the Fixture provider). Rights: only photos with rights_confirmed=true in data/demo/photos.manifest.json are listed.",
+  "items": [
+    {
+      "file": "007_front_natural_laugh_linen.png",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "008_right_smile_cardigan.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "009_threequarter_neutral_green.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "010_front_subtle_surprise_rust.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "011_front_composed_navy.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "012_slight_upward_gaze_grey.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "013_slight_downward_gaze_denim.png",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "shirt_jacket",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "014_warm_indoor_black.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "015_loose_hair_front_cream.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "016_loose_hair_threequarter_black.png",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "017_ponytail_outdoor_white.png",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "018_soft_backlight_sage.png",
+      "photo_type": "outfit",
+      "upper_type": "blouse",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "019_professional_grey_blazer.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "blazer",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "020_over_shoulder_navy.png",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "021_cafe_cream_sweater.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "022_library_blue_cardigan.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "023_park_denim_jacket.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "denim_jacket",
+      "lower_type": "chinos"
+    },
+    {
+      "file": "024_home_white_tee.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "025_street_linen_blouse.png",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "none",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "026_gallery_black_knit.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "027_seaside_striped_shirt.png",
+      "photo_type": "outfit",
+      "upper_type": "long_sleeve_t_shirt",
+      "outer_type": "none",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "028_cafe_loose_hair.png",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "cardigan",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "029_home_blue_oxford.png",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "none",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "030_park_gray_hoodie.png",
+      "photo_type": "outfit",
+      "upper_type": "hoodie",
+      "outer_type": "none",
+      "lower_type": "track_pants"
+    },
+    {
+      "file": "031_library_tan_shirt.png",
+      "photo_type": "outfit",
+      "upper_type": "sleeveless_top",
+      "outer_type": "shirt_jacket",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "032_street_navy_cardigan.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "033_home_sage_sweater.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "034_gallery_white_blouse.png",
+      "photo_type": "outfit",
+      "upper_type": "blouse",
+      "outer_type": "none",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "035_seaside_loose_hair.png",
+      "photo_type": "outfit",
+      "upper_type": "sleeveless_top",
+      "outer_type": "shirt_jacket",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "036_park_beige_jacket.png",
+      "photo_type": "outfit",
+      "upper_type": "sleeveless_top",
+      "outer_type": "jacket",
+      "lower_type": "cargo_pants"
+    },
+    {
+      "file": "037_cafe_rust_cardigan.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "038_street_loose_hair.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "039_home_striped_top.png",
+      "photo_type": "outfit",
+      "upper_type": "long_sleeve_t_shirt",
+      "outer_type": "none",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "040_rainy_street_ochre_jacket.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "rain_jacket",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "041_taupe_blazer_full.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "blazer",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "042_white_shirt_navy_skirt_full.png",
+      "photo_type": "outfit",
+      "upper_type": "blouse",
+      "outer_type": "none",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "043_black_turtleneck_jeans_full.png",
+      "photo_type": "outfit",
+      "upper_type": "turtleneck",
+      "outer_type": "none",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "044_olive_cardigan_pleated_midi_full.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "045_navy_knit_dress_full.png",
+      "photo_type": "outfit",
+      "upper_type": "dress",
+      "outer_type": "none",
+      "lower_type": "none"
+    },
+    {
+      "file": "046_black_evening_midi_full.png",
+      "photo_type": "outfit",
+      "upper_type": "dress",
+      "outer_type": "none",
+      "lower_type": "none"
+    },
+    {
+      "file": "047_beige_trench_trousers_full.png",
+      "photo_type": "outfit",
+      "upper_type": "sleeveless_top",
+      "outer_type": "trench_coat",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "048_charcoal_activewear_full.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "leggings"
+    },
+    {
+      "file": "049_sage_running_jacket_full.png",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "track_jacket",
+      "lower_type": "leggings"
+    },
+    {
+      "file": "050_denim_overshirt_full.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "shirt_jacket",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "051_ivory_linen_trousers_full.png",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "none",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "052_burgundy_sweater_skirt_full.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "053_camel_blazer_seated_knee.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "blazer",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "054_white_tee_denim_skirt_knee.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "055_blue_knit_linen_knee.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "056_forest_green_dress_knee.png",
+      "photo_type": "outfit",
+      "upper_type": "dress",
+      "outer_type": "none",
+      "lower_type": "none"
+    },
+    {
+      "file": "057_black_sport_jacket_knee.png",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "track_jacket",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "058_ivory_blouse_waist.png",
+      "photo_type": "outfit",
+      "upper_type": "blouse",
+      "outer_type": "none",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "059_charcoal_turtleneck_waist.png",
+      "photo_type": "outfit",
+      "upper_type": "turtleneck",
+      "outer_type": "none",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "060_navy_cardigan_waist.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "061_spring_trench_navy_skirt.png",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "trench_coat",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "062_spring_cardigan_denim.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "063_spring_light_jacket_skirt.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "jacket",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "064_summer_linen_trousers.png",
+      "photo_type": "outfit",
+      "upper_type": "blouse",
+      "outer_type": "none",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "065_summer_stripe_midi.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "066_autumn_suede_denim.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "jacket",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "067_autumn_burgundy_skirt.png",
+      "photo_type": "outfit",
+      "upper_type": "blouse",
+      "outer_type": "cardigan",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "068_autumn_utility_casual.png",
+      "photo_type": "outfit",
+      "upper_type": "hoodie",
+      "outer_type": "utility_jacket",
+      "lower_type": "cargo_pants"
+    },
+    {
+      "file": "069_winter_wool_coat_skirt.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "coat",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "070_winter_puffer_denim.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "puffer_jacket",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "071_winter_cream_long_puffer.png",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "long_puffer",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "072_winter_forest_puffer.png",
+      "photo_type": "outfit",
+      "upper_type": "turtleneck",
+      "outer_type": "puffer_jacket",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "073_winter_blue_puffer_skirt.png",
+      "photo_type": "outfit",
+      "upper_type": "hoodie",
+      "outer_type": "puffer_jacket",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "074_winter_burgundy_puffer.png",
+      "photo_type": "outfit",
+      "upper_type": "turtleneck",
+      "outer_type": "puffer_jacket",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "075_winter_cropped_puffer_corduroy.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "short_puffer",
+      "lower_type": "corduroy_pants"
+    },
+    {
+      "file": "076_winter_navy_long_parka.png",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "parka",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "077_spring_denim_cream_trousers.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "denim_jacket",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "078_summer_sage_linen_dress.png",
+      "photo_type": "outfit",
+      "upper_type": "dress",
+      "outer_type": "none",
+      "lower_type": "none"
+    },
+    {
+      "file": "079_autumn_denim_corduroy.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "shirt_jacket",
+      "lower_type": "corduroy_pants"
+    },
+    {
+      "file": "080_rainy_spring_trench.png",
+      "photo_type": "outfit",
+      "upper_type": "long_sleeve_t_shirt",
+      "outer_type": "trench_coat",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "081_hiphop_varsity_baggy_denim.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "varsity_jacket",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "082_grunge_leather_plaid.png",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "leather_jacket",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "083_techwear_cargo_layers.png",
+      "photo_type": "outfit",
+      "upper_type": "hoodie",
+      "outer_type": "rain_jacket",
+      "lower_type": "cargo_pants"
+    },
+    {
+      "file": "084_skater_flannel_board.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "shirt_jacket",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "085_y2k_parachute_pants.png",
+      "photo_type": "outfit",
+      "upper_type": "sleeveless_top",
+      "outer_type": "denim_jacket",
+      "lower_type": "parachute_pants"
+    },
+    {
+      "file": "086_retro_athleisure_track.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "track_jacket",
+      "lower_type": "track_pants"
+    },
+    {
+      "file": "087_tailored_office_suit.png",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "blazer",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "088_preppy_cardigan_pleated.png",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "cardigan",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "089_quiet_luxury_camel_blazer.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "blazer",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "090_monochrome_creative_office.png",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "blazer",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "091_romantic_pastel_date_dress.png",
+      "photo_type": "outfit",
+      "upper_type": "dress",
+      "outer_type": "cardigan",
+      "lower_type": "none"
+    },
+    {
+      "file": "092_vintage_seventies_pleats.png",
+      "photo_type": "outfit",
+      "upper_type": "turtleneck",
+      "outer_type": "none",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "093_bohemian_floral_maxi.png",
+      "photo_type": "outfit",
+      "upper_type": "blouse",
+      "outer_type": "none",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "094_minimalist_knit_dress.png",
+      "photo_type": "outfit",
+      "upper_type": "dress",
+      "outer_type": "coat",
+      "lower_type": "none"
+    },
+    {
+      "file": "095_denim_on_denim_coffee.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "shirt_jacket",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "096_outdoor_hiking_fleece.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "fleece_jacket",
+      "lower_type": "cargo_pants"
+    },
+    {
+      "file": "097_running_athleisure_tie_shoe.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "windbreaker",
+      "lower_type": "leggings"
+    },
+    {
+      "file": "098_canvas_workwear_utility.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "utility_jacket",
+      "lower_type": "chinos"
+    },
+    {
+      "file": "099_evening_velvet_satin.png",
+      "photo_type": "outfit",
+      "upper_type": "dress",
+      "outer_type": "blazer",
+      "lower_type": "none"
+    },
+    {
+      "file": "100_resort_linen_color.png",
+      "photo_type": "outfit",
+      "upper_type": "sleeveless_top",
+      "outer_type": "shirt_jacket",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "101_nineties_colorblock_track.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "track_jacket",
+      "lower_type": "track_pants"
+    },
+    {
+      "file": "102_balletcore_wrap_cardigan.png",
+      "photo_type": "outfit",
+      "upper_type": "cardigan",
+      "outer_type": "none",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "103_cottagecore_gingham.png",
+      "photo_type": "outfit",
+      "upper_type": "dress",
+      "outer_type": "cardigan",
+      "lower_type": "none"
+    },
+    {
+      "file": "104_punk_tartan_trousers.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "blazer",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "105_smart_casual_long_vest.png",
+      "photo_type": "outfit",
+      "upper_type": "blouse",
+      "outer_type": "vest",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "106_eclectic_colorblock_city.png",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "blazer",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "107_rainy_day_sage_trench.png",
+      "photo_type": "outfit",
+      "upper_type": "long_sleeve_t_shirt",
+      "outer_type": "trench_coat",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "108_retro_citypop_casual.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "109_tailored_jumpsuit_evening.png",
+      "photo_type": "outfit",
+      "upper_type": "jumpsuit",
+      "outer_type": "none",
+      "lower_type": "none"
+    },
+    {
+      "file": "110_denim_maxi_street.png",
+      "photo_type": "outfit",
+      "upper_type": "sweatshirt",
+      "outer_type": "none",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "111_colorblock_street_amused.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "bomber_jacket",
+      "lower_type": "cargo_pants"
+    },
+    {
+      "file": "112_office_suit_focused.png",
+      "photo_type": "outfit",
+      "upper_type": "blouse",
+      "outer_type": "blazer",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "113_rain_trench_relief.png",
+      "photo_type": "outfit",
+      "upper_type": "long_sleeve_t_shirt",
+      "outer_type": "trench_coat",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "114_cafe_denim_laugh.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "shirt_jacket",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "115_romantic_skirt_shy_smile.png",
+      "photo_type": "outfit",
+      "upper_type": "blouse",
+      "outer_type": "cardigan",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "116_techwear_alert_focus.png",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "rain_jacket",
+      "lower_type": "cargo_pants"
+    },
+    {
+      "file": "117_hiking_fleece_excited.png",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "fleece_jacket",
+      "lower_type": "cargo_pants"
+    },
+    {
+      "file": "118_preppy_cardigan_curious.png",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "cardigan",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "119_grunge_leather_confident.png",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "leather_jacket",
+      "lower_type": "skirt"
+    },
+    {
+      "file": "120_resort_linen_serene.png",
+      "photo_type": "outfit",
+      "upper_type": "sleeveless_top",
+      "outer_type": "shirt_jacket",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "121_hongdae_colorblock_denim.png",
+      "photo_type": "outfit",
+      "upper_type": "hoodie",
+      "outer_type": "denim_jacket",
+      "lower_type": "cargo_pants"
+    },
+    {
+      "file": "122_rugby_skater_store.png",
+      "photo_type": "outfit",
+      "upper_type": "jersey",
+      "outer_type": "none",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "123_gorpcore_color_shell.png",
+      "photo_type": "outfit",
+      "upper_type": "fleece",
+      "outer_type": "rain_jacket",
+      "lower_type": "cargo_pants"
+    },
+    {
+      "file": "124_thrift_patchwork_grunge.png",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "125_techwear_red_hoodie.png",
+      "photo_type": "outfit",
+      "upper_type": "hoodie",
+      "outer_type": "vest",
+      "lower_type": "cargo_pants"
+    },
+    {
+      "file": "2025-01-08_081500_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "long_puffer",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "2025-01-08_121800_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-01-24_191000_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "puffer_jacket",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "2025-01-24_200600_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-02-12_084000_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "turtleneck",
+      "outer_type": "long_puffer",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "2025-02-12_124600_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-03-05_090500_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "coat",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "2025-03-05_121200_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-03-25_122000_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "trench_coat",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "2025-03-25_150400_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-04-14_082500_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "denim_jacket",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "2025-04-14_123200_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-04-29_171500_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "2025-04-29_175200_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-05-16_091000_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "none",
+      "lower_type": "chinos"
+    },
+    {
+      "file": "2025-05-16_174100_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-05-29_182000_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "2025-05-29_191100_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-06-12_083500_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "2025-06-12_121400_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-06-28_130500_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "shorts"
+    },
+    {
+      "file": "2025-06-28_144300_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-07-14_081000_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "shorts"
+    },
+    {
+      "file": "2025-07-14_182600_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-07-30_190500_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "2025-07-30_200300_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-08-13_121500_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "shorts"
+    },
+    {
+      "file": "2025-08-13_152400_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-08-28_084500_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "shirt",
+      "outer_type": "none",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "2025-08-28_185200_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-09-16_091500_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "t_shirt",
+      "outer_type": "cardigan",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "2025-09-16_171800_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-10-08_083000_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "none",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "2025-10-08_150700_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-10-29_184500_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "trench_coat",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "2025-10-29_193400_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-11-18_082000_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "knit",
+      "outer_type": "coat",
+      "lower_type": "jeans"
+    },
+    {
+      "file": "2025-11-18_124300_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    },
+    {
+      "file": "2025-12-17_081000_KST.jpg",
+      "photo_type": "outfit",
+      "upper_type": "unknown",
+      "outer_type": "long_puffer",
+      "lower_type": "trousers"
+    },
+    {
+      "file": "2025-12-17_175400_KST.jpg",
+      "photo_type": "non_outfit",
+      "upper_type": "unknown",
+      "outer_type": "unknown",
+      "lower_type": "unknown"
+    }
+  ]
+}

@@ -958,9 +958,9 @@ Phase 1 구현 후 결정(요구사항 서론 참고)에 따라 이전 계획의
 ```json
 { "scenarios": [
   { "id": "chilly-morning", "name": "쌀쌀한 아침", "actual_temperature_c": "<S1>", "apparent_temperature_c": null, "relative_humidity_pct": 55, "wind_speed_kmh": 12, "precipitation_mm": 0 },
-  { "id": "cold-snap", "name": "기록적 한파 (경계 3.0°C)", "actual_temperature_c": "<S2>", "apparent_temperature_c": null, "relative_humidity_pct": 35, "wind_speed_kmh": 20, "precipitation_mm": 0 },
-  { "id": "early-heat", "name": "무더위 (범위 확장)", "actual_temperature_c": "<S3>", "apparent_temperature_c": null, "relative_humidity_pct": 65, "wind_speed_kmh": 6, "precipitation_mm": 0 },
-  { "id": "heatwave", "name": "기록적 폭염 (데이터 부족)", "actual_temperature_c": "<S4>", "apparent_temperature_c": null, "relative_humidity_pct": 70, "wind_speed_kmh": 5, "precipitation_mm": 0 }
+  { "id": "cold-snap", "name": "기록적 한파", "actual_temperature_c": "<S2>", "apparent_temperature_c": null, "relative_humidity_pct": 35, "wind_speed_kmh": 20, "precipitation_mm": 0 },
+  { "id": "early-heat", "name": "때 이른 무더위", "actual_temperature_c": "<S3>", "apparent_temperature_c": null, "relative_humidity_pct": 65, "wind_speed_kmh": 6, "precipitation_mm": 0 },
+  { "id": "heatwave", "name": "기록적 폭염", "actual_temperature_c": "<S4>", "apparent_temperature_c": null, "relative_humidity_pct": 70, "wind_speed_kmh": 5, "precipitation_mm": 0 }
 ] }
 ```
 

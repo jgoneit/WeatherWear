@@ -17,6 +17,7 @@ import {
   voteLabel,
 } from "../lib/format";
 import { STRINGS } from "../lib/strings";
+import { clothingLabel } from "../lib/clothing";
 import { useAsync } from "../lib/useAsync";
 
 const S = STRINGS.detail;
@@ -58,7 +59,7 @@ function formatTime(iso: string, timeZone: string): string {
 function tagValue(value: string): string {
   if (value === "none") return S.tagNone;
   if (value === "unknown") return S.tagUnknown;
-  return value;
+  return clothingLabel(value);
 }
 
 function isNumber(value: number | null | undefined): value is number {
@@ -69,7 +70,7 @@ function isNotFound(error: unknown): boolean {
   return error instanceof ApiError && error.status === 404;
 }
 
-/** 착장 상세 화면: 전체폭 사진 + bottom-sheet 글래스 패널 (Req 12.4, 12.5, 12.7, 4.9, 15.4). */
+/** Photo-first detail with optional capture metadata and analysis information. */
 export function OutfitDetailPage() {
   const { id: rawId } = useParams();
   const outfitId = parseOutfitId(rawId);
@@ -126,24 +127,31 @@ function OutfitDetail({ outfit, timeZone }: { outfit: Outfit; timeZone: string }
   const time = formatTime(outfit.captured_at, timeZone);
 
   return (
-    <article className="min-w-0" data-testid="outfit-detail">
-      <div className="-mx-4 overflow-hidden bg-slate-200">
+    <article className="detail-layout" data-testid="outfit-detail">
+      <div className="detail-photo">
         <img
           src={apiUrl(outfit.photo_url)}
           alt={S.photoAlt(altText)}
           decoding="async"
-          className="aspect-[4/5] w-full max-w-full object-cover"
+          className="w-full max-w-full"
         />
       </div>
 
-      <div className="glass relative -mt-8 flex min-w-0 flex-col gap-5 rounded-3xl p-5">
-        <div aria-hidden="true" className="mx-auto -mt-2 h-1.5 w-10 rounded-full bg-slate-900/15" />
+      <div className="detail-panel">
+        <h2 className="text-2xl font-semibold tracking-tight">{shownTags.map(clothingLabel).join(" · ") || "나의 착장"}</h2>
 
         <Section title={S.voteTitle}>
           <VoteChip vote={outfit.effective_vote} />
         </Section>
 
-        <Section title={S.capturedAt} extra={labels.meta ? <VirtualDataLabel /> : null}>
+        <Section title={S.weatherTitle} extra={labels.weather ? <FixtureBadge /> : null}>
+          {outfit.weather ? (
+            <DetailWeatherBento weather={outfit.weather} />
+          ) : (
+            <p className="text-sm text-slate-700">{S.noWeather}</p>
+          )}
+        </Section>
+        <details className="detail-disclosure"><summary>사진과 분석 정보</summary><div className="detail-extra">        <Section title={S.capturedAt} extra={labels.meta ? <VirtualDataLabel /> : null}>
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <Field label={S.capturedAt} value={`${formatDate(outfit.captured_at, timeZone)} ${time}`.trim()} />
             <Field label={S.location} value={`${outfit.latitude.toFixed(4)}, ${outfit.longitude.toFixed(4)}`} />
@@ -180,13 +188,7 @@ function OutfitDetail({ outfit, timeZone }: { outfit: Outfit; timeZone: string }
           </dl>
         </Section>
 
-        <Section title={S.weatherTitle} extra={labels.weather ? <FixtureBadge /> : null}>
-          {outfit.weather ? (
-            <DetailWeatherBento weather={outfit.weather} />
-          ) : (
-            <p className="text-sm text-slate-700">{S.noWeather}</p>
-          )}
-        </Section>
+</div></details>
       </div>
     </article>
   );

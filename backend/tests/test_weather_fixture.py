@@ -256,3 +256,36 @@ def test_recorded_format_unknown_input_still_uses_seasonal(tmp_path: Path) -> No
     assert reading.observed_at == datetime(2024, 6, 2, 7, 0, tzinfo=SEOUL)
     assert reading.provider == "fixture"
     assert reading.is_fixture is True
+
+
+def test_synthetic_entries_are_counted_and_read_like_recorded_ones(tmp_path: Path) -> None:
+    """``synthetic: true`` marks authored values (generated outfits); lookups are unchanged."""
+    recorded = {"file": "a.png", "captured_at": "2025-01-10T08:00:00+09:00", "latitude": 37.5665,
+                "longitude": 126.978, "observed_at": "2025-01-10T08:00:00+09:00",
+                "actual_temperature_c": -3.2, "apparent_temperature_c": None, "relative_humidity_pct": 40.0,
+                "wind_speed_kmh": None, "precipitation_mm": 0.0, "weather_code": None}
+    authored = {"file": "b.png", "captured_at": "2025-01-10T12:17:00+09:00", "latitude": 37.5665,
+                "longitude": 126.978, "actual_temperature_c": -12, "apparent_temperature_c": -17,
+                "relative_humidity_pct": 35, "wind_speed_kmh": 15, "precipitation_mm": 0,
+                "synthetic": True, "source": "data/demo/generated_outfits.json"}
+    path = tmp_path / "weather.json"
+    path.write_text(json.dumps({"recorded": {"source": "x"}, "entries": [recorded, authored]}), encoding="utf-8")
+    provider = _provider(path)
+
+    assert provider.entry_count == 2 and provider.synthetic_entry_count == 1
+    at = datetime.fromisoformat(authored["captured_at"])
+    assert provider.is_synthetic(at, 37.5665, 126.978)
+    assert not provider.is_synthetic(datetime.fromisoformat(recorded["captured_at"]), 37.5665, 126.978)
+    assert not provider.is_synthetic(at + timedelta(days=1), 37.5665, 126.978)  # no entry
+    reading = provider.get_weather(at, 37.5665, 126.978)
+    assert (reading.actual_temperature_c, reading.apparent_temperature_c, reading.wind_speed_kmh) == (-12, -17, 15)
+    assert reading.is_fixture is True and reading.provider == "fixture"
+    assert reading.observed_at == at.replace(minute=0)  # no recorded hour: the capture hour
+
+
+def test_real_fixture_marks_exactly_the_generated_outfits_synthetic() -> None:
+    catalog = json.loads((DEFAULT_WEATHER_FIXTURE_PATH.parents[1] / "generated_outfits.json").read_text("utf-8"))
+    generated = {entry["file"] for entry in catalog["photos"]}
+    entries = _recorded_entries()
+    assert {file for file, entry in entries.items() if entry.get("synthetic") is True} == generated
+    assert _provider().synthetic_entry_count == len(generated)

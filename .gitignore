@@ -32,3 +32,23 @@ dist/
 .vscode/
 .idea/
 *.log
+
+# Evaluation outputs (generated)
+eval-results/
+
+# Fictional AI-generated demo outfits ship with the app (no personal originals).
+!data/demo/photos/141_cold_charcoal_long_down.png
+!data/demo/photos/142_cold_cream_down_denim.png
+!data/demo/photos/143_cold_olive_parka_cargo.png
+!data/demo/photos/144_cold_navy_puffer_wool.png
+!data/demo/photos/145_cold_burgundy_down_jeans.png
+!data/demo/photos/146_summer_blue_linen_trousers.png
+!data/demo/photos/147_summer_white_tee_denim.png
+!data/demo/photos/148_summer_ivory_olive_linen.png
+!data/demo/photos/149_summer_stripe_navy_skirt.png
+!data/demo/photos/150_summer_sage_linen_dress.png
+!data/demo/photos/151_heatwave_white_linen_shorts.png
+!data/demo/photos/152_heatwave_blue_cotton_dress.png
+!data/demo/photos/153_heatwave_coral_tank_shorts.png
+!data/demo/photos/154_heatwave_yellow_linen_trousers.png
+!data/demo/photos/155_heatwave_white_tee_linen_skirt.png

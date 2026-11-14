@@ -1,9 +1,11 @@
 """Demo data checks (task 19.23, design.md "데모 데이터 파일", Req 15.2, 15.3,
 15.9~15.13).
 
-The demo images in ``data/demo/photos`` are git-ignored (copied by
-``scripts/prepare_demo_photos.py``); the sidecars and fixtures are tracked.
-Checks that need the image bytes skip when the images are absent. The
+The personal demo images in ``data/demo/photos`` are git-ignored (copied by
+``scripts/prepare_demo_photos.py``); the 15 AI-generated outfits of
+``data/demo/generated_outfits.json`` (141~155), the sidecars and the fixtures
+are tracked. Checks that need the image bytes skip unless the whole album
+listed in the manifest is present (``tests.demo_inventory``). The
 scenario rule check reads only tracked files, so it runs everywhere: the file
 to SHA-256 mapping comes from ``vision.sources.json``, and
 ``test_demo_data_layout`` checks that mapping against the current bytes.
@@ -52,11 +54,12 @@ from app.domain import (
     normalize_outer_type,
     normalize_upper_type,
 )
-from app.ingestion.image_check import SUPPORTED_EXTENSIONS, list_image_files
-from app.ingestion.metadata import read_embedded_metadata
+from app.ingestion.image_check import list_image_files
+from app.ingestion.metadata import ScanFailure, read_embedded_metadata, resolve_capture_metadata
 from app.ingestion.service import apply_confidence_gate
-from app.ingestion.sidecar import SIDECAR_SUFFIX, SidecarError, parse_sidecar_text, sidecar_path_for
+from app.ingestion.sidecar import SIDECAR_SUFFIX, SidecarError, parse_sidecar_text, read_sidecar, sidecar_path_for
 from app.providers.weather.fixture import FixtureWeatherProvider
+from tests.demo_inventory import full_demo_images_present
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEMO_DIR = REPO_ROOT / "data" / "demo"
@@ -68,12 +71,14 @@ EXPECTATIONS_PATH = DEMO_DIR / "scenario_expectations.json"
 VISION_PATH = FIXTURES_DIR / "vision.json"
 VISION_SOURCES_PATH = FIXTURES_DIR / "vision.sources.json"
 WEATHER_PATH = FIXTURES_DIR / "weather.json"
+GENERATED_PATH = DEMO_DIR / "generated_outfits.json"
 CLOTHING_TAGS_PATH = REPO_ROOT / "ex_img" / "clothing_tags.json"
 
-# Req 15.2: 174 photos = PNG 134 + JPG 40. Req 15.13: 20 of the JPGs are Non_Outfit_Photo
-# (vision.json photo_type "non_outfit"); every other photo is "outfit".
-DEMO_PHOTO_COUNT = 174
-DEMO_PHOTO_COUNT_BY_SUFFIX = {".png": 134, ".jpg": 40}
+# Req 15.2: 189 photos = PNG 149 + JPG 40: the 174 of ex_img (159 + 126~140) and
+# the 15 generated outfits (141~155). Req 15.13: 20 of the JPGs are
+# Non_Outfit_Photo (vision.json photo_type "non_outfit"); every other photo is "outfit".
+DEMO_PHOTO_COUNT = 189
+DEMO_PHOTO_COUNT_BY_SUFFIX = {".png": 149, ".jpg": 40}
 NON_OUTFIT_PHOTO_COUNT = 20
 # Seed vote sidecars (design "사이드카"): the vote plus a free-text note the parser ignores.
 SIDECAR_KEYS = {"thermal_vote", "note"}
@@ -97,18 +102,31 @@ def confirmed_demo_photos() -> list[str]:
 
 
 def demo_images_present() -> bool:
-    return DEMO_PHOTO_DIR.is_dir() and any(
-        p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS for p in DEMO_PHOTO_DIR.iterdir()
-    )
+    """Every photo of the manifest is present (the generated 15 alone are not enough)."""
+    return full_demo_images_present()
 
 
 requires_demo_photos = pytest.mark.skipif(
     not demo_images_present(),
     reason=(
-        "data/demo/photos has no images (they are git-ignored); "
-        "run scripts/prepare_demo_photos.py to copy the photos listed in photos.manifest.json"
+        "The complete private demo album is not installed; "
+        "run scripts/prepare_demo_photos.py to copy the demo photos"
     ),
 )
+
+
+def generated_catalog() -> dict[str, dict[str, Any]]:
+    """``generated_outfits.json`` entries (the bundled AI-generated outfits) by file name."""
+    return {entry["file"]: entry for entry in read_json(GENERATED_PATH)["photos"]}
+
+
+def capture_of(image: Path, data: bytes) -> CaptureMetadata:
+    """Capture time/location as the ingestion service resolves it (EXIF, then sidecar)."""
+    embedded = read_embedded_metadata(data)
+    sidecar = read_sidecar(image, require_location=not isinstance(embedded, CaptureMetadata))
+    resolved = resolve_capture_metadata(embedded, sidecar)
+    assert not isinstance(resolved, ScanFailure), f"{image.name}: {resolved}"
+    return resolved[0]
 
 
 @dataclass(frozen=True)
@@ -196,8 +214,9 @@ def sidecar_texts(records: list[DemoRecord]) -> dict[str, str]:
 
 
 def sidecar_votes(records: list[DemoRecord]) -> dict[str, str]:
-    """Seed vote of each photo that has a sidecar, keyed by file name."""
-    return {file: json.loads(text)["thermal_vote"] for file, text in sidecar_texts(records).items()}
+    """Seed vote of each photo whose sidecar has one, keyed by file name."""
+    documents = {file: json.loads(text) for file, text in sidecar_texts(records).items()}
+    return {file: doc["thermal_vote"] for file, doc in documents.items() if doc.get("thermal_vote") is not None}
 
 
 def scenario_temperatures() -> dict[str, float]:
@@ -214,8 +233,8 @@ def scenario_expectations() -> dict[str, dict[str, Any]]:
 
 @requires_demo_photos
 def test_demo_data_layout() -> None:
-    """Photos, embedded metadata, fixture keys, recorded weather and sidecars agree."""
-    # Req 15.2, 15.3: exactly the confirmed photos, 174 = PNG 134 + JPG 40.
+    """Photos, capture metadata, fixture keys, weather entries and sidecars agree."""
+    # Req 15.2, 15.3: exactly the confirmed photos, 189 = PNG 149 + JPG 40.
     images = list_image_files(DEMO_PHOTO_DIR)
     names = [image.name for image in images]
     assert names == sorted(confirmed_demo_photos())
@@ -226,22 +245,27 @@ def test_demo_data_layout() -> None:
     entries = {entry["file"]: entry for entry in weather["entries"]}
     provider = FixtureWeatherProvider(WEATHER_PATH)
 
+    generated = generated_catalog()
     sha_by_file: dict[str, str] = {}
     problems: list[str] = []
     for image in images:
         data = image.read_bytes()
         sha_by_file[image.name] = hashlib.sha256(data).hexdigest()
-        meta = read_embedded_metadata(data)
-        if not isinstance(meta, CaptureMetadata):
-            problems.append(f"{image.name}: no valid embedded metadata ({meta!r})")
+        # The ex_img photos carry embedded metadata; the generated outfits have
+        # no EXIF and use the sidecar fallback (their pinned hashes forbid
+        # rewriting the bytes).
+        embedded = read_embedded_metadata(data)
+        if (image.name in generated) == isinstance(embedded, CaptureMetadata):
+            problems.append(f"{image.name}: embedded metadata {embedded!r} (generated: {image.name in generated})")
             continue
+        meta = capture_of(image, data)
         entry = entries.get(image.name)
         if entry is None:
             problems.append(f"{image.name}: no entry in weather.json")
             continue
         if datetime.fromisoformat(entry["captured_at"]) != meta.captured_at:
-            problems.append(f"{image.name}: weather entry captured_at differs from embedded metadata")
-        # The provider finds the recorded entry from the embedded time and place
+            problems.append(f"{image.name}: weather entry captured_at differs from the capture metadata")
+        # The provider finds the entry from the capture time and place
         # (not today_default or the seasonal formula).
         reading = provider.get_weather(meta.captured_at, meta.latitude, meta.longitude)
         if reading.actual_temperature_c != entry["actual_temperature_c"]:
@@ -256,6 +280,13 @@ def test_demo_data_layout() -> None:
     assert {s["file"]: sha for sha, s in read_json(VISION_SOURCES_PATH).items()} == sha_by_file
     for analysis in vision.values():
         VisionAnalysis.model_validate(analysis)
+    # The generated outfits keep the analysis the teammate authored in the catalog.
+    assert {file: vision[sha_by_file[file]] for file in generated} == {
+        file: entry["vision"] for file, entry in generated.items()
+    }
+    assert {file: sha_by_file[file] for file in generated} == {
+        file: entry["sha256"] for file, entry in generated.items()
+    }
 
     # weather.json: recorded provenance block and one entry per photo.
     assert isinstance(weather.get("recorded"), dict) and weather["recorded"].get("source")
@@ -263,6 +294,24 @@ def test_demo_data_layout() -> None:
     assert len(weather["entries"]) == DEMO_PHOTO_COUNT
     assert sorted(entries) == names  # no duplicate or unknown file
     assert provider.entry_count == DEMO_PHOTO_COUNT
+    # Entries of the generated outfits are authored, not recorded: marked
+    # synthetic and holding the catalog values unchanged. Every other entry is
+    # recorded (it has the recorded observation hour).
+    synthetic_source = weather["recorded"]["synthetic_entries"]["source"]
+    assert synthetic_source == GENERATED_PATH.relative_to(REPO_ROOT).as_posix()
+    assert {file for file, entry in entries.items() if entry.get("synthetic")} == set(generated)
+    assert provider.synthetic_entry_count == len(generated)
+    for file, item in generated.items():
+        assert entries[file] == {
+            "file": file,
+            **{key: item["metadata"][key] for key in ("captured_at", "latitude", "longitude")},
+            **item["weather"],
+            "synthetic": True,
+            "source": synthetic_source,
+        }
+        meta = capture_of(DEMO_PHOTO_DIR / file, (DEMO_PHOTO_DIR / file).read_bytes())
+        assert provider.is_synthetic(meta.captured_at, meta.latitude, meta.longitude)
+    assert all(entry.get("observed_at") for file, entry in entries.items() if file not in generated)
 
     # Req 15.13: the Non_Outfit_Photo are 20 JPGs labeled non_outfit; every other
     # photo is an outfit the scan stores (none falls to uncertain at the gate).
@@ -277,17 +326,24 @@ def test_demo_data_layout() -> None:
     }
     assert not_stored_files(records) == non_outfit
 
-    # Req 15.2, 15.11: sidecars hold only the seed vote; photos that are not stored have none.
+    # Req 15.2, 15.11: an ex_img photo's sidecar holds only the seed vote; a
+    # generated outfit's sidecar is its capture source and keeps the catalog
+    # metadata (plus a seed vote when it has one); photos that are not stored
+    # have no sidecar.
     texts = sidecar_texts(records)
     assert texts, "no seed vote sidecars"
     assert sorted(set(texts) & not_stored_files(records)) == []
+    assert set(generated) <= set(texts)
     for file, text in texts.items():
         document = json.loads(text)
-        assert set(document) <= SIDECAR_KEYS, f"{file}: {sorted(document)}"
-        assert document.get("thermal_vote") in THERMAL_VOTES, file
-        parsed = parse_sidecar_text(text, require_location=False)
+        if file in generated:
+            assert {k: v for k, v in document.items() if k not in SIDECAR_KEYS} == generated[file]["metadata"]
+        else:
+            assert set(document) <= SIDECAR_KEYS, f"{file}: {sorted(document)}"
+            assert document.get("thermal_vote") in THERMAL_VOTES, file
+        parsed = parse_sidecar_text(text, require_location=file in generated)
         assert not isinstance(parsed, SidecarError), f"{file}: {parsed}"
-        assert parsed.thermal_vote == document["thermal_vote"]
+        assert parsed.thermal_vote == document.get("thermal_vote")
 
 
 @pytest.mark.skipif(
@@ -314,12 +370,16 @@ def test_demo_data_layout_clothing_tags() -> None:
     source = read_json(CLOTHING_TAGS_PATH)
     assert source["schema"] == "WeatherWear ClothingTags"
     images: dict[str, dict[str, Any]] = source["images"]
-    assert source["image_count"] == len(images) == DEMO_PHOTO_COUNT
+    generated = generated_catalog()
+    # clothing_tags.json covers the ex_img photos; the generated outfits are analysed in their catalog.
+    assert source["image_count"] == len(images) == DEMO_PHOTO_COUNT - len(generated)
 
     vision = read_json(VISION_PATH)
     sources = read_json(VISION_SOURCES_PATH)
     sha_by_file = {s["file"]: sha for sha, s in sources.items()}
-    assert sorted(images) == sorted(sha_by_file) == sorted(confirmed_demo_photos())
+    assert sorted(sha_by_file) == sorted(confirmed_demo_photos())
+    assert sorted(images) == sorted(set(sha_by_file) - set(generated))
+    assert {sources[sha_by_file[file]]["source_sha256"] for file in generated} == {None}
 
     mismatched = [
         file for file, item in images.items()
@@ -327,7 +387,7 @@ def test_demo_data_layout_clothing_tags() -> None:
     ]
     assert mismatched == []
     # The hash in clothing_tags.json is of the bytes before metadata was embedded.
-    assert {file: sources[sha]["source_sha256"] for file, sha in sha_by_file.items()} == {
+    assert {file: sources[sha]["source_sha256"] for file, sha in sha_by_file.items() if file in images} == {
         file: item["sha256"] for file, item in images.items()
     }
     # design: exactly the photos labeled non_outfit carry UNKNOWN_TAGS in clothing_tags.json.

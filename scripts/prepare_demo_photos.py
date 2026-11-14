@@ -30,6 +30,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -57,6 +58,7 @@ class ManifestError(ValueError):
 class ConfirmedPhoto:
     file: str
     origin: Path
+    sha256: str | None = None
 
 
 @dataclass(frozen=True)
@@ -123,7 +125,10 @@ def load_confirmed_photos(manifest_path: Path, source_dir: Path, repo_root: Path
         if file_name in seen:
             raise ManifestError(f"duplicate confirmed file in manifest: {file_name!r}")
         seen.add(file_name)
-        confirmed.append(ConfirmedPhoto(file=file_name, origin=origin_path))
+        digest = entry.get("sha256")
+        if digest is not None and (not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)):
+            raise ManifestError(f"photos[{index}].sha256 must be a lowercase SHA-256 digest")
+        confirmed.append(ConfirmedPhoto(file=file_name, origin=origin_path, sha256=digest))
     return confirmed
 
 
@@ -171,11 +176,16 @@ def prepare(manifest_path: Path, source_dir: Path, dest_dir: Path, repo_root: Pa
 
     dest_dir.mkdir(parents=True, exist_ok=True)
     for photo in photos:
-        if not photo.origin.is_file():
-            report.missing_sources.append(photo.file)
-            continue
         target = dest_dir / photo.file
-        if target.is_file():
+        if not photo.origin.is_file():
+            # Generated assets already ship at the destination. Only accept
+            # existing bytes when the manifest explicitly pins their digest.
+            if photo.sha256 and target.is_file() and _sha256(target) == photo.sha256:
+                report.unchanged.append(photo.file)
+            else:
+                report.missing_sources.append(photo.file)
+                continue
+        elif target.is_file():
             if _same_content(photo.origin, target):
                 report.unchanged.append(photo.file)
             else:

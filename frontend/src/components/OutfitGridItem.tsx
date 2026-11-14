@@ -1,9 +1,8 @@
 import { Link } from "react-router";
 import { apiUrl, type Outfit } from "../api/client";
-import { displayTags, FALLBACK_TIMEZONE, formatDate, formatTemp, provenance, voteLabel } from "../lib/format";
+import { displayTags, FALLBACK_TIMEZONE, formatDate, formatTemp, voteLabel } from "../lib/format";
 import { STRINGS } from "../lib/strings";
-import { FixtureBadge } from "./FixtureBadge";
-import { VirtualDataLabel } from "./VirtualDataLabel";
+import { clothingLabel } from "../lib/clothing";
 
 interface OutfitGridItemProps {
   outfit: Outfit;
@@ -17,8 +16,7 @@ interface OutfitGridItemProps {
  * 아래쪽에 촬영일과 태그 최대 3개를 보여준다. 탭하면 상세 화면으로 이동한다.
  */
 export function OutfitGridItem({ outfit, timeZone = FALLBACK_TIMEZONE }: OutfitGridItemProps) {
-  const tags = displayTags(outfit.tags);
-  const labels = provenance(outfit);
+  const tags = displayTags(outfit.tags).map(clothingLabel);
   const temperature = outfit.weather ? formatTemp(outfit.weather.actual_temperature_c) : STRINGS.history.noWeather;
   const vote = outfit.effective_vote;
   const emoji = vote ? STRINGS.history.voteEmoji[vote] : null;
@@ -29,7 +27,7 @@ export function OutfitGridItem({ outfit, timeZone = FALLBACK_TIMEZONE }: OutfitG
       to={`/outfits/${outfit.id}`}
       data-testid="outfit-grid-item"
       data-outfit-id={outfit.id}
-      className="group flex min-w-0 flex-col gap-1.5 rounded-2xl outline-offset-2 focus-visible:outline-2 focus-visible:outline-slate-900"
+      className="history-item group flex min-w-0 flex-col gap-1.5 rounded-2xl outline-offset-2 focus-visible:outline-2 focus-visible:outline-slate-900"
     >
       <div className="relative aspect-[4/5] w-full min-w-0 overflow-hidden rounded-2xl bg-slate-200 shadow-glass">
         <img
@@ -47,7 +45,7 @@ export function OutfitGridItem({ outfit, timeZone = FALLBACK_TIMEZONE }: OutfitG
           >
             {temperature}
           </span>
-          {labels.weather ? <FixtureBadge /> : null}
+
         </div>
 
         <span
@@ -62,7 +60,7 @@ export function OutfitGridItem({ outfit, timeZone = FALLBACK_TIMEZONE }: OutfitG
 
       <div className="flex min-w-0 flex-wrap items-center gap-1 px-0.5 text-xs text-slate-700">
         <span className="tabular-nums">{formatDate(outfit.captured_at, timeZone)}</span>
-        {labels.meta ? <VirtualDataLabel /> : null}
+
       </div>
 
       <div className="flex min-w-0 flex-wrap items-center gap-1 px-0.5">
@@ -78,7 +76,7 @@ export function OutfitGridItem({ outfit, timeZone = FALLBACK_TIMEZONE }: OutfitG
         ) : (
           <span className="text-[11px] text-slate-600">{STRINGS.recommendation.noTags}</span>
         )}
-        {labels.tags ? <VirtualDataLabel /> : null}
+
       </div>
     </Link>
   );

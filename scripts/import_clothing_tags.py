@@ -11,7 +11,10 @@ hash is missing.
    ``images`` entries equals ``image_count``.
 2. Read the current ``vision.json``. Every value must pass ``VisionAnalysis``.
 3. Link each photo in ``data/demo/photos`` to its ``clothing_tags.json`` entry
-   by file name. The free-text garment names (``"t-shirt"``, ``"utility vest"``)
+   by file name. A photo without one is fine only when ``vision.json``
+   already has its hash (the bundled generated outfits of
+   ``data/demo/generated_outfits.json``); its ``source_sha256`` is null. The
+   free-text garment names (``"t-shirt"``, ``"utility vest"``)
    are mapped onto the canonical taxonomy with ``normalize_*_type``. A name
    that maps to ``unknown`` without being ``unknown`` or one of the taxonomy's
    own aliases for ``unknown`` (``"top"``) is reported as unmapped.
@@ -27,9 +30,9 @@ hash is missing.
    are never replaced or removed. An existing key that matches no photo is
    kept and printed as a warning.
 
-``vision.json`` is written in photo file name order (existing values as they
-were, new ones at their file's position); ``vision.sources.json`` is rewritten
-for every photo. If any entry is missing, fails validation, cannot be mapped,
+``vision.json`` keeps its existing entries first, in their order and with
+their values, and appends the new ones in photo file name order, so the change
+is a pure insertion. ``vision.sources.json`` is rewritten for every photo. If any entry is missing, fails validation, cannot be mapped,
 would change an existing entry, or two photos share a hash, the problems are
 printed, nothing is written, and the exit code is 1.
 
@@ -201,18 +204,24 @@ def build_supplement(source: Path, photo_dir: Path, existing_path: Path) -> Supp
     existing, problems = _read_existing(existing_path)
     result.problems.extend(problems)
 
+    added: dict[str, Any] = {}
     seen: dict[str, str] = {}
     for photo in list_photos(photo_dir):
         name = photo.name
-        entry = images.get(name)
-        if not isinstance(entry, dict) or "tags" not in entry:
-            result.problems.append(f"{name}: no tags in {source.name}")
-            continue
         digest = sha256_of(photo)
         if digest in seen:
             result.problems.append(f"{name}: same SHA-256 as {seen[digest]}")
             continue
         seen[digest] = name
+        entry = images.get(name)
+        if not isinstance(entry, dict) or "tags" not in entry:
+            if digest in existing:
+                # Analysed elsewhere (the bundled generated outfits): kept as it is.
+                result.kept += 1
+                result.sources[digest] = {"file": name, "source_sha256": None}
+            else:
+                result.problems.append(f"{name}: no tags in {source.name} and no {existing_path.name} entry")
+            continue
         tags, tag_problems = canonical_tags(entry["tags"])
         if tags is None:
             result.problems.extend(f"{name}: {p}" for p in tag_problems)
@@ -224,19 +233,20 @@ def build_supplement(source: Path, photo_dir: Path, existing_path: Path) -> Supp
                     f"{name}: {source.name} would change the existing {existing_path.name} entry"
                 )
                 continue
-            result.vision[digest] = existing[digest]
             result.kept += 1
         else:
-            result.vision[digest] = candidate
+            added[digest] = candidate
             result.added[name] = digest
         result.sources[digest] = {"file": name, "source_sha256": entry.get("sha256")}
 
     unknown_files = sorted(set(images) - {p.name for p in list_photos(photo_dir)})
     result.problems.extend(f"{name}: in {source.name} but not in {photo_dir.name}/" for name in unknown_files)
-    for key, value in existing.items():
-        if key not in result.vision and key not in seen:
-            result.vision[key] = value  # never removed
-            result.warnings.append(f"{existing_path.name} entry {key[:12]}… matches no photo (kept)")
+    result.warnings.extend(
+        f"{existing_path.name} entry {key[:12]}… matches no photo (kept)" for key in existing if key not in seen
+    )
+    # Existing entries first, in their order and with their values (never
+    # replaced or removed), then the new ones in photo file name order.
+    result.vision = {**existing, **added}
     return result
 
 

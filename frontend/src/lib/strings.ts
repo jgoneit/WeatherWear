@@ -8,12 +8,12 @@ export const STRINGS = {
   nav: {
     home: "홈",
     history: "기록",
-    demo: "데모",
+    demo: "설정",
     label: "주요 메뉴",
   },
 
   home: {
-    title: "오늘의 추천",
+    title: "오늘",
     placeholder: "오늘 날씨와 추천 착장이 여기에 표시됩니다.",
     todayTemperature: "오늘 기온",
     apparentTemperature: "체감",
@@ -24,7 +24,7 @@ export const STRINGS = {
     loading: "오늘 날씨와 추천을 불러오는 중이에요",
     todayDate: (date: string) => `${date} 기준`,
     topRecommendation: "오늘의 1순위 추천",
-    otherRecommendations: "다른 추천",
+    otherRecommendations: "이런 옷도 좋아요",
   },
 
   history: {
@@ -72,14 +72,14 @@ export const STRINGS = {
   },
 
   demo: {
-    title: "데모 관리",
+    title: "데모 설정",
     placeholder: "폴더 스캔, 날씨 시나리오 선택, 추천 재계산을 여기서 실행합니다.",
     devOnly: "데모 관리 화면은 개발 모드에서만 사용할 수 있습니다",
     scan: "폴더 스캔",
     scanFailed: "폴더 스캔에 실패했어요",
     scenario: "날씨 시나리오",
     recompute: "추천 재계산",
-    intro: "폴더 스캔, 날씨 시나리오 선택, 추천 재계산을 한 화면에서 실행해요.",
+    intro: "사진을 불러오고 여러 날씨에서 추천을 확인해 보세요.",
     inProgress: "진행 중…",
     done: "완료",
     failedWithReason: (action: string, reason: string) => `${action}: ${reason}`,
@@ -96,7 +96,7 @@ export const STRINGS = {
     snapshotCount: "날씨 기록",
     feedbackCount: "피드백",
 
-    scanDescription: "PHOTO_DIR의 사진을 읽어 착장과 날씨를 저장해요.",
+    scanDescription: "준비된 사진에서 착장과 당시 날씨를 불러와요.",
     scanDone: "폴더 스캔 완료",
     scanNotRun: "아직 이번 화면에서 스캔하지 않았어요.",
     scanResultLabel: "스캔 결과",
@@ -136,12 +136,13 @@ export const STRINGS = {
   },
 
   feedback: {
-    question: (tempLabel: string) => `어제 이 착장, 오늘 ${tempLabel}엔 어땠어요?`,
+    question: (_tempLabel: string) => "이 옷, 입어 보니 어땠나요?",
     cold: "🥶 추웠어",
     comfortable: "😊 적당했어",
     hot: "🥵 더웠어",
     saveFailed: "저장하지 못했어요. 다시 시도해 주세요.",
-    notificationHeader: "WeatherWear · 지금",
+    saved: "체감 기록을 저장했어요.",
+    notificationHeader: "나에게 더 잘 맞도록",
     notificationLabel: "체감 피드백 알림",
     buttonsLabel: "이 착장의 체감 기록",
     thumbnailAlt: "추천 착장 썸네일",
@@ -189,8 +190,8 @@ export const STRINGS = {
     pastTemperature: "과거 기온",
     temperatureDiff: "기온 차이",
     capturedOn: "촬영일",
-    expand: "근거 펼치기",
-    collapse: "근거 접기",
+    expand: "추천 이유",
+    collapse: "접기",
     fallbackChip: "범위 확장",
     noTags: "착장 태그 정보 없음",
     photoAlt: (tags: string) => `추천 착장 사진: ${tags}`,

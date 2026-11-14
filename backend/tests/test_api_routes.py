@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+
+from tests.demo_inventory import full_demo_images_present as demo_images_present
 from fastapi.testclient import TestClient
 from PIL import Image
 
@@ -337,14 +339,6 @@ def test_export_openapi_script_matches_app(tmp_path: Path) -> None:
 # --- End to end with the real demo data -------------------------------------
 
 
-def demo_images_present() -> bool:
-    # The sidecar *.metadata.json files are tracked but the photos are
-    # git-ignored, so a fresh clone has the folder without any images.
-    return DEMO_PHOTO_DIR.is_dir() and any(
-        p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
-        for p in DEMO_PHOTO_DIR.iterdir()
-    )
-
 
 def rights_confirmed_count() -> int:
     return sum(1 for p in read_json(MANIFEST_PATH)["photos"] if p["rights_confirmed"] is True)
@@ -380,8 +374,8 @@ def expected_digest(expected: dict[str, Any]) -> dict[str, Any]:
 @pytest.mark.skipif(
     not demo_images_present(),
     reason=(
-        "data/demo/photos has no images (they are git-ignored); run scripts/prepare_demo_photos.py "
-        "to copy the demo photos listed in data/demo/photos.manifest.json"
+        "The complete private demo album is not installed; "
+        "run scripts/prepare_demo_photos.py to copy the demo photos"
     ),
 )
 def test_demo_data_end_to_end(tmp_path: Path) -> None:
@@ -419,7 +413,8 @@ def test_demo_data_end_to_end(tmp_path: Path) -> None:
         test_client.put("/api/demo/scenarios/selected", json={"scenario_id": "heatwave"})
         heat = test_client.get("/api/recommendations/today")
         assert heat.status_code == 200
-        assert heat.json()["status"] == "insufficient_data" and heat.json()["items"] == []
+        assert heat.json()["status"] == "insufficient_data" and heat.json()["items"] == []  # rule S4
+        assert heat.json()["fallback"] is True  # rule S4: nothing within 5.0 either
 
         unknown = test_client.put("/api/demo/scenarios/selected", json={"scenario_id": "no-such"})
         assert unknown.status_code == 404

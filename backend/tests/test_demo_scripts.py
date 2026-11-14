@@ -127,6 +127,22 @@ def test_prepare_rejects_origin_outside_source(layout):
     assert not dest.exists()
 
 
+@pytest.mark.parametrize("matches", [True, False])
+def test_prepare_accepts_bundled_photo_only_with_matching_manifest_hash(layout, matches):
+    root, manifest, source, dest = layout
+    data = (source / "007_linen.png").read_bytes()
+    dest.mkdir()
+    (dest / "007_linen.png").write_bytes(data)
+    (source / "007_linen.png").unlink()
+    entry = _entry("007_linen.png", True)
+    entry["sha256"] = hashlib.sha256(data).hexdigest() if matches else "0" * 64
+    manifest.write_text(json.dumps({"photos": [entry]}), encoding="utf-8")
+    report = prepare_mod.prepare(manifest, source, dest, repo_root=root)
+    assert report.unchanged == (["007_linen.png"] if matches else [])
+    assert report.missing_sources == ([] if matches else ["007_linen.png"])
+    assert (dest / "007_linen.png").read_bytes() == data
+
+
 def test_personal_album_fixture_labels_twenty_outfits_and_twenty_non_outfits() -> None:
     outfit_stems = sorted(key for key in build_mod.TAGS if key.startswith("2025-"))
     non_outfit_stems = sorted(build_mod.NON_OUTFIT)

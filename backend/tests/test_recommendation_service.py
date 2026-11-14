@@ -16,6 +16,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from tests.demo_inventory import full_demo_images_present
+
 from app.config import resolve_config
 from app.db import create_db_engine
 from app.domain import UNKNOWN_TAGS, ClothingTags, ThermalVote, WeatherContext, WeatherReading
@@ -226,10 +228,10 @@ def test_stored_row_without_garment_evidence_is_never_recommended(tmp_path: Path
 
 @pytest.fixture(scope="module")
 def demo_env(tmp_path_factory: pytest.TempPathFactory) -> tuple[RecommendationService, ScenarioStore, dict[int, str]]:
-    if not any(DEMO_PHOTO_DIR.glob("*.png")):
+    if not full_demo_images_present():
         pytest.skip(
-            "data/demo/photos has no images (they are git-ignored); run scripts/prepare_demo_photos.py "
-            "to copy the demo photos listed in data/demo/photos.manifest.json"
+            "The complete private demo album is not installed; "
+            "run scripts/prepare_demo_photos.py to copy the demo photos"
         )
     engine = create_db_engine(f"sqlite:///{tmp_path_factory.mktemp('demo') / 'demo.db'}")
     repo = OutfitRepository(engine)

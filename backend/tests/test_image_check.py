@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 
 import pytest
+
+from tests.demo_inventory import full_demo_images_present as demo_images_present
 from PIL import Image
 
 from app.ingestion.image_check import (
@@ -132,14 +134,6 @@ def test_mime_type_for_supported_extensions() -> None:
 # --- real demo photos --------------------------------------------------------
 
 
-def demo_images_present() -> bool:
-    # The sidecar *.metadata.json files are tracked but the photos are
-    # git-ignored, so a fresh clone has the folder without any images.
-    return DEMO_PHOTOS.is_dir() and any(
-        p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
-        for p in DEMO_PHOTOS.iterdir()
-    )
-
 
 def rights_confirmed_files() -> list[str]:
     """File names in photos.manifest.json that prepare_demo_photos.py copies."""
@@ -150,8 +144,8 @@ def rights_confirmed_files() -> list[str]:
 @pytest.mark.skipif(
     not demo_images_present(),
     reason=(
-        "data/demo/photos has no images (they are git-ignored); run scripts/prepare_demo_photos.py "
-        "to copy the demo photos listed in data/demo/photos.manifest.json"
+        "The complete private demo album is not installed; "
+        "run scripts/prepare_demo_photos.py to copy the demo photos"
     ),
 )
 def test_all_demo_photos_pass_check_image() -> None:

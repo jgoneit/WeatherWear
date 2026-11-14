@@ -30,6 +30,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+
+from tests.demo_inventory import full_demo_images_present as demo_images_present
 from fastapi.testclient import TestClient
 from PIL import Image
 

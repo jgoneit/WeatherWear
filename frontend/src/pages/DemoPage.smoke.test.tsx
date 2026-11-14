@@ -136,6 +136,7 @@ describe("DemoPage smoke", () => {
       screen.getAllByText(STRINGS.demo.scenarioApplied("기록적 폭염 (데이터 부족)", "38.0°C")).length,
     ).toBeGreaterThan(0);
 
+    fireEvent.click(screen.getByText("개발 정보"));
     fireEvent.click(screen.getByRole("button", { name: STRINGS.demo.recompute }));
     expect(await screen.findByTestId("recompute-summary")).toHaveTextContent(STRINGS.demo.recomputeInsufficient);
     expect(screen.getByText(`${STRINGS.demo.recomputeDone} · ${STRINGS.demo.done}`)).toBeInTheDocument();

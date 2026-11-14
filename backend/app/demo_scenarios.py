@@ -68,13 +68,15 @@ Side = Literal["cold", "hot"]
 # Fixed parts of data/demo/scenarios.json; only actual_temperature_c is chosen.
 # apparent_temperature_c is null because the recorded weather has no apparent
 # temperature, so tie-breaking stays consistent with the data (Req 7.8).
+# Short names without the rule in brackets (main's naming); the rule each
+# scenario shows is in the module docstring and design.md.
 SCENARIO_NAMES: dict[str, str] = {
     S1_ID: "쌀쌀한 아침",
-    S2_ID: "기록적 한파 (경계 3.0°C)",
-    S3_ID: "무더위 (범위 확장)",
-    S4_ID: "기록적 폭염 (데이터 부족)",
+    S2_ID: "기록적 한파",
+    S3_ID: "때 이른 무더위",
+    S4_ID: "기록적 폭염",
 }
-S2_HOT_SIDE_NAME = "기록적 고온 (경계 3.0°C)"
+S2_HOT_SIDE_NAME = "기록적 고온"
 SCENARIO_AUX: dict[str, dict[str, float | None]] = {
     S1_ID: {"apparent_temperature_c": None, "relative_humidity_pct": 55, "wind_speed_kmh": 12, "precipitation_mm": 0},
     S2_ID: {"apparent_temperature_c": None, "relative_humidity_pct": 35, "wind_speed_kmh": 20, "precipitation_mm": 0},

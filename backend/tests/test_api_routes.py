@@ -9,7 +9,9 @@ providers (no network).
 from __future__ import annotations
 
 import io
+import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -20,8 +22,12 @@ from app.deps import get_today_weather_service, scan_lock
 from app.domain import WeatherContext
 from app.ingestion.image_check import SUPPORTED_EXTENSIONS
 from app.main import REPO_ROOT, create_app
+from app.today_weather import DEFAULT_SCENARIOS_PATH
 
-DEMO_PHOTO_DIR = REPO_ROOT / "data" / "demo" / "photos"
+DEMO_DIR = REPO_ROOT / "data" / "demo"
+DEMO_PHOTO_DIR = DEMO_DIR / "photos"
+MANIFEST_PATH = DEMO_DIR / "photos.manifest.json"
+EXPECTATIONS_PATH = DEMO_DIR / "scenario_expectations.json"
 FAKE_KEY = "fake-test-key-0123456789abcdef"
 
 
@@ -34,6 +40,17 @@ def make_config(tmp_path: Path, **overrides: str) -> AppConfig:
     config, issues = resolve_config(raw)
     assert issues == []
     return config
+
+
+def read_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def scenario_temp(scenario_id: str) -> float:
+    """``actual_temperature_c`` of a scenario in the real data/demo/scenarios.json."""
+    return next(
+        s["actual_temperature_c"] for s in read_json(DEFAULT_SCENARIOS_PATH)["scenarios"] if s["id"] == scenario_id
+    )
 
 
 def make_client(config: AppConfig) -> TestClient:
@@ -136,7 +153,7 @@ def test_scenario_list_select_clear_and_unknown(client: TestClient) -> None:
     selected = client.put("/api/demo/scenarios/selected", json={"scenario_id": "cold-snap"})
     assert selected.status_code == 200
     assert selected.json()["selected_id"] == "cold-snap"
-    assert selected.json()["scenario"]["actual_temperature_c"] == -12.0
+    assert selected.json()["scenario"]["actual_temperature_c"] == scenario_temp("cold-snap")
 
     unknown = client.put("/api/demo/scenarios/selected", json={"scenario_id": "nope"})
     assert unknown.status_code == 404
@@ -170,7 +187,7 @@ def test_weather_today_uses_provider_then_scenario(client: TestClient) -> None:
     assert scenario["provider"] == "scenario" and scenario["is_fixture"] is True
     assert scenario["scenario_id"] == "chilly-morning"
     assert scenario["scenario_name"] == "쌀쌀한 아침"
-    assert scenario["actual_temperature_c"] == 9.0
+    assert scenario["actual_temperature_c"] == scenario_temp("chilly-morning")
 
 
 def _missing_today_service():
@@ -299,31 +316,69 @@ def demo_images_present() -> bool:
     )
 
 
+def rights_confirmed_count() -> int:
+    return sum(1 for p in read_json(MANIFEST_PATH)["photos"] if p["rights_confirmed"] is True)
+
+
+def response_digest(body: dict[str, Any], file_by_id: dict[int, str]) -> dict[str, Any]:
+    """A recommendation response in the shape of a scenario_expectations.json entry."""
+    return {
+        "status": body["status"],
+        "fallback": body["fallback"],
+        "applied_tolerance_c": body["applied_tolerance_c"],
+        "items": [
+            {
+                "rank": item["rank"],
+                "file": file_by_id[item["outfit"]["id"]],
+                "past_temperature_c": item["outfit"]["weather"]["actual_temperature_c"],
+                "temperature_diff_c": item["temperature_diff_c"],
+                "score": item["score"],
+                "effective_vote": item["outfit"]["effective_vote"],
+                "confidence_level": item["confidence_level"],
+                "selected_by_fallback": item["selected_by_fallback"],
+            }
+            for item in body["items"]
+        ],
+    }
+
+
+def expected_digest(expected: dict[str, Any]) -> dict[str, Any]:
+    keys = ("status", "fallback", "applied_tolerance_c", "items")
+    return {key: expected[key] for key in keys}
+
+
 @pytest.mark.skipif(
     not demo_images_present(),
     reason=(
-        "data/demo/photos has no images (they are git-ignored); "
-        "run scripts/prepare_demo_photos.py to copy the 159 demo photos"
+        "data/demo/photos has no images (they are git-ignored); run scripts/prepare_demo_photos.py "
+        "to copy the demo photos listed in data/demo/photos.manifest.json"
     ),
 )
 def test_demo_data_end_to_end(tmp_path: Path) -> None:
     config = make_config(tmp_path, PHOTO_DIR=str(DEMO_PHOTO_DIR))
     app = create_app(config)
     repo = app.state.container.repository
+    expectations = read_json(EXPECTATIONS_PATH)["scenarios"]
     with TestClient(app, raise_server_exceptions=False) as test_client:
         report = test_client.post("/api/demo/scan").json()
-        assert report["succeeded"] == 159, report["errors"][:3]
+        assert report["succeeded"] == rights_confirmed_count(), report["errors"][:3]
         assert report["failed"] == 0 and report["duplicate"] == 0
 
         file_by_id = {r.id: r.file_name for r in repo.list_outfits()}
+
+        # Every scenario gives the result scripts/select_scenarios.py recorded.
+        assert [e["id"] for e in expectations] == ["chilly-morning", "cold-snap", "early-heat", "heatwave"]
+        for expected in expectations:
+            test_client.put("/api/demo/scenarios/selected", json={"scenario_id": expected["id"]})
+            body = test_client.get("/api/recommendations/today").json()
+            assert body["today"]["actual_temperature_c"] == expected["actual_temperature_c"]
+            assert response_digest(body, file_by_id) == expected_digest(expected), expected["id"]
 
         test_client.put("/api/demo/scenarios/selected", json={"scenario_id": "chilly-morning"})
         chilly = test_client.get("/api/recommendations/today").json()
         assert chilly["status"] == "ok" and chilly["fallback"] is False
         assert len(chilly["items"]) == 5
-        top = chilly["items"][0]
-        assert top["rank"] == 1 and top["score"] == 115.0
-        assert file_by_id[top["outfit"]["id"]].startswith("081_")
+        assert chilly["items"][0]["rank"] == 1
         assert all(item["temperature_diff_c"] <= 3.0 for item in chilly["items"])
 
         test_client.put("/api/demo/scenarios/selected", json={"scenario_id": "heatwave"})

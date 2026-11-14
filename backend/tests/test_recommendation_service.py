@@ -1,14 +1,17 @@
 """Unit tests for RecommendationService (task 9.10, Req 6.3, 6.5, 6.8, 8.1, 8.7, 9.6).
 
 The last tests scan the real demo photos with fixture providers and check the
-scenario outcomes listed in design.md "데모 데이터 파일".
+scenario outcomes listed in design.md "데모 데이터 파일" against
+data/demo/scenario_expectations.json.
 """
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -31,6 +34,8 @@ SEOUL = ZoneInfo("Asia/Seoul")
 FIXED_NOW = datetime(2026, 11, 14, 3, 0, tzinfo=UTC)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEMO_PHOTO_DIR = REPO_ROOT / "data" / "demo" / "photos"
+MANIFEST_PATH = REPO_ROOT / "data" / "demo" / "photos.manifest.json"
+EXPECTATIONS_PATH = REPO_ROOT / "data" / "demo" / "scenario_expectations.json"
 
 COAT = ClothingTags(
     upper_type="knit", outer_type="coat", lower_type="slacks", colors=["navy"], layers_visible=2, confidence=0.9
@@ -218,15 +223,16 @@ def test_non_outfit_photo_still_listed_in_outfits(tmp_path: Path) -> None:
 def demo_env(tmp_path_factory: pytest.TempPathFactory) -> tuple[RecommendationService, ScenarioStore, dict[int, str]]:
     if not any(DEMO_PHOTO_DIR.glob("*.png")):
         pytest.skip(
-            "data/demo/photos has no images (they are git-ignored); "
-            "run scripts/prepare_demo_photos.py to copy the 159 demo photos"
+            "data/demo/photos has no images (they are git-ignored); run scripts/prepare_demo_photos.py "
+            "to copy the demo photos listed in data/demo/photos.manifest.json"
         )
     engine = create_db_engine(f"sqlite:///{tmp_path_factory.mktemp('demo') / 'demo.db'}")
     repo = OutfitRepository(engine)
     weather = FixtureWeatherProvider(tz=SEOUL)
     report = ImageIngestionService(DEMO_PHOTO_DIR, FixtureVisionProvider.from_file(), weather, repo, SEOUL).scan()
     assert report.failed == 0, report.errors
-    assert report.succeeded == report.scanned == 159
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    assert report.succeeded == report.scanned == sum(1 for p in manifest["photos"] if p["rights_confirmed"] is True)
 
     scenarios, errors = load_scenarios(DEFAULT_SCENARIOS_PATH)
     assert errors == []
@@ -245,33 +251,71 @@ def _demo(demo_env, scenario_id: str) -> tuple[RecommendationResponse, list[str]
     return resp, [names[i.outfit.id] for i in resp.items]
 
 
+def _expected(scenario_id: str) -> dict[str, Any]:
+    """The scenario_expectations.json entry recorded by scripts/select_scenarios.py."""
+    doc = json.loads(EXPECTATIONS_PATH.read_text(encoding="utf-8"))
+    return next(s for s in doc["scenarios"] if s["id"] == scenario_id)
+
+
+def _digest(resp: RecommendationResponse, files: list[str]) -> dict[str, Any]:
+    """The response in the shape of a scenario_expectations.json entry."""
+    return {
+        "status": resp.status,
+        "fallback": resp.fallback,
+        "applied_tolerance_c": resp.applied_tolerance_c,
+        "count": len(resp.items),
+        "top_file": files[0] if files else None,
+        "items": [
+            {
+                "rank": item.rank,
+                "file": file,
+                "past_temperature_c": item.outfit.weather.actual_temperature_c if item.outfit.weather else None,
+                "temperature_diff_c": item.temperature_diff_c,
+                "score": item.score,
+                "effective_vote": item.outfit.effective_vote,
+                "confidence_level": item.confidence_level,
+                "selected_by_fallback": item.selected_by_fallback,
+            }
+            for item, file in zip(resp.items, files, strict=True)
+        ],
+    }
+
+
+def _assert_matches_expectation(resp: RecommendationResponse, files: list[str], scenario_id: str) -> None:
+    expected = _expected(scenario_id)
+    assert resp.today.actual_temperature_c == expected["actual_temperature_c"]
+    keys = ("status", "fallback", "applied_tolerance_c", "count", "top_file", "items")
+    assert _digest(resp, files) == {key: expected[key] for key in keys}
+
+
 def test_demo_chilly_morning(demo_env) -> None:  # type: ignore[no-untyped-def]
     resp, files = _demo(demo_env, "chilly-morning")
     assert resp.status == "ok" and resp.fallback is False and resp.applied_tolerance_c == 3.0
     assert len(resp.items) == 5
     assert all(i.temperature_diff_c <= 3.0 for i in resp.items)
-    assert files[0] == "081_hiphop_varsity_baggy_denim.png"
-    assert resp.items[0].score == 115.0
-    assert resp.items[1].score < 115.0
+    _assert_matches_expectation(resp, files, "chilly-morning")
 
 
 def test_demo_cold_snap_boundary(demo_env) -> None:  # type: ignore[no-untyped-def]
     resp, files = _demo(demo_env, "cold-snap")
-    assert resp.status == "ok" and resp.fallback is False
-    assert files == ["076_winter_navy_long_parka.png"]
-    assert resp.items[0].temperature_diff_c == 3.0
+    assert resp.status == "ok" and resp.fallback is False and resp.applied_tolerance_c == 3.0
+    assert len(files) == 1
+    assert resp.items[0].temperature_diff_c == 3.0  # exactly on the 3.0°C tolerance boundary
     assert resp.items[0].confidence_level == "high"
+    _assert_matches_expectation(resp, files, "cold-snap")
 
 
 def test_demo_early_heat_fallback(demo_env) -> None:  # type: ignore[no-untyped-def]
-    resp, _ = _demo(demo_env, "early-heat")
+    resp, files = _demo(demo_env, "early-heat")
     assert resp.status == "ok" and resp.fallback is True and resp.applied_tolerance_c == 5.0
-    assert len(resp.items) == 5
+    assert 1 <= len(resp.items) <= 5
     assert all(i.selected_by_fallback for i in resp.items)
     assert all(3.5 <= i.temperature_diff_c <= 5.0 for i in resp.items)
     assert all(i.confidence_level in ("medium", "low") for i in resp.items)
+    _assert_matches_expectation(resp, files, "early-heat")
 
 
 def test_demo_heatwave_insufficient(demo_env) -> None:  # type: ignore[no-untyped-def]
-    resp, _ = _demo(demo_env, "heatwave")
+    resp, files = _demo(demo_env, "heatwave")
     assert resp.status == "insufficient_data" and resp.fallback is True and resp.items == []
+    _assert_matches_expectation(resp, files, "heatwave")

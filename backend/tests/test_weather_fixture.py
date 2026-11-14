@@ -112,11 +112,12 @@ def test_entry_fields_are_copied_and_observed_at_floored_to_hour(tmp_path: Path)
 def test_today_uses_today_default() -> None:
     now_local = FIXED_NOW.astimezone(SEOUL)
     reading = _provider().get_weather(now_local, 37.5665, 126.978)
-    assert reading.actual_temperature_c == 9.0
-    assert reading.apparent_temperature_c == 6.5
-    assert reading.relative_humidity_pct == 55
-    assert reading.wind_speed_kmh == 12
-    assert reading.precipitation_mm == 0.0
+    default = json.loads(DEFAULT_WEATHER_FIXTURE_PATH.read_text(encoding="utf-8"))["today_default"]
+    assert reading.actual_temperature_c == default["actual_temperature_c"]
+    assert reading.apparent_temperature_c is None  # like the recorded weather (Req 4.12)
+    assert reading.relative_humidity_pct == default["relative_humidity_pct"]
+    assert reading.wind_speed_kmh == default["wind_speed_kmh"]
+    assert reading.precipitation_mm == default["precipitation_mm"]
     assert reading.observed_at == datetime(2026, 11, 14, 12, 0, tzinfo=SEOUL)
     assert reading.is_fixture is True
 

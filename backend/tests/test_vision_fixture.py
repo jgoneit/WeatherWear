@@ -25,6 +25,7 @@ from app.providers.vision.fixture import (
 )
 
 DEMO_PHOTO = REPO_ROOT / "data" / "demo" / "photos" / "081_hiphop_varsity_baggy_denim.png"
+MANIFEST_PATH = REPO_ROOT / "data" / "demo" / "photos.manifest.json"
 
 TAGS = ClothingTags(
     upper_type="knit",
@@ -97,7 +98,8 @@ def test_real_demo_fixture_matches_demo_photo() -> None:
     if not DEMO_PHOTO.exists():
         pytest.skip("demo photos not prepared")
     provider = FixtureVisionProvider.from_file(DEFAULT_VISION_FIXTURE_PATH)
-    assert len(provider) == 159
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    assert len(provider) == sum(1 for p in manifest["photos"] if p["rights_confirmed"] is True)
 
     data = DEMO_PHOTO.read_bytes()
     tags = provider.analyze(data, "image/png", hashlib.sha256(data).hexdigest())

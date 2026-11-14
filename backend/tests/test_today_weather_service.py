@@ -11,7 +11,7 @@ import pytest
 
 from app.config import resolve_config
 from app.domain import WeatherReading
-from app.providers.weather.fixture import FixtureWeatherProvider
+from app.providers.weather.fixture import DEFAULT_WEATHER_FIXTURE_PATH, FixtureWeatherProvider
 from app.today_weather import (
     DEFAULT_SCENARIOS_PATH,
     ScenarioStore,
@@ -49,6 +49,15 @@ class RecordingProvider:
         )
 
 
+def _real_scenarios() -> list[dict[str, object]]:
+    """Entries of the real data/demo/scenarios.json, in file order."""
+    return json.loads(DEFAULT_SCENARIOS_PATH.read_text(encoding="utf-8"))["scenarios"]
+
+
+def _real_scenario_temp(scenario_id: str) -> object:
+    return next(s["actual_temperature_c"] for s in _real_scenarios() if s["id"] == scenario_id)
+
+
 def _write(tmp_path: Path, payload: object) -> Path:
     path = tmp_path / "scenarios.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
@@ -70,12 +79,11 @@ def _service(store: ScenarioStore, provider: object, **kwargs: object) -> TodayW
 def test_real_demo_scenarios_load() -> None:
     scenarios, errors = load_scenarios(DEFAULT_SCENARIOS_PATH)
     assert errors == []
-    assert [(s.id, s.actual_temperature_c) for s in scenarios] == [
-        ("chilly-morning", 9.0),
-        ("cold-snap", -12.0),
-        ("early-heat", 30.0),
-        ("heatwave", 38.0),
-    ]
+    # Every entry loads unchanged and in file order (nothing is dropped).
+    assert [s.model_dump() for s in scenarios] == _real_scenarios()
+    assert [s.id for s in scenarios] == ["chilly-morning", "cold-snap", "early-heat", "heatwave"]
+    # The recorded weather has no apparent temperature, so no scenario has one (Req 7.8).
+    assert [s.apparent_temperature_c for s in scenarios] == [None, None, None, None]
 
 
 def test_missing_file_returns_empty_and_error(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
@@ -183,7 +191,11 @@ def test_real_scenarios_drive_today_weather() -> None:
     service = _service(store, RecordingProvider())
     store.select("cold-snap")
     ctx = service.get_today()
-    assert (ctx.actual_temperature_c, ctx.apparent_temperature_c, ctx.scenario_id) == (-12.0, -18.0, "cold-snap")
+    assert (ctx.actual_temperature_c, ctx.apparent_temperature_c, ctx.scenario_id) == (
+        _real_scenario_temp("cold-snap"),
+        None,
+        "cold-snap",
+    )
 
 
 def test_empty_scenario_list_still_serves_provider_weather(tmp_path: Path) -> None:
@@ -196,7 +208,8 @@ def test_provider_exception_falls_back_to_fixture() -> None:
     fixture = FixtureWeatherProvider(now=lambda: FIXED_NOW)
     ctx = _service(_store(), RecordingProvider(fail=True), fallback=fixture).get_today()
     assert ctx.provider == "fixture" and ctx.is_fixture is True
-    assert ctx.actual_temperature_c == 9.0  # weather.json today_default
+    today_default = json.loads(DEFAULT_WEATHER_FIXTURE_PATH.read_text(encoding="utf-8"))["today_default"]
+    assert ctx.actual_temperature_c == today_default["actual_temperature_c"]
 
 
 def test_provider_exception_without_fallback_propagates() -> None:

@@ -182,7 +182,7 @@
     - **Property 27: 착장 목록 정렬**
     - **Validates: Requirements 10.1**
 
-  - [-] 6.4 ImageIngestionService 구현 (`backend/app/ingestion/service.py`)
+  - [x] 6.4 ImageIngestionService 구현 (`backend/app/ingestion/service.py`)
     - PHOTO_DIR 검사(`exists`, `is_dir`, `os.access`) 실패 시 `PhotoDirUnavailable`(경로 비노출)
     - 파일별 처리 순서: 크기 검사(내용 안 읽음) → SHA-256 → DB/이번 스캔 성공 집합 중복 검사 → `check_image` → 사이드카 → Vision 1회 → Weather → `create_outfit_bundle`. 실패 단계에서 중단하고 `ScanError(file_name, stage, code, message)` 기록
     - `ScanReport` 집계(`scanned = succeeded + duplicate + failed`)
@@ -204,7 +204,7 @@
   - `cd backend && python -m pytest -q`가 외부 연결 없이 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
 - [ ] 8. 피드백과 오늘 날씨
-  - [-] 8.1 FeedbackService 구현 (`backend/app/feedback.py`)
+  - [x] 8.1 FeedbackService 구현 (`backend/app/feedback.py`)
     - `submit(outfit_id, vote)`: Outfit 없으면 `OutfitNotFound`, `created_at=now(UTC, 마이크로초)`, `source='user_action'`, INSERT만, 저장 예외 시 롤백 후 `FeedbackSaveFailed`
     - _Requirements: 9.1, 9.3, 9.5, 9.7, 9.8_
 
@@ -261,7 +261,7 @@
     - **Property 23: 신뢰도 수준 규칙**
     - **Validates: Requirements 8.5, 7.5**
 
-  - [-] 9.7 설명 생성 구현 후 전략에 연결 (`backend/app/recommendation/explain.py`, `rule_based_v1.py`)
+  - [x] 9.7 설명 생성 구현 후 전략에 연결 (`backend/app/recommendation/explain.py`, `rule_based_v1.py`)
     - `VOTE_KO`, `display_tags()`(outer→upper→lower, `none`/`unknown` 제외, 최대 3개), `build_explanation()`(오늘·과거·차이 °C 소수 첫째 자리, "착장 태그 정보 없음", "체감 피드백 기록 없음", 사유와 점수, fallback 문장), 300자 초과 시 태그 20자 절단
     - `rule_based_v1.py`가 `reasons`, `explanation`을 채우도록 연결
     - _Requirements: 7.3, 7.4, 8.1, 8.2, 8.3, 8.4, 8.6_
@@ -333,7 +333,7 @@
 - [~] 11. Checkpoint - 백엔드 전체 확인
   - `cd backend && python -m pytest -q`가 실패 0건, 종료 코드 0으로 끝나는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
-- [ ] 12. 프론트엔드 기반
+- [x] 12. 프론트엔드 기반
   - [x] 12.1 Vite + React + TypeScript + Tailwind v4 골격 만들기 (`frontend/`)
     - `package.json`에 design 표의 버전을 `^`/`~` 없이 고정, `vite.config.ts`(`@tailwindcss/vite`, vitest jsdom), `tsconfig.json`, `typecheck` 스크립트
     - `src/styles/app.css`에 `@theme` 토큰(`--font-sans` Pretendard Variable, `--color-cold/mild/warm/hot`, `--radius-card`), `pretendard` 패키지 자체 호스팅
@@ -347,7 +347,7 @@
     - 작은 `useAsync` 훅(이전 데이터 유지, pending 상태)
     - _Requirements: 10.7, 11.9, 13.5, 13.7, 14.5, 14.6_
 
-  - [-] 12.3 표시 형식 순수 함수 구현 (`frontend/src/lib/format.ts`)
+  - [x] 12.3 표시 형식 순수 함수 구현 (`frontend/src/lib/format.ts`)
     - `formatTemp`, `formatHumidity`, `formatDate(iso, tz)`(`Intl.DateTimeFormat`), `voteLabel`, `displayTags`(백엔드 규칙과 동일), `provenance()`
     - _Requirements: 4.9, 11.2, 11.3, 11.4, 12.2, 15.4_
 
@@ -360,7 +360,7 @@
     - **Validates: Requirements 15.4, 4.9**
 
 - [ ] 13. Soft Glass + Bento 홈 화면과 알림 카드
-  - [-] 13.1 레이아웃 셸 구현 (`frontend/src/components/layout/`)
+  - [x] 13.1 레이아웃 셸 구현 (`frontend/src/components/layout/`)
     - `AppShell`: 오늘 기온 구간별 메시 그라디언트 배경(≤5 아이스 블루, 6~16 세이지, 17~24 피치, ≥25 코랄, 600ms 전환), sticky 글래스 헤더, 떠 있는 pill 글래스 `BottomTabBar`(홈/기록, `import.meta.env.DEV`일 때만 "데모" 탭), `env(safe-area-inset-bottom)`
     - 360px에서 가로 스크롤 없음(`min-w-0`, `overflow-x-clip`, `max-w-full`), `prefers-reduced-motion` 시 전환 제거, `backdrop-filter` 미지원 시 `bg-white/90`
     - _Requirements: 11.5, 11.6, 14.1, 14.2_

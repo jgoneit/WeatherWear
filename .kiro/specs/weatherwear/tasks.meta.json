@@ -334,6 +334,11 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794631760094
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632088530
       }
     ],
     "6.7 수집·중복 제거 단위 테스트 작성 (`backend/tests/test_ingestion.py`)": [
@@ -360,6 +365,11 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794631761095
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632088540
       }
     ],
     "8.3 TodayWeatherService와 ScenarioStore 구현 (`backend/app/today_weather.py`)": [
@@ -413,6 +423,11 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794631762713
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632089150
       }
     ],
     "9.10 RecommendationService 구현 (`backend/app/recommendation/service.py`)": [
@@ -515,6 +530,11 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794631763915
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632090325
       }
     ],
     "13.1 레이아웃 셸 구현 (`frontend/src/components/layout/`)": [
@@ -527,6 +547,11 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794631764643
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632090951
       }
     ],
     "13.2 날씨·추천 공용 컴포넌트 구현 (`frontend/src/components/`)": [
@@ -639,6 +664,13 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794631524259
+      }
+    ],
+    "12. 프론트엔드 기반": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794632090326
       }
     ]
   }

@@ -6,8 +6,12 @@
 data/weatherwear.db*
 
 # Photos (not published; prepare locally with scripts/prepare_demo_photos.py)
+# Demo photos (people photos, ~290MB): copy to the deploy server separately.
+# ex_img/ also holds files whose usage rights are not confirmed.
+# Sidecar metadata JSON files stay tracked.
 ex_img/
-data/demo/photos/
+data/demo/photos/*
+!data/demo/photos/*.metadata.json
 
 # Python
 backend/.venv/
@@ -23,14 +27,6 @@ dist/
 
 # OS
 .DS_Store
-
-# Demo photos (people photos, ~290MB): copy to the deploy server separately.
-# ex_img/ also holds files whose usage rights are not confirmed.
-ex_img/
-data/demo/photos/
-
-# Not needed for deployment
-backend/tests/
 
 # Editor / logs
 .vscode/

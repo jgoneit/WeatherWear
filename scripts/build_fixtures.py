@@ -288,6 +288,21 @@ _TAGS_TABLE = """
 123|fleece top|shell jacket|cargo trousers|orange,teal,olive|2|0.85
 124|t-shirt|patchwork cardigan|baggy jeans|mustard,green,burgundy,black,blue|2|0.85
 125|hoodie|vest|cargo trousers|red,black,charcoal|2|0.85
+126|hoodie|baseball jersey|track pants|navy,grey,red,white|2|0.85
+127|t-shirt|windbreaker|shorts over leggings|turquoise,charcoal,white,black|2|0.85
+128|coveralls|none|none|indigo,white,red,tan|2|0.85
+129|hoodie|utility vest|cargo trousers|black,chartreuse,violet,orange|2|0.9
+130|sweatshirt|none|plaid trousers|cream,grey,blue,black|2|0.85
+131|hoodie|windbreaker|parachute pants|violet,yellow,black|2|0.9
+132|striped shirt|sweater vest|corduroy trousers|green,plum,rust,cream,red|2|0.85
+133|striped rugby top|chore jacket|carpenter jeans|orange,navy,indigo,white|2|0.9
+134|long-sleeve top|utility vest|wide track pants|slate blue,white,graphite,mint|2|0.85
+135|t-shirt|flannel shirt|baggy jeans|black,burgundy,red|2|0.85
+136|graphic t-shirt|none|shorts over leggings|cobalt blue,yellow,red,black,white|2|0.85
+137|soccer jersey|none|track pants|black,white,red|2|0.9
+138|t-shirt|cardigan|cargo jeans|lilac,white,forest green,silver|2|0.85
+139|striped top|utility vest|carpenter trousers|charcoal,white,cream,black|2|0.85
+140|hoodie|work jacket|parachute trousers|mustard,teal,black,orange|2|0.9
 2025-01-08_081500_KST|unknown|puffer coat|jeans|black,beige,navy|1|0.8
 2025-01-24_191000_KST|unknown|puffer jacket|jeans|cream,grey,charcoal|1|0.8
 2025-02-12_084000_KST|turtleneck|puffer coat|jeans|black,grey,navy|2|0.85

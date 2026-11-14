@@ -26,7 +26,7 @@ function makeOutfit(overrides: Partial<Outfit> = {}): Outfit {
     metadata_synthetic: true,
     photo_url: "/api/outfits/21/photo",
     tags: {
-      upper_type: "sweater",
+      upper_type: "knit",
       outer_type: "none",
       lower_type: "unknown",
       colors: ["cream", "navy"],
@@ -82,7 +82,8 @@ describe("OutfitDetailPage smoke", () => {
     expect(screen.getByRole("img")).toHaveAttribute("src", "/api/outfits/21/photo");
 
     // 태그 6개 필드
-    expect(screen.getByText("sweater")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("사진과 분석 정보"));
+    expect(screen.getAllByText("니트").length).toBeGreaterThan(0);
     expect(screen.getByText(STRINGS.detail.tagNone)).toBeInTheDocument();
     expect(screen.getByText(STRINGS.detail.tagUnknown)).toBeInTheDocument();
     expect(screen.getByText("cream")).toBeInTheDocument();

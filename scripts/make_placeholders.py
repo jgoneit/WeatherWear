@@ -139,13 +139,13 @@ class Placeholder:
 # of temperatures (about -6 to 29 °C).
 PLACEHOLDERS: tuple[Placeholder, ...] = (
     Placeholder("ph_01_navy_parka", "2025-01-10T08:00:00+09:00", "parka", "knit", "jeans", ("navy", "grey")),
-    Placeholder("ph_02_wool_coat", "2025-02-03T08:30:00+09:00", "wool_coat", "turtleneck", "slacks", ("camel", "black")),
-    Placeholder("ph_03_cream_sweater", "2025-11-20T13:30:00+09:00", "none", "sweater", "slacks", ("cream", "brown")),
+    Placeholder("ph_02_wool_coat", "2025-02-03T08:30:00+09:00", "coat", "turtleneck", "slacks", ("camel", "black")),
+    Placeholder("ph_03_cream_sweater", "2025-11-20T13:30:00+09:00", "none", "knit", "slacks", ("cream", "brown")),
     Placeholder("ph_04_varsity_jacket", "2025-10-28T09:00:00+09:00", "varsity_jacket", "hoodie", "jeans", ("green", "white", "blue")),
-    Placeholder("ph_05_sage_sweater", "2025-03-12T14:00:00+09:00", "none", "sweater", "jeans", ("sage", "blue")),
+    Placeholder("ph_05_sage_sweater", "2025-03-12T14:00:00+09:00", "none", "knit", "jeans", ("sage", "blue")),
     Placeholder("ph_06_beige_trench", "2025-04-08T08:00:00+09:00", "trench_coat", "shirt", "slacks", ("beige", "white", "navy")),
     Placeholder("ph_07_oxford_shirt", "2025-05-20T15:30:00+09:00", "none", "shirt", "chinos", ("blue", "tan")),
-    Placeholder("ph_08_linen_tee", "2025-07-15T14:00:00+09:00", "none", "t_shirt", "linen_trousers", ("white", "ivory")),
+    Placeholder("ph_08_linen_tee", "2025-07-15T14:00:00+09:00", "none", "t_shirt", "trousers", ("white", "ivory")),
 )
 
 
@@ -255,7 +255,12 @@ def generate(dest_dir: Path, vision_fixture: Path, weather_fixture: Path) -> lis
         png = render_png(p, index)
         (dest_dir / f"{p.name}.png").write_bytes(png)
         written.append(f"{p.name}.png")
-        tags_by_hash[hashlib.sha256(png).hexdigest()] = p.tags()
+        tags_by_hash[hashlib.sha256(png).hexdigest()] = {
+            "photo_type": "outfit",
+            "photo_type_confidence": 1.0,
+            "reason": "A placeholder outfit is the main subject.",
+            "tags": p.tags(),
+        }
 
     vision = _read_json_object(vision_fixture)
     vision.update(tags_by_hash)

@@ -39,11 +39,17 @@ const status: DemoStatus = {
 };
 
 const scanReport: ScanReport = {
-  scanned: 3,
+  scanned: 5,
   succeeded: 1,
   duplicate: 1,
   failed: 1,
+  skipped_non_outfit: 1,
+  uncertain: 1,
   errors: [{ file_name: "bad.png", stage: "validation", code: "INVALID_IMAGE_FORMAT", message: "이미지 형식이 올바르지 않습니다." }],
+  decisions: [
+    { file_name: "meal.jpg", photo_type: "non_outfit", confidence: 0.98, reason: "Only food is visible." },
+    { file_name: "crop.jpg", photo_type: "uncertain", confidence: 0.55, reason: "The torso is cropped." },
+  ],
 };
 
 const recommendations: RecommendationResponse = {
@@ -113,8 +119,12 @@ describe("DemoPage smoke", () => {
     expect(await screen.findByTestId("scenario-chilly-morning")).toHaveAttribute("aria-pressed", "true");
 
     fireEvent.click(screen.getByRole("button", { name: STRINGS.demo.scan }));
-    expect(await screen.findByTestId("scan-scanned")).toHaveTextContent("3");
+    expect(await screen.findByTestId("scan-scanned")).toHaveTextContent("5");
+    expect(screen.getByTestId("scan-non-outfit")).toHaveTextContent("1");
+    expect(screen.getByTestId("scan-uncertain")).toHaveTextContent("1");
     expect(screen.getByTestId("scan-failed")).toHaveTextContent("1");
+    expect(screen.getAllByTestId("scan-decision")).toHaveLength(2);
+    expect(screen.getByText("meal.jpg")).toBeInTheDocument();
     const error = screen.getByTestId("scan-error");
     expect(error).toHaveTextContent("bad.png");
     expect(error).toHaveTextContent("이미지 형식이 올바르지 않습니다.");
@@ -126,6 +136,7 @@ describe("DemoPage smoke", () => {
       screen.getAllByText(STRINGS.demo.scenarioApplied("기록적 폭염 (데이터 부족)", "38.0°C")).length,
     ).toBeGreaterThan(0);
 
+    fireEvent.click(screen.getByText("개발 정보"));
     fireEvent.click(screen.getByRole("button", { name: STRINGS.demo.recompute }));
     expect(await screen.findByTestId("recompute-summary")).toHaveTextContent(STRINGS.demo.recomputeInsufficient);
     expect(screen.getByText(`${STRINGS.demo.recomputeDone} · ${STRINGS.demo.done}`)).toBeInTheDocument();
@@ -139,7 +150,16 @@ describe("DemoPage smoke", () => {
       "POST /api/demo/scan": () => {
         scanCalls += 1;
         return scanCalls === 1
-          ? json({ scanned: 2, succeeded: 2, duplicate: 0, failed: 0, errors: [] })
+          ? json({
+              scanned: 2,
+              succeeded: 2,
+              duplicate: 0,
+              failed: 0,
+              skipped_non_outfit: 0,
+              uncertain: 0,
+              errors: [],
+              decisions: [],
+            })
           : json({ error: { code: "SCAN_IN_PROGRESS", message: "이미 스캔이 진행 중입니다." } }, 409);
       },
     });

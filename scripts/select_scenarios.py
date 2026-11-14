@@ -10,16 +10,23 @@ reads the data, applies them and writes:
   other values are fixed. S2 is renamed when it sits above the warmest photo.
 - ``data/demo/fixtures/weather.json``: only ``today_default`` changes. It gets
   the S1 values, so fixture mode without a selected scenario shows the S1 case.
-- Seed vote sidecars in ``data/demo/photos``: every existing
-  ``*.metadata.json`` is deleted, then ``{"thermal_vote": ..., "note": ...}``
-  is written next to each photo that has a vote. Capture time and location
-  come from the embedded metadata, so the script refuses to run while any
-  photo lacks valid embedded metadata.
+- Seed vote sidecars in ``data/demo/photos``. Capture time and location are
+  resolved exactly as the ingestion service does: embedded metadata first,
+  the sidecar as the fallback source (``resolve_capture_metadata``). A photo
+  whose capture comes from its sidecar (the bundled generated outfits, which
+  have no EXIF) keeps every non-vote key of that sidecar; the vote and its
+  note are added or removed. Every other ``*.metadata.json`` is deleted and
+  ``{"thermal_vote": ..., "note": ...}`` is written next to each photo that has
+  a vote. The script refuses to run while any photo has no capture
+  time/location from either source.
 - ``data/demo/scenario_expectations.json``: the result of
   ``RuleBasedTemperatureStrategy`` for each scenario on the recorded data.
-  Outfit ids follow the scan order (file name order), so ties on equal score
-  and weather resolve the same way as after a real scan; items are compared
-  by file name.
+  Only the photos a scan stores as Outfits are candidates (fixture
+  ``photo_type`` ``outfit`` after the ingestion confidence gate; non-outfit and
+  uncertain photos are reported by the scan and never stored). Outfit ids
+  follow the scan order (file name order among the stored photos), so ties on
+  equal score and weather resolve the same way as after a real scan; items are
+  compared by file name.
 
 Before writing, ``check_scenarios`` and the expected outcome of each scenario
 are checked. Any violation is printed, nothing is written and the exit code
@@ -45,6 +52,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "backend"))
@@ -73,15 +81,23 @@ from app.demo_scenarios import (  # noqa: E402
 from app.domain import (  # noqa: E402
     ALGORITHM_VERSION,
     CaptureMetadata,
-    ClothingTags,
     OutfitWithWeatherAndFeedback,
     ThermalVote,
+    VisionAnalysis,
     WeatherContext,
     WeatherReading,
 )
 from app.ingestion.image_check import list_image_files  # noqa: E402
-from app.ingestion.metadata import read_embedded_metadata  # noqa: E402
-from app.ingestion.sidecar import SIDECAR_SUFFIX, SidecarError, parse_sidecar_text, sidecar_path_for  # noqa: E402
+from app.ingestion.metadata import ScanFailure, read_embedded_metadata, resolve_capture_metadata  # noqa: E402
+from app.ingestion.service import apply_confidence_gate  # noqa: E402
+from app.ingestion.sidecar import (  # noqa: E402
+    SIDECAR_SUFFIX,
+    SidecarError,
+    parse_sidecar_text,
+    read_sidecar,
+    sidecar_path_for,
+)
+from app.providers.weather.fixture import FixtureWeatherProvider  # noqa: E402
 from app.recommendation.rule_based_v1 import RuleBasedTemperatureStrategy  # noqa: E402
 from app.today_weather import load_scenarios  # noqa: E402
 
@@ -92,8 +108,10 @@ DEFAULT_VISION = DEMO_DIR / "fixtures" / "vision.json"
 DEFAULT_SCENARIOS = DEMO_DIR / "scenarios.json"
 DEFAULT_EXPECTATIONS = DEMO_DIR / "scenario_expectations.json"
 
+APP_TIMEZONE = ZoneInfo("Asia/Seoul")
 SIDECAR_NOTE = "select_scenarios.py 시드 투표 ({rule}). 촬영 시각·위치는 사진 내장 메타데이터에서 읽는다"
-SIDECAR_KEYS = {"thermal_vote", "note"}
+SIDECAR_SOURCE_NOTE = "select_scenarios.py 시드 투표 ({rule}). 촬영 시각·위치는 이 사이드카에서 읽는다(내장 메타데이터 없음)"
+VOTE_KEYS = {"thermal_vote", "note"}
 
 
 @dataclass(frozen=True)
@@ -101,11 +119,13 @@ class PhotoData:
     file: str
     sha256: str
     captured_at: datetime
-    tags: ClothingTags
+    analysis: VisionAnalysis
     weather: WeatherReading
+    # Non-vote keys of the sidecar when it is the capture source, else None.
+    sidecar_metadata: dict[str, Any] | None = None
 
     def outfit_photo(self) -> OutfitPhoto:
-        return OutfitPhoto(self.file, self.sha256, self.weather.actual_temperature_c, self.tags)
+        return OutfitPhoto(self.file, self.sha256, self.weather.actual_temperature_c, self.analysis)
 
 
 @dataclass(frozen=True)
@@ -124,22 +144,14 @@ def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _reading(entry: dict[str, Any]) -> WeatherReading:
-    return WeatherReading(
-        observed_at=entry["observed_at"],
-        actual_temperature_c=entry["actual_temperature_c"],
-        apparent_temperature_c=entry.get("apparent_temperature_c"),
-        relative_humidity_pct=entry.get("relative_humidity_pct"),
-        wind_speed_kmh=entry.get("wind_speed_kmh"),
-        precipitation_mm=entry.get("precipitation_mm"),
-        weather_code=entry.get("weather_code"),
-        provider="fixture",
-        is_fixture=True,
-    )
-
-
 def load_photo_data(paths: Paths) -> tuple[list[PhotoData], list[str]]:
-    """Every photo with its hash, embedded capture time, tags and recorded weather."""
+    """Every photo with its hash, capture time, vision analysis and fixture weather.
+
+    The capture comes from the embedded metadata or, when that is missing or
+    invalid, from the sidecar, like the ingestion service. The weather is what
+    ``FixtureWeatherProvider`` returns for that capture, so recorded and
+    authored (``synthetic``) entries are read the same way as in a scan.
+    """
     problems: list[str] = []
     try:
         weather = _read_json(paths.weather)
@@ -147,6 +159,7 @@ def load_photo_data(paths: Paths) -> tuple[list[PhotoData], list[str]]:
     except (OSError, ValueError) as exc:
         return [], [f"cannot read fixtures: {type(exc).__name__}: {exc}"]
     entries = {e.get("file"): e for e in weather.get("entries", []) if isinstance(e, dict)}
+    provider = FixtureWeatherProvider(paths.weather, tz=APP_TIMEZONE)
 
     photos: list[PhotoData] = []
     seen: dict[str, str] = {}
@@ -157,42 +170,53 @@ def load_photo_data(paths: Paths) -> tuple[list[PhotoData], list[str]]:
             problems.append(f"{image.name}: same SHA-256 as {seen[sha]}")
             continue
         seen[sha] = image.name
-        capture = read_embedded_metadata(data)
-        if not isinstance(capture, CaptureMetadata):
-            code = getattr(capture, "code", "METADATA_NOT_FOUND")
-            problems.append(f"{image.name}: no valid embedded metadata ({code})")
+        embedded = read_embedded_metadata(data)
+        sidecar = read_sidecar(image, require_location=not isinstance(embedded, CaptureMetadata))
+        resolved = resolve_capture_metadata(embedded, sidecar)
+        if isinstance(resolved, ScanFailure):
+            problems.append(f"{image.name}: no capture time/location ({resolved.code})")
             continue
+        capture, _ = resolved
+        sidecar_metadata = None
+        if capture.origin == "sidecar":
+            raw = _read_json(sidecar_path_for(image))
+            sidecar_metadata = {k: v for k, v in raw.items() if k not in VOTE_KEYS}
         entry = entries.get(image.name)
         if entry is None:
             problems.append(f"{image.name}: no entry in {paths.weather.name}")
             continue
         try:
-            reading = _reading(entry)
             entry_captured = datetime.fromisoformat(entry["captured_at"])
-        except (KeyError, TypeError, ValueError, ValidationError):
+            entry_place = (float(entry["latitude"]), float(entry["longitude"]))
+        except (KeyError, TypeError, ValueError):
             problems.append(f"{image.name}: invalid entry in {paths.weather.name}")
             continue
-        if entry_captured != capture.captured_at:
-            problems.append(f"{image.name}: weather entry captured_at differs from embedded metadata")
+        if entry_captured != capture.captured_at or entry_place != (capture.latitude, capture.longitude):
+            problems.append(f"{image.name}: weather entry time/place differs from the capture metadata")
             continue
-        raw_tags = vision.get(sha)
-        if raw_tags is None:
-            problems.append(f"{image.name}: no tags in {paths.vision.name} for its SHA-256")
+        reading = provider.get_weather(capture.captured_at, capture.latitude, capture.longitude)
+        if reading.actual_temperature_c != entry.get("actual_temperature_c"):
+            problems.append(f"{image.name}: {paths.weather.name} entry is not readable by FixtureWeatherProvider")
+            continue
+        raw_analysis = vision.get(sha)
+        if raw_analysis is None:
+            problems.append(f"{image.name}: no entry in {paths.vision.name} for its SHA-256")
             continue
         try:
-            tags = ClothingTags.model_validate(raw_tags)
+            analysis = VisionAnalysis.model_validate(raw_analysis)
         except ValidationError:
-            problems.append(f"{image.name}: invalid tags in {paths.vision.name}")
+            problems.append(f"{image.name}: invalid VisionAnalysis in {paths.vision.name}")
             continue
-        photos.append(PhotoData(image.name, sha, capture.captured_at, tags, reading))
+        photos.append(PhotoData(image.name, sha, capture.captured_at, analysis, reading, sidecar_metadata))
     if not photos and not problems:
         problems.append(f"no images in {paths.photos}")
     return photos, problems
 
 
-def read_sidecar_votes(photo_dir: Path) -> tuple[dict[str, ThermalVote], list[str]]:
-    """Current sidecar votes by image file name, plus format problems."""
+def read_sidecars(photo_dir: Path) -> tuple[dict[str, dict[str, Any]], dict[str, ThermalVote], list[str]]:
+    """Current sidecar documents and votes by image file name, plus format problems."""
     problems: list[str] = []
+    documents: dict[str, dict[str, Any]] = {}
     votes: dict[str, ThermalVote] = {}
     images = {sidecar_path_for(p).name: p.name for p in list_image_files(photo_dir)}
     for sidecar in sorted(photo_dir.glob(f"*{SIDECAR_SUFFIX}")):
@@ -205,14 +229,10 @@ def read_sidecar_votes(photo_dir: Path) -> tuple[dict[str, ThermalVote], list[st
         if isinstance(parsed, SidecarError):
             problems.append(f"{sidecar.name}: {parsed.code}")
             continue
-        extra = set(json.loads(text)) - SIDECAR_KEYS
-        if extra:
-            problems.append(f"{sidecar.name}: unexpected keys {sorted(extra)}")
-        if parsed.thermal_vote is None:
-            problems.append(f"{sidecar.name}: no thermal_vote")
-            continue
-        votes[image] = parsed.thermal_vote
-    return votes, problems
+        documents[image] = json.loads(text)
+        if parsed.thermal_vote is not None:
+            votes[image] = parsed.thermal_vote
+    return documents, votes, problems
 
 
 # -- expected results ------------------------------------------------------------
@@ -236,14 +256,18 @@ def _today(scenario: dict[str, Any]) -> WeatherContext:
 def simulate(
     photos: list[PhotoData], votes: dict[str, ThermalVote], scenarios_doc: dict[str, Any]
 ) -> dict[str, Any]:
-    """Run rule_based_v1 for each scenario. Outfit id = 1-based position in file name order."""
-    ordered = sorted(photos, key=lambda p: p.file)
+    """Run rule_based_v1 for each scenario on the photos a scan stores.
+
+    Outfit id = 1-based position in file name order among the stored photos
+    (the order a scan inserts them).
+    """
+    ordered = sorted((p for p in photos if p.outfit_photo().stored_as_outfit), key=lambda p: p.file)
     by_id = {index: photo for index, photo in enumerate(ordered, start=1)}
     candidates = [
         OutfitWithWeatherAndFeedback(
             outfit_id=index,
             captured_at=photo.captured_at,
-            tags=photo.tags,
+            tags=photo.analysis.tags,
             weather=photo.weather,
             effective_vote=votes.get(photo.file),
         )
@@ -283,7 +307,10 @@ def simulate(
         "generated_by": "scripts/select_scenarios.py",
         "algorithm_version": ALGORITHM_VERSION,
         "tolerance_c": float(DEFAULT_TOLERANCE_C),
-        "note": "fixture 모드로 data/demo/photos 전체를 스캔한 결과의 기대값. 항목은 파일 이름으로 비교한다",
+        "note": (
+            "fixture 모드로 data/demo/photos 전체를 스캔한 결과의 기대값. 착장으로 저장되는 사진만 후보이고 "
+            "착장 아닌 사진(non_outfit)과 uncertain 사진은 저장되지 않는다. 항목은 파일 이름으로 비교한다"
+        ),
         "scenarios": results,
     }
 
@@ -353,19 +380,35 @@ def today_default_for(scenarios_doc: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def sidecar_document(seed: SeedVote) -> dict[str, str]:
-    return {"thermal_vote": seed.vote, "note": SIDECAR_NOTE.format(rule=seed.rule)}
+def sidecar_documents(photos: list[PhotoData], votes: dict[str, SeedVote]) -> dict[str, dict[str, Any]]:
+    """The sidecar each photo should have, by file name (no entry: no sidecar).
+
+    A photo whose capture comes from its sidecar keeps the non-vote keys of
+    that sidecar; the seed vote and its note are added when it has one.
+    """
+    documents: dict[str, dict[str, Any]] = {}
+    for photo in sorted(photos, key=lambda p: p.file):
+        document = dict(photo.sidecar_metadata or {})
+        seed = votes.get(photo.file)
+        if seed is not None:
+            note = SIDECAR_SOURCE_NOTE if photo.sidecar_metadata is not None else SIDECAR_NOTE
+            document.update(thermal_vote=seed.vote, note=note.format(rule=seed.rule))
+        if document:
+            documents[photo.file] = document
+    return documents
 
 
-def write_sidecars(photo_dir: Path, votes: dict[str, SeedVote]) -> tuple[int, int]:
-    """Delete every ``*.metadata.json``, then write vote-only sidecars. Returns (removed, written)."""
+def write_sidecars(photo_dir: Path, documents: dict[str, dict[str, Any]]) -> tuple[int, int]:
+    """Delete sidecars that should not exist, then write the expected ones. Returns (removed, written)."""
+    keep = {sidecar_path_for(photo_dir / name).name for name in documents}
     removed = 0
     for old in photo_dir.glob(f"*{SIDECAR_SUFFIX}"):
-        old.unlink()
-        removed += 1
-    for file_name, seed in votes.items():
-        write_json_atomic(sidecar_path_for(photo_dir / file_name), sidecar_document(seed))
-    return removed, len(votes)
+        if old.name not in keep:
+            old.unlink()
+            removed += 1
+    for file_name, document in documents.items():
+        write_json_atomic(sidecar_path_for(photo_dir / file_name), document)
+    return removed, len(documents)
 
 
 # -- main ------------------------------------------------------------------------
@@ -376,6 +419,7 @@ class Plan:
     photos: list[PhotoData]
     scenarios_doc: dict[str, Any]
     seed_votes: dict[str, SeedVote]
+    sidecars: dict[str, dict[str, Any]]
     expectations: dict[str, Any]
     violations: list[Violation]
 
@@ -394,7 +438,7 @@ def plan(photos: list[PhotoData]) -> Plan | Infeasible:
     v2 = (ranked[0].file, ranked[1].file) if len(ranked) >= 2 else None
     violations = check_scenarios(chosen, temps, photos=outfit_photos, votes=seed_votes)
     violations += expectation_violations(expectations, v2)
-    return Plan(photos, scenarios_doc, seed_votes, expectations, violations)
+    return Plan(photos, scenarios_doc, seed_votes, sidecar_documents(photos, seed_votes), expectations, violations)
 
 
 def check_current(paths: Paths, photos: list[PhotoData], expected: Plan) -> list[str]:
@@ -406,7 +450,7 @@ def check_current(paths: Paths, photos: list[PhotoData], expected: Plan) -> list
     scenarios, errors = load_scenarios(paths.scenarios)
     problems += [f"{paths.scenarios.name}: {e}" for e in errors]
     current = {s.id: s.actual_temperature_c for s in scenarios if s.id in SCENARIO_IDS}
-    votes, sidecar_problems = read_sidecar_votes(paths.photos)
+    documents, votes, sidecar_problems = read_sidecars(paths.photos)
     problems += sidecar_problems
     problems += [_format(v) for v in check_scenarios(current, temps, photos=outfit_photos, votes=votes)]
 
@@ -418,6 +462,10 @@ def check_current(paths: Paths, photos: list[PhotoData], expected: Plan) -> list
         problems.append(f"{paths.scenarios.name} differs from the chosen scenarios")
     if votes != {f: s.vote for f, s in expected.seed_votes.items()}:
         problems.append("sidecar votes differ from the V1~V4 seed votes")
+    if documents != expected.sidecars:
+        differing = sorted(set(documents) ^ set(expected.sidecars)
+                           | {f for f in documents if f in expected.sidecars and documents[f] != expected.sidecars[f]})
+        problems.append(f"sidecars differ from the expected documents: {', '.join(differing[:5])}")
     try:
         today_default = _read_json(paths.weather).get("today_default")
     except (OSError, ValueError, AttributeError):
@@ -503,10 +551,13 @@ def main(argv: list[str] | None = None) -> int:
     weather_doc["today_default"] = today_default_for(result.scenarios_doc)
     write_json_atomic(paths.scenarios, result.scenarios_doc)
     write_json_atomic(paths.weather, weather_doc)
-    removed, written = write_sidecars(paths.photos, result.seed_votes)
+    removed, written = write_sidecars(paths.photos, result.sidecars)
     write_json_atomic(paths.expectations, result.expectations)
 
-    print(f"photos: {len(photos)} ({sum(p.outfit_photo().non_outfit for p in photos)} non-outfit)")
+    gated = [apply_confidence_gate(p.analysis).photo_type for p in photos]
+    print(f"photos: {len(photos)} (stored as outfit {gated.count('outfit')}, "
+          f"non_outfit {gated.count('non_outfit')}, uncertain {gated.count('uncertain')}; "
+          f"capture from sidecar {sum(p.sidecar_metadata is not None for p in photos)})")
     print(f"wrote {paths.scenarios.name}, today_default in {paths.weather.name}, {paths.expectations.name}")
     print(f"sidecars: removed {removed}, wrote {written}")
     _summary(result)

@@ -185,7 +185,7 @@
   - [x] 6.4 ImageIngestionService 구현 (`backend/app/ingestion/service.py`)
     - PHOTO_DIR 검사(`exists`, `is_dir`, `os.access`) 실패 시 `PhotoDirUnavailable`(경로 비노출)
     - 파일별 처리 순서: 크기 검사(내용 안 읽음) → SHA-256 → DB/이번 스캔 성공 집합 중복 검사 → `check_image` → 사이드카 → Vision 1회 → Weather → `create_outfit_bundle`. 실패 단계에서 중단하고 `ScanError(file_name, stage, code, message)` 기록
-    - `ScanReport` 집계(`scanned = succeeded + duplicate + failed`)
+    - `ScanReport` 집계(`scanned = succeeded + duplicate + skipped_non_outfit + uncertain + failed`), 비착장/불확실 사진은 저장하지 않고 decisions에 보고
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.6, 1.7, 1.8, 1.10, 1.11, 1.12, 2.1, 2.10, 3.1, 3.5, 4.1_
 
   - [ ]* 6.5 스캔 집계 참조 모델 property test 작성 (`backend/tests/test_ingestion_props.py`)
@@ -451,7 +451,7 @@
 - [x] 18. Final checkpoint - 전체 테스트 통과 확인
   - 백엔드 pytest, 프론트엔드 vitest·typecheck·check:bundle이 외부 API 호출 없이 모두 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
-- [ ] 19. Phase 1 변경: Agent Platform, 내장 메타데이터, 실제 날씨 기록
+- [x] 19. Phase 1 변경: Agent Platform, 내장 메타데이터, 실제 날씨 기록
   - [x] 19.1 설정과 `.env.example` 갱신 (`backend/app/config.py`, `.env.example`, `backend/tests/test_config.py`)
     - 사용자 결정으로 변수 이름 `GEMINI_API_KEY`는 그대로 두고 12개 변수 목록도 바꾸지 않는다. `.env.example`과 `RawSettings`의 설명을 "Google Cloud Agent Platform express mode API 키, Google AI Studio 키로는 동작하지 않음"으로 바꾼다
     - 프로젝트 ID·위치 관련 변수를 추가하지 않는다. `GEMINI_MODEL` 기본값 `gemini-4-hydrogen`은 유지한다
@@ -552,7 +552,7 @@
     - 개발자 환경에서 한 번 실행해 `data/demo/fixtures/weather.json`을 174건의 기록값으로 교체한다(네트워크 필요)
     - _Requirements: 4.11, 4.12, 4.13, 4.14, 4.15_
 
-  - [ ] 19.20 시나리오 선택·검사와 시드 투표 구현 후 실행 (`backend/app/demo_scenarios.py`, `scripts/select_scenarios.py`)
+  - [x] 19.20 시나리오 선택·검사와 시드 투표 구현 후 실행 (`backend/app/demo_scenarios.py`, `scripts/select_scenarios.py`)
     - 순수 함수 `choose_scenarios(T)`, `check_scenarios(scenarios, T)`, `assign_seed_votes(...)`를 design의 S1~S4, V1~V4 규칙대로 구현. Non_Outfit_Photo는 T와 투표에서 제외
     - 스크립트: `scenarios.json` 기온(소수 첫째 자리), `weather.json`의 `today_default`(S1과 같은 기온), 시드 투표 사이드카(기존 `*.metadata.json` 삭제 후 투표 있는 사진에만 작성), `data/demo/scenario_expectations.json` 작성 후 `check_scenarios`. 위반 시 종료 코드 1. `--check`는 쓰기 없이 검사만
     - 실행해 데이터 파일을 갱신한다
@@ -566,7 +566,7 @@
     - 생성 PNG마다 UserComment JSON(`synthetic: true`, 서로 다른 시각, 서울 좌표)을 EXIF로 기록하고, 사이드카 대신 `weather.json` 항목(계절 공식 값, `recorded.source="placeholder"`)과 vision fixture를 만든다. 확인된 사진이 0장일 때만 쓰는 경로다
     - _Requirements: 15.7_
 
-  - [ ] 19.23 데모 데이터·통합 테스트 기대값 갱신 (`backend/tests/test_demo_data.py`, `test_integration.py`, `test_demo_scripts.py`)
+  - [x] 19.23 데모 데이터·통합 테스트 기대값 갱신 (`backend/tests/test_demo_data.py`, `test_integration.py`, `test_demo_scripts.py`)
     - `test_demo_data_layout`: 174장, 모든 사진의 내장 메타데이터 읽기, vision 키 = 현재 해시이고 태그가 `clothing_tags.json`과 같음, `weather.json`의 `recorded` 블록과 174건, 사이드카는 `thermal_vote`만 담고 Non_Outfit_Photo에는 없음
     - `test_demo_scenarios_satisfy_rules`(실제 데이터에 `check_scenarios`), `test_demo_scenarios_cover_cases`를 S1~S4 조건 + `scenario_expectations.json` 비교로 교체(고정값 `081`, `076`, 9.0/−12.0/30.0/38.0 제거), `test_five_minute_demo_walkthrough`와 `test_fixture_mode_end_to_end_deterministic`의 기대값도 맞춘다
     - 사진이 없는 환경에서는 기존처럼 skip
@@ -583,14 +583,14 @@
     - **Property 33: fixture/가상 데이터 라벨은 fixture 출처에만 붙는다**
     - **Validates: Requirements 15.4, 4.9, 12.5**
 
-  - [ ] 19.26 README 갱신 (`README.md`)
+  - [x] 19.26 README 갱신 (`README.md`)
     - API 키 절: `GEMINI_API_KEY`에 Agent Platform express mode 키(express mode 콘솔 APIs & Services > Credentials), AI Studio 키는 동작하지 않음, 프로젝트·위치 불필요
     - `GEMINI_MODEL` 기본값 `gemini-4-hydrogen`이 2026-11-14 기준 express mode 지원 모델 표에 없다는 점, `check_gemini_model.py`로 확인하고 실패하면 `gemini-3-flash-preview`를 쓰라는 안내와 출처 URL
     - 명시 사항 교체: 촬영 시각·위치는 사진 내장 합성 EXIF(UserComment JSON, JPG는 표준 EXIF), 사이드카는 대체 수단과 시드 투표, Gemini 전송 전 EXIF·위치 제거, fixture 날씨는 Open-Meteo 기록 재분석값(기록 날짜는 `weather.json`), Non_Outfit_Photo는 추천에서 제외, rule_based_v1 후보 선택 변경, 사진 174장
     - 데모 데이터 준비 명령 순서(prepare → import_clothing_tags → record_fixture_weather(네트워크) → select_scenarios), 5분 데모 절차의 시나리오 기온을 `scenarios.json` 값으로 갱신, Phase 2 목록에서 EXIF 항목 제거(실제 갤러리 접근은 유지), 테스트 영역 (g) 추가
     - _Requirements: 16.1, 17.1, 17.2, 17.3, 17.4, 17.8, 17.9, 17.10_
 
-- [ ] 20. Final checkpoint - Phase 1 변경 확인
+- [x] 20. Final checkpoint - Phase 1 변경 확인
   - 백엔드 `cd backend && python -m pytest -q`, 프론트엔드 `npx vitest --run`, `npm run typecheck`, `npm run check:bundle`, `scripts/select_scenarios.py --check`가 외부 API 호출 없이 모두 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
 ## Notes

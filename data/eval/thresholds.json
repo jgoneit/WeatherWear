@@ -1,0 +1,27 @@
+{
+  "_note": "Initial values chosen before any live run. Recalibrate after the first Gemini evaluation (see docs/evaluation.md). 'targets' only warn; 'regression_floor', 'max_error_rate' and 'max_drop_vs_baseline' make the CLI exit 1 with --check-thresholds.",
+  "targets": {
+    "photo_type.accuracy": 0.95,
+    "photo_type.outfit.precision": 0.95,
+    "photo_type.outfit.recall": 0.90,
+    "photo_type.non_outfit.recall": 0.90,
+    "exact_match.accuracy": 0.60,
+    "upper_type.accuracy": 0.80,
+    "outer_type.accuracy": 0.85,
+    "lower_type.accuracy": 0.80,
+    "upper_type.macro_f1": 0.70,
+    "outer_type.macro_f1": 0.70,
+    "lower_type.macro_f1": 0.70
+  },
+  "regression_floor": {
+    "photo_type.accuracy": 0.90,
+    "photo_type.outfit.precision": 0.90,
+    "photo_type.non_outfit.recall": 0.80,
+    "exact_match.accuracy": 0.45,
+    "upper_type.accuracy": 0.70,
+    "outer_type.accuracy": 0.75,
+    "lower_type.accuracy": 0.70
+  },
+  "max_error_rate": 0.05,
+  "max_drop_vs_baseline": 0.03
+}

@@ -30,7 +30,7 @@ export function groupOutfitsByDate(outfits: readonly Outfit[], timeZone: string)
 
 /**
  * 착장 기록 화면 (Req 12.1, 12.2, 12.3, 12.4, 12.6, 12.7).
- * 2열 사진 그리드를 날짜 섹션(sticky 글래스 헤더)으로 나눠 보여준다.
+ * 날짜별 사진 그룹을 반응형 갤러리로 보여준다.
  * 재조회가 실패해도 이미 표시한 목록은 유지하고 오류와 다시 시도 버튼을 함께 보인다.
  */
 export function HistoryPage() {
@@ -44,7 +44,7 @@ export function HistoryPage() {
 
   return (
     <section className="flex min-w-0 flex-col gap-4" aria-busy={outfits.pending}>
-      <h1 className="px-1 text-2xl font-semibold tracking-tight text-slate-900">{STRINGS.history.title}</h1>
+      <div className="page-heading"><div><h1>{STRINGS.history.title}</h1><p>그날의 날씨, 그날의 나.</p></div>{list ? <span className="text-sm text-slate-500">{list.length}벌</span> : null}</div>
 
       {hasError ? (
         <ErrorRetry
@@ -61,14 +61,14 @@ export function HistoryPage() {
       ) : list.length === 0 ? (
         <EmptyHistory />
       ) : (
-        <div className="flex min-w-0 flex-col gap-5">
+        <div className="history-sections">
           {groupOutfitsByDate(list, timeZone).map((section, index) => (
             <section key={`${section.date}-${index}`} aria-label={STRINGS.history.listLabel(section.date)} className="min-w-0">
-              <h2 className="glass sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 mb-3 flex items-center justify-between gap-2 rounded-full px-4 py-1.5 text-sm font-semibold text-slate-900 tabular-nums">
+              <h2 className="history-date">
                 <span>{section.date}</span>
                 <span className="text-xs font-medium text-slate-600">{STRINGS.history.count(section.outfits.length)}</span>
               </h2>
-              <ul className="grid min-w-0 grid-cols-2 gap-3">
+              <ul className="history-items">
                 {section.outfits.map((outfit) => (
                   <li key={outfit.id} className="min-w-0">
                     <OutfitGridItem outfit={outfit} timeZone={timeZone} />

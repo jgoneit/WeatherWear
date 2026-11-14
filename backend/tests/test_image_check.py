@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import io
+import json
 from pathlib import Path
 
 import pytest
+
+from tests.demo_inventory import full_demo_images_present as demo_images_present
 from PIL import Image
 
 from app.ingestion.image_check import (
@@ -18,6 +21,7 @@ from app.ingestion.image_check import (
 )
 
 DEMO_PHOTOS = Path(__file__).resolve().parents[2] / "data" / "demo" / "photos"
+MANIFEST_PATH = DEMO_PHOTOS.parent / "photos.manifest.json"
 
 
 def encode(fmt: str, size: tuple[int, int] = (8, 8)) -> bytes:
@@ -130,20 +134,18 @@ def test_mime_type_for_supported_extensions() -> None:
 # --- real demo photos --------------------------------------------------------
 
 
-def demo_images_present() -> bool:
-    # The sidecar *.metadata.json files are tracked but the photos are
-    # git-ignored, so a fresh clone has the folder without any images.
-    return DEMO_PHOTOS.is_dir() and any(
-        p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
-        for p in DEMO_PHOTOS.iterdir()
-    )
+
+def rights_confirmed_files() -> list[str]:
+    """File names in photos.manifest.json that prepare_demo_photos.py copies."""
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    return sorted(p["file"] for p in manifest["photos"] if p["rights_confirmed"] is True)
 
 
 @pytest.mark.skipif(
     not demo_images_present(),
     reason=(
-        "data/demo/photos has no images (they are git-ignored); "
-        "run scripts/prepare_demo_photos.py to copy the 159 demo photos"
+        "The complete private demo album is not installed; "
+        "run scripts/prepare_demo_photos.py to copy the demo photos"
     ),
 )
 def test_all_demo_photos_pass_check_image() -> None:
@@ -154,6 +156,6 @@ def test_all_demo_photos_pass_check_image() -> None:
         if is_too_large(p) or check_image(p.read_bytes(), p.suffix) is not None
     ]
     assert failures == []
-    assert len(files) == 159
+    assert [p.name for p in files] == rights_confirmed_files()
     suffixes = {p.suffix.lower() for p in files}
     assert suffixes == {".png", ".jpg"}

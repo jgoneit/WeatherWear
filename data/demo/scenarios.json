@@ -11,8 +11,8 @@
     },
     {
       "id": "cold-snap",
-      "name": "기록적 한파 (경계 3.0°C)",
-      "actual_temperature_c": -8.8,
+      "name": "기록적 한파",
+      "actual_temperature_c": -16.0,
       "apparent_temperature_c": null,
       "relative_humidity_pct": 35,
       "wind_speed_kmh": 20,
@@ -20,8 +20,8 @@
     },
     {
       "id": "early-heat",
-      "name": "무더위 (범위 확장)",
-      "actual_temperature_c": 41.8,
+      "name": "때 이른 무더위",
+      "actual_temperature_c": 44.0,
       "apparent_temperature_c": null,
       "relative_humidity_pct": 65,
       "wind_speed_kmh": 6,
@@ -29,8 +29,8 @@
     },
     {
       "id": "heatwave",
-      "name": "기록적 폭염 (데이터 부족)",
-      "actual_temperature_c": 45.8,
+      "name": "기록적 폭염",
+      "actual_temperature_c": 48.0,
       "apparent_temperature_c": null,
       "relative_humidity_pct": 70,
       "wind_speed_kmh": 5,

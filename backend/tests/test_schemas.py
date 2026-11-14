@@ -148,9 +148,12 @@ def test_scan_report_and_error_shape() -> None:
         succeeded=1,
         duplicate=0,
         failed=1,
+        skipped_non_outfit=0,
+        uncertain=0,
         errors=[
             {"file_name": "a.png", "stage": "validation", "code": "SIDECAR_NOT_FOUND", "message": "x"}
         ],
+        decisions=[],
     )
     assert report.errors[0].stage == "validation"
     err = ErrorResponse(error={"code": "OUTFIT_NOT_FOUND", "message": "착장을 찾을 수 없습니다."})

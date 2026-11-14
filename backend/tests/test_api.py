@@ -10,6 +10,7 @@ fixture ones, so no network is used.
 from __future__ import annotations
 
 import io
+import json
 import logging
 import os
 import threading
@@ -26,11 +27,18 @@ from sqlmodel import Session, delete, select
 from app.config import AppConfig, resolve_config
 from app.db import Feedback, WeatherSnapshot
 from app.deps import get_ingestion_service, get_strategy, get_today_weather_service, scan_lock
-from app.domain import ClothingTags, RecommendationResult, WeatherContext, WeatherReading
+from app.domain import (
+    ClothingTags,
+    RecommendationResult,
+    VisionAnalysis,
+    WeatherContext,
+    WeatherReading,
+)
 from app.main import create_app
 from app.recommendation.base import RecommendationOutcome
 from app.repository import OutfitCreate, OutfitRepository
 from app.schemas import ScanReport
+from app.today_weather import DEFAULT_SCENARIOS_PATH
 
 KST = timezone(timedelta(hours=9))
 FAKE_KEY = "fake-test-key-0123456789abcdef"  # never a real key
@@ -38,6 +46,19 @@ TAGS = ClothingTags(
     upper_type="knit", outer_type="coat", lower_type="slacks",
     colors=["navy"], layers_visible=2, confidence=0.9,
 )
+OUTFIT_ANALYSIS = VisionAnalysis(
+    photo_type="outfit",
+    photo_type_confidence=0.99,
+    reason="A full outfit is visible.",
+    tags=TAGS,
+)
+
+
+class AlwaysOutfitVision:
+    name = "fixture"
+
+    def analyze(self, image: bytes, mime_type: str, sha256: str) -> VisionAnalysis:
+        return OUTFIT_ANALYSIS.model_copy(deep=True)
 CONFIG_VARS = (
     "GEMINI_API_KEY", "VISION_PROVIDER", "GEMINI_MODEL", "WEATHER_PROVIDER", "DATABASE_URL",
     "PHOTO_DIR", "APP_TIMEZONE", "TEMPERATURE_TOLERANCE_C", "DEFAULT_LATITUDE",
@@ -84,7 +105,9 @@ def photo_dir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def client(tmp_path: Path, photo_dir: Path):
-    with TestClient(create_app(make_config(tmp_path)), raise_server_exceptions=False) as test_client:
+    app = create_app(make_config(tmp_path))
+    app.state.container.vision_provider = AlwaysOutfitVision()
+    with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client
 
 
@@ -140,6 +163,12 @@ def feedback_rows(client: TestClient) -> list[Feedback]:
 
 def counts(client: TestClient) -> dict[str, int]:
     return repo_of(client).counts()
+
+
+def scenario_temp(scenario_id: str) -> float:
+    """``actual_temperature_c`` of a scenario in the real data/demo/scenarios.json."""
+    doc = json.loads(DEFAULT_SCENARIOS_PATH.read_text(encoding="utf-8"))
+    return next(s["actual_temperature_c"] for s in doc["scenarios"] if s["id"] == scenario_id)
 
 
 def clear_config_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -343,7 +372,7 @@ def test_unknown_scenario_404_keeps_selection(client: TestClient) -> None:
     assert client.get("/api/demo/scenarios").json()["selected_id"] == "chilly-morning"
     today = client.get("/api/weather/today").json()
     assert today["provider"] == "scenario" and today["scenario_id"] == "chilly-morning"
-    assert today["actual_temperature_c"] == 9.0
+    assert today["actual_temperature_c"] == scenario_temp("chilly-morning")
 
 
 # --- OpenAPI -------------------------------------------------------------------
@@ -375,7 +404,16 @@ def test_scan_body_path_ignored(client: TestClient, photo_dir: Path, tmp_path: P
         "/api/demo/scan", json={"photo_dir": str(other), "path": str(other), "PHOTO_DIR": str(other)}
     )
     assert response.status_code == 200
-    assert response.json() == {"scanned": 1, "succeeded": 1, "duplicate": 0, "failed": 0, "errors": []}
+    assert response.json() == {
+        "scanned": 1,
+        "succeeded": 1,
+        "duplicate": 0,
+        "failed": 0,
+        "skipped_non_outfit": 0,
+        "uncertain": 0,
+        "errors": [],
+        "decisions": [],
+    }
     assert [r.file_name for r in repo_of(client).list_outfits()] == ["configured.png"]
 
 
@@ -427,7 +465,16 @@ def test_concurrent_scan_returns_409(client: TestClient, photo_dir: Path) -> Non
         def scan(self) -> ScanReport:
             started.set()
             assert release.wait(timeout=10)
-            return ScanReport(scanned=0, succeeded=0, duplicate=0, failed=0, errors=[])
+            return ScanReport(
+                scanned=0,
+                succeeded=0,
+                duplicate=0,
+                failed=0,
+                skipped_non_outfit=0,
+                uncertain=0,
+                errors=[],
+                decisions=[],
+            )
 
     client.app.dependency_overrides[get_ingestion_service] = BlockingIngestion
     results: dict[str, int] = {}
@@ -485,10 +532,11 @@ def test_missing_today_temperature_returns_503(client: TestClient, path: str) ->
 
 
 def test_insufficient_data_returns_200_empty(client: TestClient) -> None:
-    # heatwave = 38.0°C; the only stored temperature is 9.0°C (diff > 5.0),
-    # and one Outfit has no weather at all (Req 6.9).
-    add_outfit(client, sha="a" * 64, temp=9.0)
-    bare = add_outfit(client, sha="b" * 64, file_name="b.png", temp=38.0)
+    # The only stored temperature is 10.0°C below heatwave (diff > 5.0), and
+    # the Outfit recorded at the heatwave temperature has no weather at all (Req 6.9).
+    heat = scenario_temp("heatwave")
+    add_outfit(client, sha="a" * 64, temp=round(heat - 10.0, 1))
+    bare = add_outfit(client, sha="b" * 64, file_name="b.png", temp=heat)
     with Session(client.app.state.container.engine) as session:
         session.exec(delete(WeatherSnapshot).where(WeatherSnapshot.outfit_id == bare))  # type: ignore[call-overload]
         session.commit()
@@ -501,13 +549,13 @@ def test_insufficient_data_returns_200_empty(client: TestClient) -> None:
     assert body["items"] == []
     assert body["fallback"] is True
     assert body["algorithm_version"] == "rule_based_v1"
-    assert body["today"]["actual_temperature_c"] == 38.0
+    assert body["today"]["actual_temperature_c"] == heat
 
 
 def test_strategy_injected_via_dependency_override(client: TestClient) -> None:
-    outfit_id = add_outfit(client, sha="a" * 64, temp=9.0)
+    outfit_id = add_outfit(client, sha="a" * 64, temp=round(scenario_temp("heatwave") - 10.0, 1))
     client.put("/api/demo/scenarios/selected", json={"scenario_id": "heatwave"})
-    # The default strategy finds nothing at 38.0°C.
+    # The default strategy finds nothing 10.0°C away, even with the 5.0°C fallback.
     assert client.get("/api/recommendations/today").json()["status"] == "insufficient_data"
 
     seen: list[list[int]] = []

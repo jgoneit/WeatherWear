@@ -26,7 +26,13 @@ from sqlmodel import Session, delete, select
 from app.config import AppConfig, resolve_config
 from app.db import Feedback, WeatherSnapshot
 from app.deps import get_ingestion_service, get_strategy, get_today_weather_service, scan_lock
-from app.domain import ClothingTags, RecommendationResult, WeatherContext, WeatherReading
+from app.domain import (
+    ClothingTags,
+    RecommendationResult,
+    VisionAnalysis,
+    WeatherContext,
+    WeatherReading,
+)
 from app.main import create_app
 from app.recommendation.base import RecommendationOutcome
 from app.repository import OutfitCreate, OutfitRepository
@@ -38,6 +44,19 @@ TAGS = ClothingTags(
     upper_type="knit", outer_type="coat", lower_type="slacks",
     colors=["navy"], layers_visible=2, confidence=0.9,
 )
+OUTFIT_ANALYSIS = VisionAnalysis(
+    photo_type="outfit",
+    photo_type_confidence=0.99,
+    reason="A full outfit is visible.",
+    tags=TAGS,
+)
+
+
+class AlwaysOutfitVision:
+    name = "fixture"
+
+    def analyze(self, image: bytes, mime_type: str, sha256: str) -> VisionAnalysis:
+        return OUTFIT_ANALYSIS.model_copy(deep=True)
 CONFIG_VARS = (
     "GEMINI_API_KEY", "VISION_PROVIDER", "GEMINI_MODEL", "WEATHER_PROVIDER", "DATABASE_URL",
     "PHOTO_DIR", "APP_TIMEZONE", "TEMPERATURE_TOLERANCE_C", "DEFAULT_LATITUDE",
@@ -84,7 +103,9 @@ def photo_dir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def client(tmp_path: Path, photo_dir: Path):
-    with TestClient(create_app(make_config(tmp_path)), raise_server_exceptions=False) as test_client:
+    app = create_app(make_config(tmp_path))
+    app.state.container.vision_provider = AlwaysOutfitVision()
+    with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client
 
 
@@ -375,7 +396,16 @@ def test_scan_body_path_ignored(client: TestClient, photo_dir: Path, tmp_path: P
         "/api/demo/scan", json={"photo_dir": str(other), "path": str(other), "PHOTO_DIR": str(other)}
     )
     assert response.status_code == 200
-    assert response.json() == {"scanned": 1, "succeeded": 1, "duplicate": 0, "failed": 0, "errors": []}
+    assert response.json() == {
+        "scanned": 1,
+        "succeeded": 1,
+        "duplicate": 0,
+        "failed": 0,
+        "skipped_non_outfit": 0,
+        "uncertain": 0,
+        "errors": [],
+        "decisions": [],
+    }
     assert [r.file_name for r in repo_of(client).list_outfits()] == ["configured.png"]
 
 
@@ -427,7 +457,16 @@ def test_concurrent_scan_returns_409(client: TestClient, photo_dir: Path) -> Non
         def scan(self) -> ScanReport:
             started.set()
             assert release.wait(timeout=10)
-            return ScanReport(scanned=0, succeeded=0, duplicate=0, failed=0, errors=[])
+            return ScanReport(
+                scanned=0,
+                succeeded=0,
+                duplicate=0,
+                failed=0,
+                skipped_non_outfit=0,
+                uncertain=0,
+                errors=[],
+                decisions=[],
+            )
 
     client.app.dependency_overrides[get_ingestion_service] = BlockingIngestion
     results: dict[str, int] = {}

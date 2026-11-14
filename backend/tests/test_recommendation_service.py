@@ -226,7 +226,10 @@ def demo_env(tmp_path_factory: pytest.TempPathFactory) -> tuple[RecommendationSe
     weather = FixtureWeatherProvider(tz=SEOUL)
     report = ImageIngestionService(DEMO_PHOTO_DIR, FixtureVisionProvider.from_file(), weather, repo, SEOUL).scan()
     assert report.failed == 0, report.errors
-    assert report.succeeded == report.scanned == 159
+    assert report.succeeded == 139
+    assert report.skipped_non_outfit == 20
+    assert report.uncertain == 0
+    assert report.scanned == 159
 
     scenarios, errors = load_scenarios(DEFAULT_SCENARIOS_PATH)
     assert errors == []

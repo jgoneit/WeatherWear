@@ -221,18 +221,30 @@ export interface components {
         };
         /**
          * ClothingTags
-         * @description Clothing tags extracted from one photo (Req 3.1, 3.6).
+         * @description Canonical clothing tags extracted from one photo.
          *
-         *     ``outer_type`` is ``"none"`` when no outerwear is worn; any attribute that
-         *     cannot be determined from the photo is ``"unknown"``.
+         *     ``unknown`` means that the position is not visible or cannot be classified.
+         *     ``outer_type="none"`` means no outerwear is worn. ``lower_type="none"``
+         *     is reserved for one-piece garments such as a dress, jumpsuit or coveralls;
+         *     ``upper_type`` intentionally has no ``none`` value. Garment types use a
+         *     closed taxonomy so providers and fixtures cannot create spelling variants.
          */
         ClothingTags: {
-            /** Upper Type */
-            upper_type: string;
-            /** Outer Type */
-            outer_type: string;
-            /** Lower Type */
-            lower_type: string;
+            /**
+             * Upper Type
+             * @enum {string}
+             */
+            upper_type: "unknown" | "t_shirt" | "long_sleeve_t_shirt" | "shirt" | "blouse" | "knit" | "turtleneck" | "sweatshirt" | "hoodie" | "sleeveless_top" | "cardigan" | "fleece" | "jersey" | "dress" | "jumpsuit" | "coveralls";
+            /**
+             * Outer Type
+             * @enum {string}
+             */
+            outer_type: "unknown" | "none" | "long_puffer" | "short_puffer" | "puffer_jacket" | "parka" | "coat" | "trench_coat" | "jacket" | "blazer" | "cardigan" | "denim_jacket" | "leather_jacket" | "bomber_jacket" | "fleece_jacket" | "rain_jacket" | "windbreaker" | "track_jacket" | "utility_jacket" | "shirt_jacket" | "varsity_jacket" | "vest" | "jersey";
+            /**
+             * Lower Type
+             * @enum {string}
+             */
+            lower_type: "unknown" | "none" | "jeans" | "trousers" | "slacks" | "chinos" | "cargo_pants" | "corduroy_pants" | "leggings" | "shorts" | "skirt" | "track_pants" | "jogger_pants" | "parachute_pants";
             /** Colors */
             colors: string[];
             /** Layers Visible */
@@ -393,6 +405,23 @@ export interface components {
             /** Items */
             items: components["schemas"]["RecommendationItemOut"][];
         };
+        /**
+         * ScanDecision
+         * @description A valid image intentionally not stored as an Outfit.
+         */
+        ScanDecision: {
+            /** File Name */
+            file_name: string;
+            /**
+             * Photo Type
+             * @enum {string}
+             */
+            photo_type: "non_outfit" | "uncertain";
+            /** Confidence */
+            confidence: number;
+            /** Reason */
+            reason: string;
+        };
         /** ScanError */
         ScanError: {
             /** File Name */
@@ -409,9 +438,10 @@ export interface components {
         };
         /**
          * ScanReport
-         * @description Result of ``POST /api/demo/scan`` (Req 1.2).
+         * @description Result of ``POST /api/demo/scan``.
          *
-         *     ``scanned = succeeded + duplicate + failed``.
+         *     ``scanned`` equals succeeded + duplicate + skipped_non_outfit + uncertain
+         *     + failed.
          */
         ScanReport: {
             /** Scanned */
@@ -422,8 +452,14 @@ export interface components {
             duplicate: number;
             /** Failed */
             failed: number;
+            /** Skipped Non Outfit */
+            skipped_non_outfit: number;
+            /** Uncertain */
+            uncertain: number;
             /** Errors */
             errors: components["schemas"]["ScanError"][];
+            /** Decisions */
+            decisions: components["schemas"]["ScanDecision"][];
         };
         /**
          * ScenarioListResponse
@@ -680,7 +716,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Unprocessable Entity */
             422: {
                 headers: {
                     [name: string]: unknown;

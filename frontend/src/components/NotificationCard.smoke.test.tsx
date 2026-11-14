@@ -16,7 +16,7 @@ const outfit: Outfit = {
   tags: {
     upper_type: "hoodie",
     outer_type: "varsity_jacket",
-    lower_type: "baggy_denim",
+    lower_type: "jeans",
     colors: [],
     layers_visible: 2,
     confidence: 0.9,

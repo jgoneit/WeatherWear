@@ -20,9 +20,12 @@ from app.db import (
     SCHEMA_VERSION,
     Feedback,
     Outfit,
+    PhotoAnalysisRow,
     WeatherSnapshot,
+    backfill_photo_analyses,
     create_db_engine,
     from_iso,
+    migrate_legacy_garment_types,
     session_scope,
     to_iso,
     to_utc_iso,
@@ -48,7 +51,7 @@ def make_outfit(sha: str = "a" * 64, captured_at: datetime | None = None, **over
         captured_at_utc=to_utc_iso(captured),
         latitude=37.5665,
         longitude=126.9780,
-        upper_type="sweater",
+        upper_type="knit",
         outer_type="none",
         lower_type="unknown",
         colors_json=json.dumps(["cream", "navy"]),
@@ -85,6 +88,58 @@ def add_outfit(engine, **kwargs) -> int:
 def test_creates_parent_dir_and_tables(tmp_path: Path, engine) -> None:
     assert (tmp_path / "nested" / "dir" / "test.db").exists()
     assert set(inspect(engine).get_table_names()) >= {"outfits", "weather_snapshots", "feedback"}
+
+
+def test_migrates_legacy_garment_categories_idempotently(engine) -> None:
+    outfit_id = add_outfit(
+        engine,
+        upper_type="sweater",
+        outer_type="puffer coat",
+        lower_type="baggy jeans",
+    )
+    unknown_id = add_outfit(
+        engine,
+        sha="b" * 64,
+        upper_type="unrecognized upper",
+        outer_type="unrecognized outer",
+        lower_type="unrecognized lower",
+    )
+
+    assert migrate_legacy_garment_types(engine) == 2
+    assert migrate_legacy_garment_types(engine) == 0
+
+    with Session(engine) as session:
+        migrated = session.get(Outfit, outfit_id)
+        unknown = session.get(Outfit, unknown_id)
+    assert (migrated.upper_type, migrated.outer_type, migrated.lower_type) == (
+        "knit", "long_puffer", "jeans"
+    )
+    assert (unknown.upper_type, unknown.outer_type, unknown.lower_type) == (
+        "unknown", "unknown", "unknown"
+    )
+
+
+def test_backfills_photo_type_and_excludes_unknown_legacy_evidence(engine) -> None:
+    add_outfit(engine, sha="d" * 64)
+    add_outfit(
+        engine,
+        sha="e" * 64,
+        upper_type="unknown",
+        outer_type="unknown",
+        lower_type="unknown",
+        colors_json="[]",
+        layers_visible=0,
+        vision_confidence=0.0,
+    )
+
+    assert backfill_photo_analyses(engine) == 2
+    assert backfill_photo_analyses(engine) == 0
+
+    with Session(engine) as session:
+        rows = session.exec(select(PhotoAnalysisRow).order_by(PhotoAnalysisRow.id)).all()
+    by_sha = {row.sha256: json.loads(row.analysis_json) for row in rows}
+    assert by_sha["d" * 64]["photo_type"] == "outfit"
+    assert by_sha["e" * 64]["photo_type"] == "uncertain"
 
 
 def test_pragmas_on_every_connection(engine) -> None:

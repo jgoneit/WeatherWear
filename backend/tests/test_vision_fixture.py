@@ -14,7 +14,14 @@ from pathlib import Path
 import pytest
 
 from app.config import resolve_config
-from app.domain import UNKNOWN_TAGS, ClothingTags
+from app.domain import (
+    LOWER_TYPES,
+    OUTER_TYPES,
+    UPPER_TYPES,
+    UNKNOWN_ANALYSIS,
+    ClothingTags,
+    VisionAnalysis,
+)
 from app.providers.vision.base import VisionError, VisionProvider
 from app.providers.vision.factory import build_vision_provider
 from app.providers.vision.fixture import (
@@ -33,6 +40,12 @@ TAGS = ClothingTags(
     colors=["navy", "grey"],
     layers_visible=2,
     confidence=0.8,
+)
+ANALYSIS = VisionAnalysis(
+    photo_type="outfit",
+    photo_type_confidence=0.95,
+    reason="A full outfit is visible.",
+    tags=TAGS,
 )
 
 
@@ -53,22 +66,22 @@ def test_vision_error_kinds_and_codes() -> None:
 def test_fixture_returns_registered_tags_and_unknown_default(tmp_path: Path) -> None:
     known = b"known image bytes"
     sha = hashlib.sha256(known).hexdigest()
-    provider = FixtureVisionProvider.from_file(_write_fixture(tmp_path, {sha: TAGS.model_dump()}))
+    provider = FixtureVisionProvider.from_file(_write_fixture(tmp_path, {sha: ANALYSIS.model_dump()}))
 
     assert isinstance(provider, VisionProvider)
     assert provider.name == "fixture"
-    assert provider.analyze(known, "image/png", sha) == TAGS
-    assert provider.analyze(known, "image/png") == TAGS  # hash computed from bytes
-    assert provider.analyze(b"other", "image/png") == UNKNOWN_TAGS
+    assert provider.analyze(known, "image/png", sha) == ANALYSIS
+    assert provider.analyze(known, "image/png") == ANALYSIS  # hash computed from bytes
+    assert provider.analyze(b"other", "image/png") == UNKNOWN_ANALYSIS
 
 
 def test_fixture_result_is_a_copy(tmp_path: Path) -> None:
     sha = hashlib.sha256(b"x").hexdigest()
-    provider = FixtureVisionProvider({sha: TAGS})
-    provider.analyze(b"x", "image/png", sha).colors.append("red")
-    provider.analyze(b"y", "image/png").colors.append("red")
-    assert provider.analyze(b"x", "image/png", sha) == TAGS
-    assert UNKNOWN_TAGS.colors == []
+    provider = FixtureVisionProvider({sha: ANALYSIS})
+    provider.analyze(b"x", "image/png", sha).tags.colors.append("red")
+    provider.analyze(b"y", "image/png").tags.colors.append("red")
+    assert provider.analyze(b"x", "image/png", sha) == ANALYSIS
+    assert UNKNOWN_ANALYSIS.tags.colors == []
 
 
 def test_load_skips_invalid_entries(tmp_path: Path) -> None:
@@ -76,12 +89,27 @@ def test_load_skips_invalid_entries(tmp_path: Path) -> None:
     path = _write_fixture(
         tmp_path,
         {
-            good.upper(): TAGS.model_dump(),
-            "not-a-hash": TAGS.model_dump(),
-            "b" * 64: {**TAGS.model_dump(), "layers_visible": 9},
+            good.upper(): ANALYSIS.model_dump(),
+            "not-a-hash": ANALYSIS.model_dump(),
+            "b" * 64: {
+                **ANALYSIS.model_dump(),
+                "tags": {**TAGS.model_dump(), "layers_visible": 9},
+            },
         },
     )
-    assert load_vision_fixture(path) == {good: TAGS}
+    assert load_vision_fixture(path) == {good: ANALYSIS}
+
+
+def test_real_fixture_uses_only_canonical_categories() -> None:
+    fixture = load_vision_fixture(DEFAULT_VISION_FIXTURE_PATH)
+    assert len(fixture) == 159
+    for analysis in fixture.values():
+        tags = analysis.tags
+        assert tags.upper_type in UPPER_TYPES
+        assert tags.outer_type in OUTER_TYPES
+        assert tags.lower_type in LOWER_TYPES
+        assert " " not in tags.upper_type + tags.outer_type + tags.lower_type
+        assert "-" not in tags.upper_type + tags.outer_type + tags.lower_type
 
 
 @pytest.mark.parametrize("content", [None, "{broken", "[]"])
@@ -90,7 +118,7 @@ def test_load_missing_or_broken_file_gives_empty_map(tmp_path: Path, content: st
     if content is not None:
         path.write_text(content, encoding="utf-8")
     assert load_vision_fixture(path) == {}
-    assert FixtureVisionProvider.from_file(path).analyze(b"img", "image/png") == UNKNOWN_TAGS
+    assert FixtureVisionProvider.from_file(path).analyze(b"img", "image/png") == UNKNOWN_ANALYSIS
 
 
 def test_real_demo_fixture_matches_demo_photo() -> None:
@@ -100,11 +128,12 @@ def test_real_demo_fixture_matches_demo_photo() -> None:
     assert len(provider) == 159
 
     data = DEMO_PHOTO.read_bytes()
-    tags = provider.analyze(data, "image/png", hashlib.sha256(data).hexdigest())
-    assert tags == ClothingTags(
-        upper_type="t-shirt",
-        outer_type="varsity jacket",
-        lower_type="baggy jeans",
+    analysis = provider.analyze(data, "image/png", hashlib.sha256(data).hexdigest())
+    assert analysis.photo_type == "outfit"
+    assert analysis.tags == ClothingTags(
+        upper_type="t_shirt",
+        outer_type="varsity_jacket",
+        lower_type="jeans",
         colors=["burgundy", "cream", "white", "black"],
         layers_visible=2,
         confidence=0.9,
@@ -114,9 +143,9 @@ def test_real_demo_fixture_matches_demo_photo() -> None:
 def test_factory_default_config_builds_fixture(tmp_path: Path) -> None:
     sha = "c" * 64
     cfg, _ = resolve_config({})
-    provider = build_vision_provider(cfg, fixture_path=_write_fixture(tmp_path, {sha: TAGS.model_dump()}))
+    provider = build_vision_provider(cfg, fixture_path=_write_fixture(tmp_path, {sha: ANALYSIS.model_dump()}))
     assert isinstance(provider, FixtureVisionProvider)
-    assert provider.analyze(b"", "image/png", sha) == TAGS
+    assert provider.analyze(b"", "image/png", sha) == ANALYSIS
 
 
 def test_factory_gemini_without_key_falls_back_to_fixture(tmp_path: Path) -> None:

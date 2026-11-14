@@ -59,17 +59,30 @@ class ScanError(BaseModel):
     message: str  # Korean reason
 
 
-class ScanReport(BaseModel):
-    """Result of ``POST /api/demo/scan`` (Req 1.2).
+class ScanDecision(BaseModel):
+    """A valid image intentionally not stored as an Outfit."""
 
-    ``scanned = succeeded + duplicate + failed``.
+    file_name: str
+    photo_type: Literal["non_outfit", "uncertain"]
+    confidence: Annotated[float, Field(ge=0.0, le=1.0)]
+    reason: Annotated[str, StringConstraints(min_length=1, max_length=200)]
+
+
+class ScanReport(BaseModel):
+    """Result of ``POST /api/demo/scan``.
+
+    ``scanned`` equals succeeded + duplicate + skipped_non_outfit + uncertain
+    + failed.
     """
 
     scanned: Annotated[int, Field(ge=0)]
     succeeded: Annotated[int, Field(ge=0)]
     duplicate: Annotated[int, Field(ge=0)]
     failed: Annotated[int, Field(ge=0)]
+    skipped_non_outfit: Annotated[int, Field(ge=0)]
+    uncertain: Annotated[int, Field(ge=0)]
     errors: list[ScanError]
+    decisions: list[ScanDecision]
 
 
 # --- Demo: scenarios and status ---------------------------------------------

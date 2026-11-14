@@ -3,14 +3,23 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from typing import get_args
 
 import pytest
 from pydantic import ValidationError
 
 from app.domain import (
+    LOWER_TYPES,
+    OUTER_TYPES,
+    UPPER_TYPES,
+    LowerType,
+    OuterType,
+    UpperType,
+    UNKNOWN_ANALYSIS,
     UNKNOWN_TAGS,
     CaptureMetadata,
     ClothingTags,
+    VisionAnalysis,
     RecommendationResult,
     SidecarMetadata,
     WeatherReading,
@@ -26,6 +35,12 @@ VALID_TAGS = {
 }
 
 KST = timezone(timedelta(hours=9))
+
+
+def test_taxonomy_constants_match_literal_types() -> None:
+    assert UPPER_TYPES == get_args(UpperType)
+    assert OUTER_TYPES == get_args(OuterType)
+    assert LOWER_TYPES == get_args(LowerType)
 
 
 def test_valid_clothing_tags() -> None:
@@ -61,15 +76,25 @@ def test_clothing_tags_requires_all_fields() -> None:
         ClothingTags(**data)
 
 
-def test_clothing_tags_boundaries_accepted() -> None:
+def test_clothing_tags_accepts_taxonomy_boundaries() -> None:
     ClothingTags(
-        upper_type="u" * 50,
-        outer_type="none",
-        lower_type="l",
+        upper_type="coveralls",
+        outer_type="long_puffer",
+        lower_type="parachute_pants",
         colors=["c" * 30] * 5,
         layers_visible=5,
         confidence=1.0,
     )
+
+
+def test_clothing_tags_rejects_noncanonical_spelling() -> None:
+    for field, value in (
+        ("upper_type", "t-shirt"),
+        ("outer_type", "puffer coat"),
+        ("lower_type", "baggy jeans"),
+    ):
+        with pytest.raises(ValidationError):
+            ClothingTags(**{**VALID_TAGS, field: value})
 
 
 def test_unknown_tags_default() -> None:
@@ -77,6 +102,32 @@ def test_unknown_tags_default() -> None:
     assert UNKNOWN_TAGS.colors == []
     assert UNKNOWN_TAGS.layers_visible == 0
     assert UNKNOWN_TAGS.confidence == 0.0
+
+
+def test_vision_analysis_enforces_photo_type_contract() -> None:
+    non_outfit = VisionAnalysis(
+        photo_type="non_outfit",
+        photo_type_confidence=0.9,
+        reason="No person is visible.",
+        tags=UNKNOWN_TAGS,
+    )
+    assert non_outfit.photo_type == "non_outfit"
+    assert UNKNOWN_ANALYSIS.photo_type == "uncertain"
+
+    with pytest.raises(ValidationError):
+        VisionAnalysis(
+            photo_type="non_outfit",
+            photo_type_confidence=0.9,
+            reason="Contradictory garment output.",
+            tags=ClothingTags(**VALID_TAGS),
+        )
+    with pytest.raises(ValidationError):
+        VisionAnalysis(
+            photo_type="other",
+            photo_type_confidence=0.9,
+            reason="Invalid type.",
+            tags=UNKNOWN_TAGS,
+        )
 
 
 def test_sidecar_requires_offset_and_range() -> None:

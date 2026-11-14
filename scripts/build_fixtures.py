@@ -12,12 +12,12 @@ What it writes (design.md "데모 데이터 파일"):
 - ``fixtures/weather.json``: one entry per photo with the temperature from the
   design table ``TEMPERATURES`` plus derived apparent temperature, humidity,
   wind and precipitation, and ``today_default`` (9.0°C).
-- ``fixtures/vision.json``: ``{sha256: ClothingTags}`` for every photo. Tag values
-  were written by looking at each photo (``TAGS``). The 20 non-outfit JPGs get
-  the same value as ``UNKNOWN_TAGS``.
+- ``fixtures/vision.json``: ``{sha256: VisionAnalysis}`` for every photo. Values
+  were written by looking at each photo (``TAGS``). The 20 non-outfit JPGs are
+  labeled ``non_outfit`` and carry ``UNKNOWN_TAGS``.
 
 ``--check`` validates the written files instead of building them: sidecars
-against ``SidecarMetadata``, vision entries against ``ClothingTags``, the
+against ``SidecarMetadata``, vision entries against ``VisionAnalysis``, the
 temperature rules T1-T6, and the expected outcome of each demo scenario.
 
 The script is deterministic: running it twice produces identical files.
@@ -170,159 +170,159 @@ RAIN_MM = {
 # use lower_type "unknown"; dresses/jumpsuits use lower_type "none".
 _TAGS_TABLE = """
 007|shirt|none|unknown|white|1|0.6
-008|t-shirt|cardigan|unknown|beige,white|2|0.7
-009|knit top|none|unknown|green|1|0.6
-010|knit top|none|unknown|rust|1|0.6
-011|sweater|none|unknown|navy|1|0.6
-012|sweater|none|unknown|grey|1|0.6
-013|top|denim shirt|unknown|blue,white|2|0.6
-014|knit top|none|unknown|black|1|0.6
-015|sweater|none|unknown|cream|1|0.6
+008|t_shirt|cardigan|unknown|beige,white|2|0.7
+009|knit|none|unknown|green|1|0.6
+010|knit|none|unknown|rust|1|0.6
+011|knit|none|unknown|navy|1|0.6
+012|knit|none|unknown|grey|1|0.6
+013|unknown|shirt_jacket|unknown|blue,white|2|0.6
+014|knit|none|unknown|black|1|0.6
+015|knit|none|unknown|cream|1|0.6
 016|shirt|none|unknown|black|1|0.6
 017|shirt|none|unknown|white|1|0.6
 018|blouse|none|unknown|sage|1|0.6
-019|t-shirt|blazer|unknown|grey,white|2|0.7
+019|t_shirt|blazer|unknown|grey,white|2|0.7
 020|shirt|none|unknown|navy|1|0.6
-021|sweater|none|unknown|cream|1|0.7
-022|t-shirt|cardigan|jeans|light blue,white,blue|2|0.65
-023|t-shirt|denim jacket|chinos|blue,white,beige|2|0.85
-024|t-shirt|none|jeans|white,blue|1|0.8
-025|shirt|none|wide trousers|olive,cream|1|0.85
-026|knit top|none|skirt|black,charcoal|1|0.75
-027|striped long-sleeve top|none|jeans|navy,white,light blue|1|0.85
-028|top|cardigan|unknown|beige,black|2|0.65
-029|oxford shirt|none|trousers|light blue,black|1|0.75
-030|hoodie|none|track pants|grey,black|1|0.85
-031|tank top|shirt jacket|jeans|tan,white,navy|2|0.8
-032|t-shirt|cardigan|wide trousers|navy,white,beige|2|0.85
-033|sweater|none|trousers|sage,cream|1|0.65
+021|knit|none|unknown|cream|1|0.7
+022|t_shirt|cardigan|jeans|light blue,white,blue|2|0.65
+023|t_shirt|denim_jacket|chinos|blue,white,beige|2|0.85
+024|t_shirt|none|jeans|white,blue|1|0.8
+025|shirt|none|trousers|olive,cream|1|0.85
+026|knit|none|skirt|black,charcoal|1|0.75
+027|long_sleeve_t_shirt|none|jeans|navy,white,light blue|1|0.85
+028|unknown|cardigan|unknown|beige,black|2|0.65
+029|shirt|none|trousers|light blue,black|1|0.75
+030|hoodie|none|track_pants|grey,black|1|0.85
+031|sleeveless_top|shirt_jacket|jeans|tan,white,navy|2|0.8
+032|t_shirt|cardigan|trousers|navy,white,beige|2|0.85
+033|knit|none|trousers|sage,cream|1|0.65
 034|blouse|none|jeans|white,blue|1|0.75
-035|tank top|shirt|wide trousers|light blue,white,cream|2|0.75
-036|tank top|jacket|cargo trousers|beige,white,olive|2|0.85
-037|t-shirt|cardigan|unknown|rust,cream|2|0.7
-038|t-shirt|none|jeans|black,blue|1|0.7
-039|striped long-sleeve top|none|trousers|cream,navy,brown|1|0.75
-040|t-shirt|rain jacket|jeans|ochre,white,blue|2|0.9
-041|t-shirt|blazer|trousers|taupe,white,charcoal|2|0.9
-042|blouse|none|pencil skirt|white,navy|1|0.9
+035|sleeveless_top|shirt_jacket|trousers|light blue,white,cream|2|0.75
+036|sleeveless_top|jacket|cargo_pants|beige,white,olive|2|0.85
+037|t_shirt|cardigan|unknown|rust,cream|2|0.7
+038|t_shirt|none|jeans|black,blue|1|0.7
+039|long_sleeve_t_shirt|none|trousers|cream,navy,brown|1|0.75
+040|t_shirt|rain_jacket|jeans|ochre,white,blue|2|0.9
+041|t_shirt|blazer|trousers|taupe,white,charcoal|2|0.9
+042|blouse|none|skirt|white,navy|1|0.9
 043|turtleneck|none|jeans|black,blue|1|0.9
-044|t-shirt|cardigan|pleated midi skirt|olive,white,cream|2|0.9
-045|knit dress|none|none|navy|1|0.9
-046|sleeveless dress|none|none|black|1|0.9
-047|tank top|trench coat|wide trousers|beige,cream,brown|2|0.9
-048|t-shirt|none|leggings|charcoal,navy|1|0.9
-049|unknown|running jacket|leggings|sage,black|1|0.85
-050|t-shirt|denim shirt|jeans|blue,white|2|0.9
-051|shirt|none|linen trousers|ivory,beige|1|0.9
-052|sweater|none|midi skirt|burgundy,charcoal|1|0.9
-053|knit top|blazer|trousers|camel,light blue,charcoal|2|0.85
-054|t-shirt|none|denim skirt|white,blue|1|0.9
-055|knit top|none|linen trousers|light blue,ivory|1|0.85
-056|short-sleeve dress|none|none|forest green|1|0.85
-057|unknown|sport jacket|trousers|black,charcoal|1|0.75
+044|t_shirt|cardigan|skirt|olive,white,cream|2|0.9
+045|dress|none|none|navy|1|0.9
+046|dress|none|none|black|1|0.9
+047|sleeveless_top|trench_coat|trousers|beige,cream,brown|2|0.9
+048|t_shirt|none|leggings|charcoal,navy|1|0.9
+049|unknown|track_jacket|leggings|sage,black|1|0.85
+050|t_shirt|shirt_jacket|jeans|blue,white|2|0.9
+051|shirt|none|trousers|ivory,beige|1|0.9
+052|knit|none|skirt|burgundy,charcoal|1|0.9
+053|knit|blazer|trousers|camel,light blue,charcoal|2|0.85
+054|t_shirt|none|skirt|white,blue|1|0.9
+055|knit|none|trousers|light blue,ivory|1|0.85
+056|dress|none|none|forest green|1|0.85
+057|unknown|track_jacket|trousers|black,charcoal|1|0.75
 058|blouse|none|trousers|ivory,charcoal|1|0.7
 059|turtleneck|none|unknown|charcoal|1|0.65
-060|t-shirt|cardigan|unknown|navy,grey|2|0.7
-061|shirt|trench coat|midi skirt|beige,light blue,navy|2|0.85
-062|t-shirt|cardigan|wide trousers|olive,white,cream|2|0.85
-063|t-shirt|light jacket|jeans|lavender,white,navy|2|0.85
-064|short-sleeve blouse|none|linen trousers|cream,beige|1|0.85
-065|striped t-shirt|none|midi skirt|navy,white,blue|1|0.85
-066|knit top|suede jacket|jeans|brown,cream,navy|2|0.85
-067|blouse|cardigan|pleated midi skirt|burgundy,cream,camel|2|0.85
-068|hoodie|utility jacket|cargo trousers|olive,grey,black|2|0.85
-069|knit top|wool coat|skirt|charcoal,grey,cream|2|0.8
-070|knit top|puffer jacket|jeans|grey,light blue,charcoal|2|0.85
-071|unknown|long puffer coat|skirt|cream,brown,charcoal|1|0.75
-072|turtleneck|puffer jacket|wide trousers|forest green,beige,black|2|0.85
-073|hoodie|puffer jacket|pleated skirt|light blue,grey,charcoal|2|0.85
-074|turtleneck|puffer jacket|midi skirt|burgundy,black|2|0.85
-075|knit top|cropped puffer jacket|corduroy trousers|beige,cream,brown|2|0.85
-076|unknown|long parka|trousers|navy,lavender,charcoal|1|0.8
-077|t-shirt|denim jacket|wide trousers|blue,yellow,cream|2|0.9
-078|short-sleeve dress|none|none|sage|1|0.9
-079|t-shirt|denim shirt|corduroy trousers|blue,white,rust|2|0.9
-080|striped top|trench coat|jeans|olive,navy,white,black|2|0.85
-081|t-shirt|varsity jacket|baggy jeans|burgundy,cream,white,black|2|0.9
-082|top|leather jacket|plaid midi skirt|black,burgundy,charcoal|2|0.85
-083|hoodie|shell jacket|cargo trousers|black,grey|3|0.8
-084|t-shirt|flannel shirt|baggy jeans|green,white,light blue|2|0.9
-085|tank top|denim jacket|parachute pants|navy,white,silver|2|0.9
-086|t-shirt|track jacket|track pants|teal,cream,black|2|0.85
-087|shirt|suit jacket|suit trousers|navy,white|2|0.9
-088|shirt|cable-knit cardigan|pleated midi skirt|cream,light blue,navy|2|0.9
-089|knit top|blazer|trousers|camel,cream,brown|2|0.9
-090|top|blazer|wide trousers|charcoal,black|2|0.85
-091|shirt dress|cardigan|none|dusty pink,beige|2|0.85
-092|turtleneck|none|plaid midi skirt|rust,brown|1|0.9
-093|floral blouse|none|tiered maxi skirt|beige,olive,cream|1|0.85
-094|knit dress|long coat|none|forest green,charcoal|2|0.85
-095|t-shirt|denim shirt|jeans|blue,white|2|0.9
-096|t-shirt|fleece jacket|cargo trousers|rust,black,olive|2|0.85
-097|t-shirt|windbreaker|leggings|cobalt blue,black|2|0.85
-098|striped t-shirt|utility jacket|chinos|olive,khaki,navy,white|2|0.85
-099|satin slip dress|velvet blazer|none|champagne,black|2|0.85
-100|tank top|shirt|wide trousers|light blue,white,rust|2|0.9
-101|t-shirt|track jacket|track pants|navy,red,cream,white|2|0.9
-102|wrap cardigan|none|pleated midi skirt|dusty pink,taupe|2|0.8
-103|gingham dress|cardigan|none|grey,white,beige|2|0.85
-104|t-shirt|plaid blazer|tartan trousers|charcoal,black,burgundy|2|0.85
-105|blouse|long vest|trousers|taupe,cream,teal|2|0.85
-106|knit top|blazer|wide trousers|magenta,cobalt blue,black|2|0.9
-107|striped top|trench coat|jeans|sage,navy,white,black|2|0.85
-108|striped t-shirt|cardigan|wide trousers|mustard,burgundy,navy,white|2|0.9
+060|t_shirt|cardigan|unknown|navy,grey|2|0.7
+061|shirt|trench_coat|skirt|beige,light blue,navy|2|0.85
+062|t_shirt|cardigan|trousers|olive,white,cream|2|0.85
+063|t_shirt|jacket|jeans|lavender,white,navy|2|0.85
+064|blouse|none|trousers|cream,beige|1|0.85
+065|t_shirt|none|skirt|navy,white,blue|1|0.85
+066|knit|jacket|jeans|brown,cream,navy|2|0.85
+067|blouse|cardigan|skirt|burgundy,cream,camel|2|0.85
+068|hoodie|utility_jacket|cargo_pants|olive,grey,black|2|0.85
+069|knit|coat|skirt|charcoal,grey,cream|2|0.8
+070|knit|puffer_jacket|jeans|grey,light blue,charcoal|2|0.85
+071|unknown|long_puffer|skirt|cream,brown,charcoal|1|0.75
+072|turtleneck|puffer_jacket|trousers|forest green,beige,black|2|0.85
+073|hoodie|puffer_jacket|skirt|light blue,grey,charcoal|2|0.85
+074|turtleneck|puffer_jacket|skirt|burgundy,black|2|0.85
+075|knit|short_puffer|corduroy_pants|beige,cream,brown|2|0.85
+076|unknown|parka|trousers|navy,lavender,charcoal|1|0.8
+077|t_shirt|denim_jacket|trousers|blue,yellow,cream|2|0.9
+078|dress|none|none|sage|1|0.9
+079|t_shirt|shirt_jacket|corduroy_pants|blue,white,rust|2|0.9
+080|long_sleeve_t_shirt|trench_coat|jeans|olive,navy,white,black|2|0.85
+081|t_shirt|varsity_jacket|jeans|burgundy,cream,white,black|2|0.9
+082|unknown|leather_jacket|skirt|black,burgundy,charcoal|2|0.85
+083|hoodie|rain_jacket|cargo_pants|black,grey|3|0.8
+084|t_shirt|shirt_jacket|jeans|green,white,light blue|2|0.9
+085|sleeveless_top|denim_jacket|parachute_pants|navy,white,silver|2|0.9
+086|t_shirt|track_jacket|track_pants|teal,cream,black|2|0.85
+087|shirt|blazer|trousers|navy,white|2|0.9
+088|shirt|cardigan|skirt|cream,light blue,navy|2|0.9
+089|knit|blazer|trousers|camel,cream,brown|2|0.9
+090|unknown|blazer|trousers|charcoal,black|2|0.85
+091|dress|cardigan|none|dusty pink,beige|2|0.85
+092|turtleneck|none|skirt|rust,brown|1|0.9
+093|blouse|none|skirt|beige,olive,cream|1|0.85
+094|dress|coat|none|forest green,charcoal|2|0.85
+095|t_shirt|shirt_jacket|jeans|blue,white|2|0.9
+096|t_shirt|fleece_jacket|cargo_pants|rust,black,olive|2|0.85
+097|t_shirt|windbreaker|leggings|cobalt blue,black|2|0.85
+098|t_shirt|utility_jacket|chinos|olive,khaki,navy,white|2|0.85
+099|dress|blazer|none|champagne,black|2|0.85
+100|sleeveless_top|shirt_jacket|trousers|light blue,white,rust|2|0.9
+101|t_shirt|track_jacket|track_pants|navy,red,cream,white|2|0.9
+102|cardigan|none|skirt|dusty pink,taupe|2|0.8
+103|dress|cardigan|none|grey,white,beige|2|0.85
+104|t_shirt|blazer|trousers|charcoal,black,burgundy|2|0.85
+105|blouse|vest|trousers|taupe,cream,teal|2|0.85
+106|knit|blazer|trousers|magenta,cobalt blue,black|2|0.9
+107|long_sleeve_t_shirt|trench_coat|jeans|sage,navy,white,black|2|0.85
+108|t_shirt|cardigan|trousers|mustard,burgundy,navy,white|2|0.9
 109|jumpsuit|none|none|forest green|1|0.85
-110|sweatshirt|none|denim maxi skirt|charcoal,navy|1|0.85
-111|t-shirt|bomber jacket|cargo trousers|green,rust,white,black|2|0.85
-112|blouse|suit jacket|suit trousers|navy,cream|2|0.9
-113|striped top|trench coat|jeans|sage,navy,white|2|0.85
-114|t-shirt|denim shirt|wide trousers|blue,white,cream|2|0.9
-115|blouse|cardigan|pleated midi skirt|yellow,cream,lavender|2|0.85
-116|unknown|shell jacket|cargo trousers|black,charcoal|2|0.8
-117|unknown|fleece jacket|cargo trousers|rust,olive|1|0.8
-118|shirt|cable-knit cardigan|pleated mini skirt|cream,light blue,navy|2|0.9
-119|top|leather jacket|plaid midi skirt|black,burgundy|2|0.85
-120|tank top|shirt|linen trousers|mint,white,cream|2|0.9
-121|hoodie|denim jacket|cargo trousers|blue,lime,burgundy|2|0.9
-122|rugby shirt|none|baggy jeans|purple,cream,light blue|1|0.85
-123|fleece top|shell jacket|cargo trousers|orange,teal,olive|2|0.85
-124|t-shirt|patchwork cardigan|baggy jeans|mustard,green,burgundy,black,blue|2|0.85
-125|hoodie|vest|cargo trousers|red,black,charcoal|2|0.85
-126|hoodie|baseball jersey|track pants|navy,grey,red,white|2|0.85
-127|t-shirt|windbreaker|shorts over leggings|turquoise,charcoal,white,black|2|0.85
+110|sweatshirt|none|skirt|charcoal,navy|1|0.85
+111|t_shirt|bomber_jacket|cargo_pants|green,rust,white,black|2|0.85
+112|blouse|blazer|trousers|navy,cream|2|0.9
+113|long_sleeve_t_shirt|trench_coat|jeans|sage,navy,white|2|0.85
+114|t_shirt|shirt_jacket|trousers|blue,white,cream|2|0.9
+115|blouse|cardigan|skirt|yellow,cream,lavender|2|0.85
+116|unknown|rain_jacket|cargo_pants|black,charcoal|2|0.8
+117|unknown|fleece_jacket|cargo_pants|rust,olive|1|0.8
+118|shirt|cardigan|skirt|cream,light blue,navy|2|0.9
+119|unknown|leather_jacket|skirt|black,burgundy|2|0.85
+120|sleeveless_top|shirt_jacket|trousers|mint,white,cream|2|0.9
+121|hoodie|denim_jacket|cargo_pants|blue,lime,burgundy|2|0.9
+122|jersey|none|jeans|purple,cream,light blue|1|0.85
+123|fleece|rain_jacket|cargo_pants|orange,teal,olive|2|0.85
+124|t_shirt|cardigan|jeans|mustard,green,burgundy,black,blue|2|0.85
+125|hoodie|vest|cargo_pants|red,black,charcoal|2|0.85
+126|hoodie|jersey|track_pants|navy,grey,red,white|2|0.85
+127|t_shirt|windbreaker|shorts|turquoise,charcoal,white,black|2|0.85
 128|coveralls|none|none|indigo,white,red,tan|2|0.85
-129|hoodie|utility vest|cargo trousers|black,chartreuse,violet,orange|2|0.9
-130|sweatshirt|none|plaid trousers|cream,grey,blue,black|2|0.85
-131|hoodie|windbreaker|parachute pants|violet,yellow,black|2|0.9
-132|striped shirt|sweater vest|corduroy trousers|green,plum,rust,cream,red|2|0.85
-133|striped rugby top|chore jacket|carpenter jeans|orange,navy,indigo,white|2|0.9
-134|long-sleeve top|utility vest|wide track pants|slate blue,white,graphite,mint|2|0.85
-135|t-shirt|flannel shirt|baggy jeans|black,burgundy,red|2|0.85
-136|graphic t-shirt|none|shorts over leggings|cobalt blue,yellow,red,black,white|2|0.85
-137|soccer jersey|none|track pants|black,white,red|2|0.9
-138|t-shirt|cardigan|cargo jeans|lilac,white,forest green,silver|2|0.85
-139|striped top|utility vest|carpenter trousers|charcoal,white,cream,black|2|0.85
-140|hoodie|work jacket|parachute trousers|mustard,teal,black,orange|2|0.9
-2025-01-08_081500_KST|unknown|puffer coat|jeans|black,beige,navy|1|0.8
-2025-01-24_191000_KST|unknown|puffer jacket|jeans|cream,grey,charcoal|1|0.8
-2025-02-12_084000_KST|turtleneck|puffer coat|jeans|black,grey,navy|2|0.85
-2025-03-05_090500_KST|knit top|wool coat|jeans|charcoal,cream,navy|2|0.85
-2025-03-25_122000_KST|knit top|trench coat|jeans|beige,navy,blue|2|0.85
-2025-04-14_082500_KST|t-shirt|denim jacket|trousers|blue,white,black|2|0.9
-2025-04-29_171500_KST|t-shirt|cardigan|jeans|grey,white,navy|2|0.85
+129|hoodie|vest|cargo_pants|black,chartreuse,violet,orange|2|0.9
+130|sweatshirt|none|trousers|cream,grey,blue,black|2|0.85
+131|hoodie|windbreaker|parachute_pants|violet,yellow,black|2|0.9
+132|shirt|vest|corduroy_pants|green,plum,rust,cream,red|2|0.85
+133|jersey|utility_jacket|jeans|orange,navy,indigo,white|2|0.9
+134|long_sleeve_t_shirt|vest|track_pants|slate blue,white,graphite,mint|2|0.85
+135|t_shirt|shirt_jacket|jeans|black,burgundy,red|2|0.85
+136|t_shirt|none|shorts|cobalt blue,yellow,red,black,white|2|0.85
+137|jersey|none|track_pants|black,white,red|2|0.9
+138|t_shirt|cardigan|cargo_pants|lilac,white,forest green,silver|2|0.85
+139|long_sleeve_t_shirt|vest|trousers|charcoal,white,cream,black|2|0.85
+140|hoodie|utility_jacket|parachute_pants|mustard,teal,black,orange|2|0.9
+2025-01-08_081500_KST|unknown|long_puffer|jeans|black,beige,navy|1|0.8
+2025-01-24_191000_KST|unknown|puffer_jacket|jeans|cream,grey,charcoal|1|0.8
+2025-02-12_084000_KST|turtleneck|long_puffer|jeans|black,grey,navy|2|0.85
+2025-03-05_090500_KST|knit|coat|jeans|charcoal,cream,navy|2|0.85
+2025-03-25_122000_KST|knit|trench_coat|jeans|beige,navy,blue|2|0.85
+2025-04-14_082500_KST|t_shirt|denim_jacket|trousers|blue,white,black|2|0.9
+2025-04-29_171500_KST|t_shirt|cardigan|jeans|grey,white,navy|2|0.85
 2025-05-16_091000_KST|shirt|none|chinos|light blue,cream|1|0.9
-2025-05-29_182000_KST|t-shirt|none|jeans|white,blue|1|0.9
-2025-06-12_083500_KST|t-shirt|none|linen trousers|navy,beige|1|0.9
-2025-06-28_130500_KST|t-shirt|none|shorts|white,black|1|0.9
-2025-07-14_081000_KST|t-shirt|none|denim shorts|grey,blue|1|0.9
-2025-07-30_190500_KST|t-shirt|none|linen trousers|navy,beige|1|0.9
-2025-08-13_121500_KST|t-shirt|none|shorts|white,beige|1|0.9
-2025-08-28_084500_KST|short-sleeve shirt|none|trousers|light blue,black|1|0.9
-2025-09-16_091500_KST|t-shirt|cardigan|jeans|grey,white,navy|2|0.9
-2025-10-08_083000_KST|sweater|none|jeans|cream,navy|1|0.9
-2025-10-29_184500_KST|knit top|trench coat|trousers|beige,navy,black|2|0.85
-2025-11-18_082000_KST|knit top|wool coat|jeans|charcoal,beige,grey,navy|2|0.85
-2025-12-17_081000_KST|unknown|puffer coat|trousers|black,beige,charcoal|1|0.85
+2025-05-29_182000_KST|t_shirt|none|jeans|white,blue|1|0.9
+2025-06-12_083500_KST|t_shirt|none|trousers|navy,beige|1|0.9
+2025-06-28_130500_KST|t_shirt|none|shorts|white,black|1|0.9
+2025-07-14_081000_KST|t_shirt|none|shorts|grey,blue|1|0.9
+2025-07-30_190500_KST|t_shirt|none|trousers|navy,beige|1|0.9
+2025-08-13_121500_KST|t_shirt|none|shorts|white,beige|1|0.9
+2025-08-28_084500_KST|shirt|none|trousers|light blue,black|1|0.9
+2025-09-16_091500_KST|t_shirt|cardigan|jeans|grey,white,navy|2|0.9
+2025-10-08_083000_KST|knit|none|jeans|cream,navy|1|0.9
+2025-10-29_184500_KST|knit|trench_coat|trousers|beige,navy,black|2|0.85
+2025-11-18_082000_KST|knit|coat|jeans|charcoal,beige,grey,navy|2|0.85
+2025-12-17_081000_KST|unknown|long_puffer|trousers|black,beige,charcoal|1|0.85
 """
 
 UNKNOWN_TAGS = {
@@ -403,6 +403,21 @@ def tags_for(stem: str) -> dict:
     if prefix in TAGS and not stem.startswith("20"):
         return TAGS[prefix]
     raise KeyError(f"no hand-checked tags for {stem}")
+
+
+def vision_analysis_for(stem: str) -> dict:
+    tags = tags_for(stem)
+    is_non_outfit = stem in NON_OUTFIT
+    return {
+        "photo_type": "non_outfit" if is_non_outfit else "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": (
+            "No person with a visible outfit."
+            if is_non_outfit
+            else "A person with visible clothing is the main subject."
+        ),
+        "tags": tags,
+    }
 
 
 def sha256_of(path: Path) -> str:
@@ -582,7 +597,7 @@ def build(photo_dir: Path, fixtures_dir: Path) -> None:
         digest = sha256_of(photo)
         if digest in vision:
             raise SystemExit(f"duplicate SHA-256 for {photo.name}")
-        vision[digest] = tags_for(photo.stem)
+        vision[digest] = vision_analysis_for(photo.stem)
     _write_json(fixtures_dir / "vision.json", vision)
 
     _write_json(SCENARIOS_PATH, {"scenarios": SCENARIOS})
@@ -612,7 +627,7 @@ def _reference_recommend(today: float, rows: list[dict], tolerance: Decimal = De
 
 def check(photo_dir: Path, fixtures_dir: Path) -> int:
     sys.path.insert(0, str(REPO_ROOT / "backend"))
-    from app.domain import ClothingTags, SidecarMetadata  # noqa: PLC0415
+    from app.domain import SidecarMetadata, VisionAnalysis  # noqa: PLC0415
 
     problems: list[str] = []
     photos = list_photos(photo_dir)
@@ -659,12 +674,15 @@ def check(photo_dir: Path, fixtures_dir: Path) -> int:
             problems.append(f"vision.json missing {photo.name}")
             continue
         try:
-            tags = ClothingTags.model_validate(vision[digest])
+            analysis = VisionAnalysis.model_validate(vision[digest])
         except Exception as exc:  # noqa: BLE001
-            problems.append(f"invalid tags for {photo.name}: {exc}")
+            problems.append(f"invalid vision analysis for {photo.name}: {exc}")
             continue
-        if photo.stem in NON_OUTFIT and tags.model_dump() != UNKNOWN_TAGS:
-            problems.append(f"non-outfit {photo.name} is not UNKNOWN_TAGS")
+        if photo.stem in NON_OUTFIT:
+            if analysis.photo_type != "non_outfit" or analysis.tags.model_dump() != UNKNOWN_TAGS:
+                problems.append(f"non-outfit {photo.name} has invalid analysis")
+        elif analysis.photo_type != "outfit":
+            problems.append(f"outfit {photo.name} is not labeled outfit")
     if len(vision) != len(photos):
         problems.append(f"vision.json has {len(vision)} entries for {len(photos)} photos")
 

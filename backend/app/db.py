@@ -15,6 +15,7 @@ Constraints that back the requirements:
 
 from __future__ import annotations
 
+import json
 import logging
 import sqlite3
 from collections.abc import Iterator
@@ -26,6 +27,15 @@ from typing import Any
 from sqlalchemy import CheckConstraint, Index, event, text
 from sqlalchemy.engine import Engine, make_url
 from sqlmodel import Field, Session, SQLModel, create_engine
+
+from app.domain import (
+    UNKNOWN_TAGS,
+    ClothingTags,
+    VisionAnalysis,
+    normalize_lower_type,
+    normalize_outer_type,
+    normalize_upper_type,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +109,30 @@ class Outfit(SQLModel, table=True):
     vision_confidence: float
     vision_provider: str
     created_at: str  # UTC ISO 8601
+
+
+class PhotoAnalysisRow(SQLModel, table=True):
+    """Persisted Vision decision for every successfully analyzed image hash."""
+
+    __tablename__ = "photo_analyses"
+    __table_args__ = (
+        CheckConstraint(
+            "photo_type IN ('outfit','non_outfit','uncertain')",
+            name="ck_photo_analyses_type",
+        ),
+        CheckConstraint(
+            "vision_provider IN ('gemini','fixture')",
+            name="ck_photo_analyses_provider",
+        ),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+    sha256: str = Field(unique=True, index=True)
+    file_name: str
+    photo_type: str
+    analysis_json: str
+    vision_provider: str
+    created_at: str
 
 
 class WeatherSnapshot(SQLModel, table=True):
@@ -227,6 +261,8 @@ def create_db_engine(database_url: str) -> Engine:
         event.listen(engine, "connect", _set_sqlite_pragmas)
 
     init_db(engine)
+    migrate_legacy_garment_types(engine)
+    backfill_photo_analyses(engine)
     return engine
 
 
@@ -236,6 +272,101 @@ def init_db(engine: Engine) -> None:
     if engine.dialect.name == "sqlite":
         with engine.begin() as conn:
             conn.execute(text(f"PRAGMA user_version = {SCHEMA_VERSION}"))
+
+
+def migrate_legacy_garment_types(engine: Engine) -> int:
+    """Normalize garment labels written before the canonical taxonomy.
+
+    Existing databases used free-form strings. Known aliases are mapped to a
+    canonical identifier and unrecognized values become ``unknown`` so a
+    legacy row cannot make history or recommendation reads fail validation.
+    The migration is idempotent and returns the number of changed Outfit rows.
+    """
+    changed = 0
+    with engine.begin() as connection:
+        rows = connection.execute(
+            text("SELECT id, upper_type, outer_type, lower_type FROM outfits")
+        ).mappings().all()
+        for row in rows:
+            upper = normalize_upper_type(row["upper_type"])
+            outer = normalize_outer_type(row["outer_type"])
+            lower = normalize_lower_type(row["lower_type"])
+            if (
+                upper == row["upper_type"]
+                and outer == row["outer_type"]
+                and lower == row["lower_type"]
+            ):
+                continue
+            connection.execute(
+                text(
+                    "UPDATE outfits SET upper_type = :upper, outer_type = :outer, "
+                    "lower_type = :lower WHERE id = :id"
+                ),
+                {"id": row["id"], "upper": upper, "outer": outer, "lower": lower},
+            )
+            changed += 1
+    if changed:
+        logger.info("기존 의류 카테고리를 canonical taxonomy로 변환했습니다: %d건", changed)
+    return changed
+
+
+def backfill_photo_analyses(engine: Engine) -> int:
+    """Create classification records for Outfit rows written by older releases.
+
+    Rows with no garment evidence are marked ``uncertain`` and therefore stop
+    appearing in history and recommendations until a later scan reclassifies
+    them. Other legacy Outfit rows retain their prior accepted status.
+    """
+    with engine.begin() as connection:
+        rows = connection.execute(
+            text(
+                "SELECT o.sha256, o.file_name, o.upper_type, o.outer_type, o.lower_type, "
+                "o.colors_json, o.layers_visible, o.vision_confidence, o.vision_provider "
+                "FROM outfits o LEFT JOIN photo_analyses p ON p.sha256 = o.sha256 "
+                "WHERE p.id IS NULL"
+            )
+        ).mappings().all()
+        for row in rows:
+            try:
+                tags = ClothingTags(
+                    upper_type=row["upper_type"],
+                    outer_type=row["outer_type"],
+                    lower_type=row["lower_type"],
+                    colors=json.loads(row["colors_json"]),
+                    layers_visible=row["layers_visible"],
+                    confidence=row["vision_confidence"],
+                )
+            except Exception:
+                tags = UNKNOWN_TAGS
+            uncertain = tags == UNKNOWN_TAGS
+            analysis = VisionAnalysis(
+                photo_type="uncertain" if uncertain else "outfit",
+                photo_type_confidence=0.0 if uncertain else 1.0,
+                reason=(
+                    "Legacy record has no visible garment evidence."
+                    if uncertain
+                    else "Backfilled from a previously accepted outfit record."
+                ),
+                tags=tags,
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO photo_analyses "
+                    "(sha256, file_name, photo_type, analysis_json, vision_provider, created_at) "
+                    "VALUES (:sha256, :file_name, :photo_type, :analysis_json, :provider, :created_at)"
+                ),
+                {
+                    "sha256": row["sha256"],
+                    "file_name": row["file_name"],
+                    "photo_type": analysis.photo_type,
+                    "analysis_json": analysis.model_dump_json(),
+                    "provider": row["vision_provider"],
+                    "created_at": to_utc_iso(datetime.now(UTC)),
+                },
+            )
+    if rows:
+        logger.info("기존 착장에 사진 유형 판정을 추가했습니다: %d건", len(rows))
+    return len(rows)
 
 
 @contextmanager

@@ -162,18 +162,11 @@ function DemoPanel() {
   }, [recompute.run, reloadStatus]);
 
   return (
-    <div className="flex w-full max-w-full min-w-0 flex-col gap-4">
+    <div className="demo-panel flex w-full max-w-full min-w-0 flex-col gap-4">
       <div className="px-1">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{STRINGS.demo.title}</h1>
         <p className="mt-1 text-sm text-slate-700">{STRINGS.demo.intro}</p>
       </div>
-
-      <StatusCard
-        data={status.data}
-        error={status.error}
-        pending={status.pending}
-        onRefresh={() => void status.reload()}
-      />
 
       <ScanCard
         report={scan.data}
@@ -196,12 +189,21 @@ function DemoPanel() {
         onClear={() => void handleClear()}
       />
 
+      <details className="detail-disclosure"><summary>개발 정보</summary><div className="detail-extra">
+      <StatusCard
+        data={status.data}
+        error={status.error}
+        pending={status.pending}
+        onRefresh={() => void status.reload()}
+      />
+
       <RecomputeCard
         result={recompute.data}
         error={recompute.error}
         pending={recompute.pending}
         onRecompute={() => void handleRecompute()}
       />
+      </div></details>
     </div>
   );
 }

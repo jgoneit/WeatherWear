@@ -114,9 +114,9 @@ describe("HistoryPage smoke", () => {
     const first = within(item0);
     expect(first.getByTestId("outfit-temperature")).toHaveTextContent("9.0°C");
     expect(first.getByTestId("outfit-vote")).toHaveTextContent("😊 적당했어");
-    expect(first.getByText("coat")).toBeInTheDocument();
-    expect(first.getByText("knit")).toBeInTheDocument();
-    expect(first.getByText("slacks")).toBeInTheDocument();
+    expect(first.getByText("코트")).toBeInTheDocument();
+    expect(first.getByText("니트")).toBeInTheDocument();
+    expect(first.getByText("슬랙스")).toBeInTheDocument();
     expect(first.getByText("2025-11-20")).toBeInTheDocument();
     expect(first.getByRole("img")).toHaveAttribute("loading", "lazy");
 

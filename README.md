@@ -110,20 +110,25 @@ docker compose down -v           # 종료와 함께 DB 볼륨 삭제
 
 ## 데모 사진 준비
 
-사진 파일(`ex_img/`, `data/demo/photos/`의 이미지)은 인물 사진이고 용량이 약 290MB라서 git에 올리지 않는다. 저장소에는 사진별 사이드카(`data/demo/photos/*.metadata.json`), 목록(`data/demo/photos.manifest.json`), fixture(`data/demo/fixtures/`), 시나리오(`data/demo/scenarios.json`)만 들어 있다.
+기존 개인 사진(`ex_img/`, `data/demo/photos/`의 174장)은 git에 올리지 않는다. 이번에 생성한 가상 인물 착장 15장(141~155번, 약 43MB)은 저장소에 포함되어 별도 다운로드 없이 사용할 수 있다. 저장소에는 사진별 사이드카(`data/demo/photos/*.metadata.json`), 목록(`data/demo/photos.manifest.json`), fixture(`data/demo/fixtures/`), 시나리오(`data/demo/scenarios.json`)만 들어 있다.
 
-1. 프로젝트 소유자에게 받은 `ex_img/` 폴더(또는 `ex_img.zip`을 저장소 루트에서 푼 결과)를 저장소 루트에 둔다.
-2. 사진 복사: `backend/.venv/bin/python scripts/prepare_demo_photos.py`. manifest에서 `rights_confirmed: true`인 159장만 `ex_img/`에서 `data/demo/photos/`로 파일 이름 그대로 복사한다. 이미 같은 파일이면 건너뛰고, 기존 사이드카는 건드리지 않는다.
-3. 확인: `backend/.venv/bin/python scripts/build_fixtures.py --check`가 `all checks passed`를 출력해야 한다.
-4. `--check`가 `vision.json missing ...`을 출력하면 받은 사진의 바이트가 fixture를 만들 때의 사진과 다르다는 뜻이다(Fixture Vision은 SHA-256으로 태그를 찾는다). `backend/.venv/bin/python scripts/build_fixtures.py`를 한 번 실행하면 파일 이름별 태그는 그대로 두고 해시 키만 다시 계산한다. 그 뒤 3번을 다시 확인한다.
+1. 전체 사진 세트를 쓰려면 프로젝트 소유자에게 받은 `ex_img/` 폴더를 저장소 루트에 둔다. 현재 목록은 기존 174장과 생성 착장 15장, 총 189장이다. 저장소에 포함된 15장만으로도 한파·무더위·폭염 추천을 실행할 수 있다.
+2. `python3 scripts/prepare_demo_photos.py`로 manifest의 승인된 사진을 `data/demo/photos/`로 복사한다. 같은 파일과 기존 사이드카는 유지한다.
+3. 생성 착장 15장의 데이터는 `python3 scripts/add_generated_outfits.py`로 병합한다. 기존 개인 사진의 fixture와 사용자 피드백은 유지하며, 생성 이미지 해시가 다르면 중단한다. 생성 프롬프트와 가상 기온은 `data/demo/generated_outfits.json`에 기록되어 있다.
+4. 백엔드를 재시작하고 설정 화면에서 폴더를 스캔한다. `cd backend && ../.venv/bin/python -m pytest tests/test_integration.py tests/test_recommendation_service.py tests/test_api_routes.py tests/test_image_check.py -q`로 사진·추천·재스캔을 확인한다. (`.venv`가 backend 안에 있다면 경로를 조정한다.)
+
+기존 `build_fixtures.py`는 처음 159장의 온도표와 경계/데이터 부족 시나리오를 위한 스크립트다. 확장된 사진 세트를 재생성하는 용도로 실행하지 않는다. 아직 라벨이 없는 기존 126~140번 15장은 계속 uncertain으로 제외된다.
+
+생성 사진을 원본 폴더에도 보관하려면 저장소 루트에서 `python3 scripts/add_generated_outfits.py --export-to ~/Downloads/ex_img`를 실행한다. 생성 PNG 15장만 복사하며 다른 파일을 덮어쓰지 않는다.
 
 권한이 확인된 사진이 0장일 때만 `backend/.venv/bin/python scripts/make_placeholders.py`로 플레이스홀더 8장과 사이드카, vision fixture를 만든다. 확인된 사진이 있으면 이 스크립트는 실행을 거부한다. 현재 데모는 플레이스홀더를 쓰지 않는다.
 
 ### 사진 출처와 사용 권한
 
-- 데모 사진 159장(PNG 119장 `007_…`~`125_…`, JPG 40장 `2025-…_KST.jpg`)은 프로젝트 소유자가 제공했고, 소유자가 159장 전체의 데모 사용 권한을 확인했다. 출처와 권한은 `data/demo/photos.manifest.json`에 사진별로 기록되어 있다.
-- `ex_img/`의 `126_…` 이후 파일(현재 15장, manifest에 `rights_confirmed: false`로 기록)은 권한 확인 전이라 복사하지도 쓰지도 않는다.
-- JPG 40장 중 20장은 착장이 아닌 사진(음식, 카페, 거리, 풍경)이다. 데모 세트에는 들어 있지만 데모 시나리오의 추천 결과에는 나오지 않도록 기온을 배정했다.
+- 기존 174장은 프로젝트 소유자가 제공했고 manifest에 사용 권한이 확인되어 있다. 126~140번 15장은 착장·날씨 fixture가 아직 없다.
+- 추가한 141~155번 15장은 사용자 요청으로 OpenAI image_gen에서 생성한 가상 성인 인물의 착장이다. 한파·무더위·폭염용으로 각각 5장씩이며, 생성 프롬프트·SHA-256·출처를 `data/demo/generated_outfits.json`에 보관한다.
+- 생성 사진의 촬영 날짜·위치·기온은 데모를 위해 작성한 가상 데이터다. 실제 관측값이나 착용자의 체감 경험을 뜻하지 않으며, 체감 피드백은 미리 넣지 않았다. 기존 live 평가용 `data/eval/labels.json`에는 추가하지 않았다.
+- JPG 40장 중 20장은 착장이 아닌 사진으로, 추천에서 제외된다.
 
 ## 5분 데모 절차 (Fixture 모드, API 키 없음)
 
@@ -131,7 +136,7 @@ docker compose down -v           # 종료와 함께 DB 볼륨 삭제
 
 준비:
 
-- 데모 사진 159장을 준비한다(위 절).
+- 데모 사진 189장을 준비한다(위 절).
 - 루트 `.env`가 없거나 `VISION_PROVIDER=fixture`, `WEATHER_PROVIDER=fixture`이어야 한다. 키를 넣어 둔 상태면 1단계의 API 키 상태만 "설정됨"으로 보이고 나머지는 같다.
 - DB가 비어 있어야 한다. 이미 스캔한 적이 있으면 새 DB 파일로 백엔드를 실행한다: `DATABASE_URL=sqlite:///./data/demo-run.db .venv/bin/uvicorn app.main:app --port 8000`.
 - 백엔드와 프론트엔드(`npm run dev`)를 실행하고 `http://localhost:5173`을 연다.
@@ -139,15 +144,15 @@ docker compose down -v           # 종료와 함께 DB 볼륨 삭제
 | 단계 | 동작 | 화면에서 확인할 결과 |
 |---|---|---|
 | 1. 상태 확인 | 홈의 "데모 관리 화면으로" 링크 또는 하단 "데모" 탭을 누른다 | "현재 상태"에 Vision 제공자 `fixture`, 날씨 제공자 `fixture`, Gemini API 키 "미설정", 착장 0 |
-| 2. 폴더 스캔 | "폴더 스캔" 버튼을 누른다 | 스캔 159, 성공 159, 중복 0, 실패 0, "실패 항목 없음" |
-| 3. 기록 화면 | 하단 "기록" 탭을 누르고 첫 항목을 누른다 | 착장 159건이 촬영 시각 최신순 그리드로 보이고(날짜, 기온, 태그, 평가 상태), 첫 항목 상세 화면에 사진이 뜬다 |
+| 2. 폴더 스캔 | "폴더 스캔" 버튼을 누른다 | 스캔 189, 성공 154, 비착장 20, uncertain 15, 중복 0, 실패 0 |
+| 3. 기록 화면 | 하단 "기록" 탭을 누르고 첫 항목을 누른다 | 착장 154건이 촬영 시각 최신순 그리드로 보이고, 첫 항목 상세 화면에 사진이 뜬다 |
 | 4. 시나리오 선택 | "데모" 탭으로 돌아가 날씨 시나리오 목록에서 "쌀쌀한 아침"을 누른다 | 시나리오 4개(쌀쌀한 아침, 기록적 한파, 때 이른 무더위, 기록적 폭염)가 보이고, "적용된 시나리오: 쌀쌀한 아침 · 9.0°C" |
 | 5. 오늘 추천 | "홈" 탭을 누른다 | 오늘 9.0°C(출처: 시나리오). 알림 카드와 1순위 추천이 `081_hiphop_varsity_baggy_denim`(바시티 재킷 + 배기 데님) 115.0점이고, 근거에 "과거에 적당했음"이 있다. 알림 카드에서 "😊 적당했어"가 선택 상태다 |
 | 6. 체감 피드백 | 알림 카드의 "🥵 더웠어"를 누른다 | 확인 단계 없이 저장되고 "🥵 더웠어"가 선택 상태로 바뀐다 |
 | 7. 추천 재조회 | 기다린다(새로고침 불필요) | 추천이 자동으로 다시 계산된다. 081은 85.0점으로 떨어져 상위 5건에서 빠지고, 1순위가 `052_burgundy_sweater_skirt_full`(버건디 스웨터 + 스커트) 110.0점으로 바뀐다. "기록" 탭에서 081의 평가 상태는 "더웠어" |
-| 8. 재스캔 | "데모" 탭에서 "폴더 스캔"을 다시 누른다 | 스캔 159, 성공 0, 중복 159, 실패 0. 착장 수는 159 그대로 |
+| 8. 재스캔 | "데모" 탭에서 "폴더 스캔"을 다시 누른다 | 스캔 189, 성공 0, 중복 154, 비착장 20, uncertain 15, 실패 0. 착장 수는 154 그대로 |
 
-여유가 있으면 "기록적 한파"(−12.0°C, 기온 차이가 정확히 3.0°C인 후보 1건), "때 이른 무더위"(30.0°C, "유사 기록 부족 / 범위 확장"과 5.0°C 확장), "기록적 폭염"(38.0°C, "개인 착장 데이터 부족")도 선택해 보인다.
+"기록적 한파"(−12.0°C), "때 이른 무더위"(30.0°C), "기록적 폭염"(38.0°C)에서도 각각 기온 차이 3.0°C 이내의 추천 5개가 나온다. 범위 확장·데이터 부족 동작은 독립적인 합성 데이터 단위 테스트로 검증한다.
 
 ## 데이터와 제공자에 관한 사실
 

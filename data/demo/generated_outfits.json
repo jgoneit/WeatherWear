@@ -1,0 +1,550 @@
+{
+  "generator": "OpenAI image_gen (built-in tool)",
+  "generated_on": "2026-11-14",
+  "description": "15 fictional adult outfit images. Capture dates, coordinates, temperatures and confidence values are synthetic demo fixtures, not observed conditions or live evaluation results. No feedback votes seeded. Excluded from data/eval/labels.json.",
+  "photos": [
+    {
+      "file": "141_cold_charcoal_long_down.png",
+      "sha256": "b4e1a045689f2d12ab5c52f58d6aaaad903968314d2d913a32cfe78e94e5041b",
+      "scenario_id": "cold-snap",
+      "prompt": "Use case: photorealistic-natural. Asset type: a single portrait outfit photo for a personal weather wardrobe app. An original fictional adult Korean woman in her late twenties, full body head-to-boots entirely visible with small margins, street-style everyday smartphone editorial photograph. Seoul quiet residential sidewalk on a bitter cold winter morning, light snow on ground, natural overcast light. Wearing a charcoal ankle-length quilted down puffer coat slightly open to reveal an ivory chunky turtleneck sweater, black insulated straight trousers, black winter boots, oatmeal knit scarf and gloves. Practical layered winter clothing for a -12 Celsius day. Natural proportions and skin texture, candid relaxed standing pose, eye-level lens, believable real fabric. Vertical 2:3 composition. One person only. No letters, watermarks, logos, collage, borders or text. Ensure clothes, legs and shoes are clearly visible.",
+      "metadata": {
+        "captured_at": "2025-01-10T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "turtleneck",
+          "outer_type": "long_puffer",
+          "lower_type": "trousers",
+          "colors": [
+            "charcoal",
+            "ivory",
+            "black"
+          ],
+          "layers_visible": 2,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": -12,
+        "apparent_temperature_c": -17,
+        "relative_humidity_pct": 35,
+        "wind_speed_kmh": 15,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "142_cold_cream_down_denim.png",
+      "sha256": "51c17f920a6b5533c87936416c686ab4003e92c26e9358ac152de00bbe83d1a5",
+      "scenario_id": "cold-snap",
+      "prompt": "Use case: photorealistic-natural. Asset: one single portrait outfit photo for a weather wardrobe app. Original fictional adult Korean woman, late twenties. Full body from top of head to shoes completely in frame with comfortable margins. Natural candid smartphone street style photo, realistic anatomy and fabric, understated everyday styling, eye-level, vertical 2:3. One person, no text, logos, watermarks, collage or borders. Outfit and location: Seoul sidewalk with light snow on a bitterly cold -13 Celsius winter day. Cream knee-length quilted down puffer open enough to see a navy wool sweater, dark indigo insulated straight jeans, brown winter boots, charcoal knit hat and navy scarf. Standing near a pale stone wall, soft overcast daylight.",
+      "metadata": {
+        "captured_at": "2025-01-11T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "knit",
+          "outer_type": "long_puffer",
+          "lower_type": "jeans",
+          "colors": [
+            "cream",
+            "navy",
+            "indigo"
+          ],
+          "layers_visible": 2,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": -13,
+        "apparent_temperature_c": -18,
+        "relative_humidity_pct": 35,
+        "wind_speed_kmh": 15,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "143_cold_olive_parka_cargo.png",
+      "sha256": "8e59fa8c299bf52376d2d382e67acf8ca878a0d59f199b6ad33e9d7280ccacde",
+      "scenario_id": "cold-snap",
+      "prompt": "Use case: photorealistic-natural. Asset: one single portrait outfit photo for a weather wardrobe app. Original fictional adult Korean woman, late twenties. Full body from top of head to shoes completely in frame with comfortable margins. Natural candid smartphone street style photo, realistic anatomy and fabric, understated everyday styling, eye-level, vertical 2:3. One person, no text, logos, watermarks, collage or borders. Outfit and location: Quiet Seoul park in deep winter at -11 Celsius, bare trees and fresh snow. Olive insulated hooded parka, grey hoodie visible at chest, charcoal cargo trousers over thermal base layers, sturdy black boots, black gloves. Relaxed standing pose, winter morning diffuse light.",
+      "metadata": {
+        "captured_at": "2025-01-12T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "hoodie",
+          "outer_type": "parka",
+          "lower_type": "cargo_pants",
+          "colors": [
+            "olive",
+            "gray",
+            "charcoal"
+          ],
+          "layers_visible": 2,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": -11,
+        "apparent_temperature_c": -16,
+        "relative_humidity_pct": 35,
+        "wind_speed_kmh": 15,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "144_cold_navy_puffer_wool.png",
+      "sha256": "f9b2cb296205d645ce3a50bb5811d7d1e2d14f210dd4f7abfa17f8c641df425a",
+      "scenario_id": "cold-snap",
+      "prompt": "Use case: photorealistic-natural. Asset: one single portrait outfit photo for a weather wardrobe app. Original fictional adult Korean woman, late twenties. Full body from top of head to shoes completely in frame with comfortable margins. Natural candid smartphone street style photo, realistic anatomy and fabric, understated everyday styling, eye-level, vertical 2:3. One person, no text, logos, watermarks, collage or borders. Outfit and location: Quiet Seoul apartment courtyard with snow at -12.5 Celsius. A woman with a chin length dark bob wears a navy hip-length bulky quilted down puffer jacket open at neck, ivory thick knit sweater, warm grey wool wide-leg trousers, black leather winter boots, pale grey scarf and gloves. Natural soft light.",
+      "metadata": {
+        "captured_at": "2025-01-13T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "knit",
+          "outer_type": "puffer_jacket",
+          "lower_type": "trousers",
+          "colors": [
+            "navy",
+            "ivory",
+            "gray"
+          ],
+          "layers_visible": 2,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": -12.5,
+        "apparent_temperature_c": -17.5,
+        "relative_humidity_pct": 35,
+        "wind_speed_kmh": 15,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "145_cold_burgundy_down_jeans.png",
+      "sha256": "9b86661d560ee11b41ccb687cf03e53380cc8f93aa225a0158cca60bdbf29a6c",
+      "scenario_id": "cold-snap",
+      "prompt": "Use case: photorealistic-natural. Asset: one single portrait outfit photo for a weather wardrobe app. Original fictional adult Korean woman, late twenties. Full body from top of head to shoes completely in frame with comfortable margins. Natural candid smartphone street style photo, realistic anatomy and fabric, understated everyday styling, eye-level, vertical 2:3. One person, no text, logos, watermarks, collage or borders. Outfit and location: Seoul residential street in winter at -10.5 Celsius, bare trees and patches of snow. Burgundy knee-length insulated down puffer coat, black turtleneck knit visible at neck, blue straight jeans, black warm boots, cream scarf and mittens. Hair loosely tied back, relaxed confident standing pose, cold diffuse daylight.",
+      "metadata": {
+        "captured_at": "2025-01-14T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "turtleneck",
+          "outer_type": "long_puffer",
+          "lower_type": "jeans",
+          "colors": [
+            "burgundy",
+            "black",
+            "blue"
+          ],
+          "layers_visible": 2,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": -10.5,
+        "apparent_temperature_c": -15.5,
+        "relative_humidity_pct": 35,
+        "wind_speed_kmh": 15,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "146_summer_blue_linen_trousers.png",
+      "sha256": "e24dbcf7ca1f36847eecab1a19bb530684987d86c555328e7190e101ef18f283",
+      "scenario_id": "early-heat",
+      "prompt": "Use case: photorealistic-natural. One portrait outfit photograph for a personal weather wardrobe app. Original fictional adult Korean woman in her late twenties, natural candid street style, realistic proportions and fabric, unretouched-looking skin, eye-level camera, full body head to shoes with small margin all around, vertical 2:3. Single person only, no text, logos, watermark, border, montage. A warm 30 Celsius sunny Seoul side street in early summer, soft leafy shadows, wearing pale blue short-sleeve linen button shirt, beige wide straight linen trousers, tan flat sandals. Hair in a loose bun. Relaxed upright standing pose, airy blue and sand palette.",
+      "metadata": {
+        "captured_at": "2025-06-10T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "shirt",
+          "outer_type": "none",
+          "lower_type": "trousers",
+          "colors": [
+            "light blue",
+            "beige"
+          ],
+          "layers_visible": 1,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": 30,
+        "apparent_temperature_c": 33,
+        "relative_humidity_pct": 65,
+        "wind_speed_kmh": 5,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "147_summer_white_tee_denim.png",
+      "sha256": "6de3a70bd7e7dc15b0b0c4c47afca4b52f17c186ea49b6f1a68286dd9b7eb849",
+      "scenario_id": "early-heat",
+      "prompt": "Use case: photorealistic-natural. One portrait outfit photograph for a personal weather wardrobe app. Original fictional adult Korean woman in her late twenties, natural candid street style, realistic proportions and fabric, unretouched-looking skin, eye-level camera, full body head to shoes with small margin all around, vertical 2:3. Single person only, no text, logos, watermark, border, montage. A 29 Celsius early-summer Seoul riverside walking path, green trees, soft afternoon sun. White short-sleeve cotton t-shirt tucked into medium blue high-waisted denim shorts with normal mid-thigh length, white low-top sneakers. Natural shoulder-length hair and relaxed standing pose.",
+      "metadata": {
+        "captured_at": "2025-06-11T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "t_shirt",
+          "outer_type": "none",
+          "lower_type": "shorts",
+          "colors": [
+            "white",
+            "blue"
+          ],
+          "layers_visible": 1,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": 29,
+        "apparent_temperature_c": 32,
+        "relative_humidity_pct": 65,
+        "wind_speed_kmh": 5,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "148_summer_ivory_olive_linen.png",
+      "sha256": "5092d33a029c11a69e0a1b6abd0bcdba6f87113c0742b163e759a9d47a1c2e53",
+      "scenario_id": "early-heat",
+      "prompt": "Use case: photorealistic-natural. One portrait outfit photograph for a personal weather wardrobe app. Original fictional adult Korean woman in her late twenties, natural candid street style, realistic proportions and fabric, unretouched-looking skin, eye-level camera, full body head to shoes with small margin all around, vertical 2:3. Single person only, no text, logos, watermark, border, montage. A 31 Celsius summer day near a quiet Seoul cafe stone wall. Ivory modest sleeveless knit cotton top, olive wide-leg linen trousers, black flat sandals, brown hair in low ponytail. Shade and natural warm daylight, full outfit clearly visible.",
+      "metadata": {
+        "captured_at": "2025-06-12T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "sleeveless_top",
+          "outer_type": "none",
+          "lower_type": "trousers",
+          "colors": [
+            "ivory",
+            "olive"
+          ],
+          "layers_visible": 1,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": 31,
+        "apparent_temperature_c": 34,
+        "relative_humidity_pct": 65,
+        "wind_speed_kmh": 5,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "149_summer_stripe_navy_skirt.png",
+      "sha256": "56405c0e47ebff6e38b3834b03ea452e66e5ea18e07973f1eeca7f8c2d60aa91",
+      "scenario_id": "early-heat",
+      "prompt": "Use case: photorealistic-natural. One portrait outfit photograph for a personal weather wardrobe app. Original fictional adult Korean woman in her late twenties, natural candid street style, realistic proportions and fabric, unretouched-looking skin, eye-level camera, full body head to shoes with small margin all around, vertical 2:3. Single person only, no text, logos, watermark, border, montage. A 28.5 Celsius warm early summer day on a Seoul tree-lined street. Navy and ivory striped short-sleeve cotton t-shirt, plain navy midi A-line skirt, white canvas sneakers. Adult woman with dark bob, gentle candid smile and relaxed standing pose, daylight.",
+      "metadata": {
+        "captured_at": "2025-06-13T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "t_shirt",
+          "outer_type": "none",
+          "lower_type": "skirt",
+          "colors": [
+            "navy",
+            "ivory"
+          ],
+          "layers_visible": 1,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": 28.5,
+        "apparent_temperature_c": 31.5,
+        "relative_humidity_pct": 65,
+        "wind_speed_kmh": 5,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "150_summer_sage_linen_dress.png",
+      "sha256": "936cb64411437d4b1d9a200cba0783361d9b53a16ec3b5c2d66e985404fb92c1",
+      "scenario_id": "early-heat",
+      "prompt": "Use case: photorealistic-natural. One portrait outfit photograph for a personal weather wardrobe app. Original fictional adult Korean woman in her late twenties, natural candid street style, realistic proportions and fabric, unretouched-looking skin, eye-level camera, full body head to shoes with small margin all around, vertical 2:3. Single person only, no text, logos, watermark, border, montage. A 32 Celsius summer afternoon in a quiet Seoul neighborhood courtyard. A loose sage green short-sleeve linen midi dress, beige leather flat sandals, straw tote at side. Adult woman with long dark hair tied back, natural relaxed pose in open shade, breezy linen texture.",
+      "metadata": {
+        "captured_at": "2025-06-14T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "dress",
+          "outer_type": "none",
+          "lower_type": "none",
+          "colors": [
+            "sage"
+          ],
+          "layers_visible": 1,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": 32,
+        "apparent_temperature_c": 35,
+        "relative_humidity_pct": 65,
+        "wind_speed_kmh": 5,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "151_heatwave_white_linen_shorts.png",
+      "sha256": "53e6e0b9fcbfc45f7f0825fcd4c49207e595c63f10daef387d0de92e9a4a984f",
+      "scenario_id": "heatwave",
+      "prompt": "Use case: photorealistic-natural. Create one realistic full-body portrait outfit photograph of an original fictional Korean woman in her late twenties, on a leafy Seoul street in summer. Natural smartphone/editorial photography, believable fabric textures, understated everyday styling, entire head and footwear visible, vertical 2:3 composition. Modest ordinary clothing. No text, logos, collage, watermark or interface. 38 C heatwave in open shade. White sleeveless linen blouse, sand-colored loose mid-thigh linen shorts, flat tan sandals, canvas bag.",
+      "metadata": {
+        "captured_at": "2025-08-10T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "blouse",
+          "outer_type": "none",
+          "lower_type": "shorts",
+          "colors": [
+            "white",
+            "sand"
+          ],
+          "layers_visible": 1,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": 38,
+        "apparent_temperature_c": 41,
+        "relative_humidity_pct": 65,
+        "wind_speed_kmh": 5,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "152_heatwave_blue_cotton_dress.png",
+      "sha256": "30377b6d91472c68f3da1f5d3d45fb015522961b0e9e78029beaae76f2208709",
+      "scenario_id": "heatwave",
+      "prompt": "Use case: photorealistic-natural. Create one realistic full-body portrait outfit photograph of an original fictional Korean woman in her late twenties, on a leafy Seoul street in summer. Natural smartphone/editorial photography, believable fabric textures, understated everyday styling, entire head and footwear visible, vertical 2:3 composition. Modest ordinary clothing. No text, logos, collage, watermark or interface. 37 C heatwave. Airy pale blue sleeveless cotton midi sundress with broad straps and modest neckline, white flat sandals. Dappled shade.",
+      "metadata": {
+        "captured_at": "2025-08-11T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "dress",
+          "outer_type": "none",
+          "lower_type": "none",
+          "colors": [
+            "light blue"
+          ],
+          "layers_visible": 1,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": 37,
+        "apparent_temperature_c": 40,
+        "relative_humidity_pct": 65,
+        "wind_speed_kmh": 5,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "153_heatwave_coral_tank_shorts.png",
+      "sha256": "2dd73db84c9babbc358646ca742ef5d4d10ae060e4585e96477d06dbf86d3a59",
+      "scenario_id": "heatwave",
+      "prompt": "Use case: photorealistic-natural. Create one realistic full-body portrait outfit photograph of an original fictional Korean woman in her late twenties, on a leafy Seoul street in summer. Natural smartphone/editorial photography, believable fabric textures, understated everyday styling, entire head and footwear visible, vertical 2:3 composition. Modest ordinary clothing. No text, logos, collage, watermark or interface. 39 C heatwave. Coral sleeveless cotton top with modest neckline, ivory loose linen mid-thigh shorts, brown sandals, small cotton tote.",
+      "metadata": {
+        "captured_at": "2025-08-12T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "sleeveless_top",
+          "outer_type": "none",
+          "lower_type": "shorts",
+          "colors": [
+            "coral",
+            "ivory"
+          ],
+          "layers_visible": 1,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": 39,
+        "apparent_temperature_c": 42,
+        "relative_humidity_pct": 65,
+        "wind_speed_kmh": 5,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "154_heatwave_yellow_linen_trousers.png",
+      "sha256": "3ce0158b7db5abd648a5758c7b3f49a91a4e53bd5c8df9b896d91b8e3196eea9",
+      "scenario_id": "heatwave",
+      "prompt": "Use case: photorealistic-natural. Create one realistic full-body portrait outfit photograph of an original fictional Korean woman in her late twenties, on a leafy Seoul street in summer. Natural smartphone/editorial photography, believable fabric textures, understated everyday styling, entire head and footwear visible, vertical 2:3 composition. Modest ordinary clothing. No text, logos, collage, watermark or interface. 36.5 C heatwave. Butter yellow lightweight short sleeve linen button-up shirt, white wide leg airy linen trousers, tan sandals.",
+      "metadata": {
+        "captured_at": "2025-08-13T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "shirt",
+          "outer_type": "none",
+          "lower_type": "trousers",
+          "colors": [
+            "yellow",
+            "white"
+          ],
+          "layers_visible": 1,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": 36.5,
+        "apparent_temperature_c": 39.5,
+        "relative_humidity_pct": 65,
+        "wind_speed_kmh": 5,
+        "precipitation_mm": 0
+      }
+    },
+    {
+      "file": "155_heatwave_white_tee_linen_skirt.png",
+      "sha256": "ef3d060950fc5cccc35eb0d87eb1ea68e092b09f15f2062f5a91b95207dbb481",
+      "scenario_id": "heatwave",
+      "prompt": "Use case: photorealistic-natural. Create one realistic full-body portrait outfit photograph of an original fictional Korean woman in her late twenties, on a leafy Seoul street in summer. Natural smartphone/editorial photography, believable fabric textures, understated everyday styling, entire head and footwear visible, vertical 2:3 composition. Modest ordinary clothing. No text, logos, collage, watermark or interface. 40 C heatwave in cool-looking shade. Loose white short sleeve cotton t-shirt, beige flowing linen midi skirt, simple black sandals.",
+      "metadata": {
+        "captured_at": "2025-08-14T12:17:00+09:00",
+        "latitude": 37.5665,
+        "longitude": 126.978,
+        "synthetic": true,
+        "source": "AI-generated demo; capture time and weather are authored fixtures."
+      },
+      "vision": {
+        "photo_type": "outfit",
+        "photo_type_confidence": 1.0,
+        "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+        "tags": {
+          "upper_type": "t_shirt",
+          "outer_type": "none",
+          "lower_type": "skirt",
+          "colors": [
+            "white",
+            "beige"
+          ],
+          "layers_visible": 1,
+          "confidence": 0.95
+        }
+      },
+      "weather": {
+        "actual_temperature_c": 40,
+        "apparent_temperature_c": 43,
+        "relative_humidity_pct": 65,
+        "wind_speed_kmh": 5,
+        "precipitation_mm": 0
+      }
+    }
+  ]
+}

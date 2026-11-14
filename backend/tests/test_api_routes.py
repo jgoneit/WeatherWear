@@ -240,6 +240,52 @@ def test_openapi_lists_routes(client: TestClient) -> None:
     assert set(paths["/api/demo/scenarios/selected"]) == {"put", "delete"}
 
 
+# Every route in design.md §11 with its method (Req 10.6). A router module that
+# fails to register would drop its paths and fail this test.
+EXPECTED_OPERATIONS = {
+    ("/api/demo/scan", "post"),
+    ("/api/demo/status", "get"),
+    ("/api/demo/scenarios", "get"),
+    ("/api/demo/scenarios/selected", "put"),
+    ("/api/demo/scenarios/selected", "delete"),
+    ("/api/meta", "get"),
+    ("/api/weather/today", "get"),
+    ("/api/recommendations/today", "get"),
+    ("/api/outfits", "get"),
+    ("/api/outfits/{outfit_id}", "get"),
+    ("/api/outfits/{outfit_id}/photo", "get"),
+    ("/api/outfits/{outfit_id}/feedback", "post"),
+}
+
+
+def test_all_router_modules_registered(client: TestClient) -> None:
+    from app.main import ROUTER_MODULES
+
+    assert set(ROUTER_MODULES) == {"outfits", "demo", "weather", "recommendations", "meta"}
+    paths = client.get("/openapi.json").json()["paths"]
+    operations = {(path, method) for path, item in paths.items() for method in item}
+    assert operations == EXPECTED_OPERATIONS
+
+
+def test_export_openapi_script_matches_app(tmp_path: Path) -> None:
+    import importlib.util
+
+    script = REPO_ROOT / "scripts" / "export_openapi.py"
+    spec = importlib.util.spec_from_file_location("export_openapi", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    out = tmp_path / "openapi.json"
+    assert module.main(["-o", str(out)]) == 0
+    import json
+
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    operations = {(path, method) for path, item in doc["paths"].items() for method in item}
+    assert operations == EXPECTED_OPERATIONS
+    assert "RecommendationResponse" in doc["components"]["schemas"]
+
+
 # --- End to end with the real demo data -------------------------------------
 
 

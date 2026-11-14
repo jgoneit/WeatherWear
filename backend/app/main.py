@@ -26,7 +26,6 @@ first access, so importing ``create_app`` in tests never reads the real
 from __future__ import annotations
 
 import importlib
-import importlib.util
 import logging
 import re
 from collections.abc import AsyncIterator, Iterable
@@ -63,7 +62,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ENV_FILE = REPO_ROOT / ".env"
 
 # Router modules under app/api/ (tasks 10.2-10.4). Each module exposes
-# ``router: APIRouter``. A module that does not exist yet is skipped.
+# ``router: APIRouter``; all of them are required.
 ROUTER_MODULES: tuple[str, ...] = ("outfits", "demo", "weather", "recommendations", "meta")
 
 # Loggers whose handlers do not propagate to root under uvicorn's log config.
@@ -206,12 +205,13 @@ def _register_error_handlers(app: FastAPI) -> None:
 
 
 def _include_routers(app: FastAPI) -> None:
-    """Include ``app.api.<name>.router`` for every module in ROUTER_MODULES that exists."""
+    """Include ``app.api.<name>.router`` for every module in ROUTER_MODULES.
+
+    A missing module raises ``ModuleNotFoundError`` so a router can never be
+    skipped silently.
+    """
     for name in ROUTER_MODULES:
-        module_name = f"app.api.{name}"
-        if importlib.util.find_spec(module_name) is None:
-            continue
-        module = importlib.import_module(module_name)
+        module = importlib.import_module(f"app.api.{name}")
         app.include_router(module.router)
 
 

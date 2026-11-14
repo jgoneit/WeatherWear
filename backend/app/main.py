@@ -64,7 +64,7 @@ DEFAULT_ENV_FILE = REPO_ROOT / ".env"
 
 # Router modules under app/api/ (tasks 10.2-10.4). Each module exposes
 # ``router: APIRouter``. A module that does not exist yet is skipped.
-ROUTER_MODULES: tuple[str, ...] = ("outfits", "demo", "weather", "recommendations")
+ROUTER_MODULES: tuple[str, ...] = ("outfits", "demo", "weather", "recommendations", "meta")
 
 # Loggers whose handlers do not propagate to root under uvicorn's log config.
 _EXTRA_LOGGERS = ("uvicorn", "uvicorn.error", "uvicorn.access")

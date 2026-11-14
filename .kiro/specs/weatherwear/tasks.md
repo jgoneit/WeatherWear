@@ -290,12 +290,12 @@
     - `main.py`: `create_app()`, 기동 시 `resolve_config` + 이슈 로그(ERROR), 로깅 형식과 `RedactingFilter` 설치, `create_all()`, `CORSMiddleware(allow_origins=cfg.cors_origins)`, 공통 오류 형식 예외 핸들러(스택 트레이스 비노출, feedback 경로 검증 오류는 `INVALID_THERMAL_VOTE`, 그 외 `VALIDATION_ERROR`)
     - _Requirements: 7.14, 9.2, 10.6, 15.6, 16.5, 16.7_
 
-  - [~] 10.2 착장 라우터 구현 (`backend/app/api/outfits.py`)
+  - [x] 10.2 착장 라우터 구현 (`backend/app/api/outfits.py`)
     - `GET /api/outfits`, `GET /api/outfits/{id}`(404 `OUTFIT_NOT_FOUND`), `GET /api/outfits/{id}/photo`(`resolve()`가 PHOTO_DIR 안인지 확인, 404 `PHOTO_NOT_FOUND`, 경로 비노출, StaticFiles 없음), `POST /api/outfits/{id}/feedback`(201, 본문 검증 후 존재 확인, 500 `FEEDBACK_SAVE_FAILED`)
     - `response_model_exclude_none` 사용 안 함
     - _Requirements: 9.1, 9.2, 9.3, 9.7, 9.8, 10.1, 10.2, 10.3, 10.4, 10.5, 10.8, 10.9, 10.10_
 
-  - [~] 10.3 데모·날씨·추천·메타 라우터 구현 (`backend/app/api/demo.py`, `weather.py`, `recommendations.py`, `meta.py`)
+  - [x] 10.3 데모·날씨·추천·메타 라우터 구현 (`backend/app/api/demo.py`, `weather.py`, `recommendations.py`, `meta.py`)
     - `POST /api/demo/scan`(본문 무시, `acquire(blocking=False)` 실패 시 409, `PhotoDirUnavailable` 503), `GET /api/demo/status`(`gemini_api_key_configured` 불리언만), `GET /api/demo/scenarios`, `PUT/DELETE /api/demo/scenarios/selected`(404 `UNKNOWN_SCENARIO`)
     - `GET /api/weather/today`, `GET /api/recommendations/today`(503 `TODAY_TEMPERATURE_MISSING`), `GET /api/meta`
     - _Requirements: 1.2, 1.9, 1.11, 1.13, 5.1, 5.3, 5.5, 5.7, 6.8, 8.1, 8.7, 14.3, 16.5_
@@ -359,7 +359,7 @@
     - **Property 33: fixture/가상 데이터 라벨은 fixture 출처에만 붙는다**
     - **Validates: Requirements 15.4, 4.9**
 
-- [ ] 13. Soft Glass + Bento 홈 화면과 알림 카드
+- [x] 13. Soft Glass + Bento 홈 화면과 알림 카드
   - [x] 13.1 레이아웃 셸 구현 (`frontend/src/components/layout/`)
     - `AppShell`: 오늘 기온 구간별 메시 그라디언트 배경(≤5 아이스 블루, 6~16 세이지, 17~24 피치, ≥25 코랄, 600ms 전환), sticky 글래스 헤더, 떠 있는 pill 글래스 `BottomTabBar`(홈/기록, `import.meta.env.DEV`일 때만 "데모" 탭), `env(safe-area-inset-bottom)`
     - 360px에서 가로 스크롤 없음(`min-w-0`, `overflow-x-clip`, `max-w-full`), `prefers-reduced-motion` 시 전환 제거, `backdrop-filter` 미지원 시 `bg-white/90`
@@ -379,7 +379,7 @@
     - 버튼 문구·순서·매핑, `aria-pressed` 4가지 상태, POST 1회, 대기 중 disabled, 성공 시 재조회, 실패 시 복원, 본문 탭 이동 (`fetch`는 `vi.fn`)
     - _Requirements: 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8_
 
-  - [~] 13.5 HomePage 구현 (`frontend/src/pages/HomePage.tsx`)
+  - [x] 13.5 HomePage 구현 (`frontend/src/pages/HomePage.tsx`)
     - `getRecommendations` 1회 + `getMeta`(app_timezone), 오늘 날짜·기온·체감·습도, NotificationCard, 1순위 RecommendationCard, WeatherBento, 2~5순위 가로 스냅 캐러셀
     - `insufficient_data`면 추천 카드와 NotificationCard 숨김, fallback이면 FallbackNotice, 실패 시 이전 내용 유지 + ErrorRetry, 입력 필드 없음, DEV일 때만 데모 진입 링크
     - _Requirements: 6.4, 6.6, 11.1, 11.4, 11.7, 11.8, 11.9, 13.1, 13.9, 14.1, 14.2_
@@ -388,13 +388,13 @@
     - 정상 표시 항목, 데이터 부족 상태, fallback 문구, 실패 후 재시도와 기존 내용 유지, input/textarea 없음, 추정치 안내와 fixture 배지
     - _Requirements: 4.9, 6.4, 6.6, 11.1, 11.7, 11.8, 11.9, 13.9_
 
-- [ ] 14. 기록·상세 화면
-  - [~] 14.1 HistoryPage 구현 (`frontend/src/pages/HistoryPage.tsx`, `components/OutfitGridItem.tsx`)
+- [x] 14. 기록·상세 화면
+  - [x] 14.1 HistoryPage 구현 (`frontend/src/pages/HistoryPage.tsx`, `components/OutfitGridItem.tsx`)
     - 2열 그리드, 4:5 `rounded-2xl` 사진(159장이므로 `loading="lazy"`, `decoding="async"`), 우상단 기온 칩(날씨 없으면 "날씨 정보 없음"), 태그 최대 3개, 평가 이모지 칩, sticky 글래스 날짜 섹션 헤더, 반환 순서 유지
     - 빈 상태: 데모 화면에서 폴더 스캔 안내, 실패 시 목록 유지 + 오류 + 다시 시도
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.6, 12.7_
 
-  - [~] 14.2 OutfitDetailPage 구현 (`frontend/src/pages/OutfitDetailPage.tsx`)
+  - [x] 14.2 OutfitDetailPage 구현 (`frontend/src/pages/OutfitDetailPage.tsx`)
     - 전체폭 사진 + bottom-sheet 글래스 패널(태그 전체, 날씨 Bento: 실제 기온과 값이 있는 체감·습도·풍속·강수, 평가 상태), 가상 데이터·fixture 라벨, 404/실패 시 오류 + 다시 시도
     - _Requirements: 4.9, 12.4, 12.5, 12.7, 15.4_
 

@@ -137,7 +137,10 @@ def test_feedback_body_errors_are_invalid_thermal_vote(client: TestClient, body:
 
 def test_valid_feedback_body_passes_validation(client: TestClient) -> None:
     response = client.post("/api/outfits/1/feedback", json={"thermal_vote": "hot", "x": 1})
-    assert response.status_code == 201
+    # The real outfits router (task 10.2) shadows the test route: outfit 1 does
+    # not exist, so the body passes validation and the existence check answers 404.
+    assert response.status_code in (201, 404)
+    assert response.json().get("error", {}).get("code") != "INVALID_THERMAL_VOTE"
 
 
 def test_other_validation_errors_are_validation_error(client: TestClient) -> None:

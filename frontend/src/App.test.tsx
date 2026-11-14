@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "./App";
 import { DemoPage } from "./pages/DemoPage";
 import { STRINGS } from "./lib/strings";
@@ -24,9 +24,15 @@ describe("AppRoutes", () => {
     expect(screen.getByRole("heading", { level: 1, name: title })).toBeInTheDocument();
   });
 
-  it("상세 경로의 id를 읽는다", () => {
-    renderAt("/outfits/42");
-    expect(screen.getByText("#42")).toBeInTheDocument();
+  it("상세 경로의 id로 착장을 요청한다", () => {
+    const fetchMock = vi.fn((_url: string) => new Promise<Response>(() => {}));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      renderAt("/outfits/42");
+      expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/api/outfits/42"))).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("하단 탭바에 홈과 기록 탭이 있다", () => {

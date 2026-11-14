@@ -284,7 +284,7 @@
     - `test_strategy_module_imports_no_providers_or_repo`(AST import 검사), `test_explanation_max_length_with_50_char_tags`
     - _Requirements: 6.1, 6.3, 6.5, 6.7, 6.8, 6.9, 7.13, 8.1, 8.7, 17.4_
 
-- [ ] 10. REST API
+- [x] 10. REST API
   - [x] 10.1 앱 생성과 의존성 주입 구현 (`backend/app/deps.py`, `backend/app/main.py`)
     - `deps.py`: 설정·Provider·Repository·서비스·`get_strategy` 의존성 함수, 프로세스 전역 `scan_lock`
     - `main.py`: `create_app()`, 기동 시 `resolve_config` + 이슈 로그(ERROR), 로깅 형식과 `RedactingFilter` 설치, `create_all()`, `CORSMiddleware(allow_origins=cfg.cors_origins)`, 공통 오류 형식 예외 핸들러(스택 트레이스 비노출, feedback 경로 검증 오류는 `INVALID_THERMAL_VOTE`, 그 외 `VALIDATION_ERROR`)
@@ -325,7 +325,7 @@
     - **Property 31: API 키는 어디에도 출력되지 않는다**
     - **Validates: Requirements 16.5**
 
-  - [~] 10.10 API 상태 코드 단위 테스트 작성 (`backend/tests/test_api.py`)
+  - [x] 10.10 API 상태 코드 단위 테스트 작성 (`backend/tests/test_api.py`)
     - 영역 (f): `test_get_outfits_200_empty_list`, `test_get_outfit_404`, `test_feedback_201`, `test_feedback_404`, `test_feedback_422_variants`, `test_feedback_extra_fields_not_stored`, `test_feedback_storage_error_returns_500`, `test_unknown_scenario_404_keeps_selection`, `test_photo_404_no_path_leak`, `test_null_fields_present_in_json`, `test_openapi_lists_all_paths`
     - `test_scan_body_path_ignored`, `test_photo_dir_unavailable_returns_503`, `test_concurrent_scan_returns_409`, `test_missing_today_temperature_returns_503`, `test_insufficient_data_returns_200_empty`, `test_strategy_injected_via_dependency_override`, `test_env_precedence_process_over_dotenv_over_default`, `test_gemini_missing_key_falls_back_to_fixture_and_logs_name_only`
     - _Requirements: 1.9, 1.11, 1.13, 5.7, 6.8, 7.14, 8.7, 9.1, 9.2, 9.3, 9.7, 9.8, 10.2, 10.4, 10.5, 10.6, 10.8, 10.9, 15.6, 16.2, 17.4_
@@ -425,7 +425,7 @@
   - `cd frontend && npx vitest --run`, `npm run typecheck`, `npm run check:bundle`이 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
 - [ ] 17. 통합, README, 5분 데모 확인
-  - [~] 17.1 Fixture 모드 통합 테스트 작성 (`backend/tests/test_integration.py`)
+  - [x] 17.1 Fixture 모드 통합 테스트 작성 (`backend/tests/test_integration.py`)
     - `test_fixture_mode_end_to_end_deterministic`: 새 DB 2개에서 기동→스캔→시나리오 선택→추천→피드백을 반복하고 태그·날씨·순위가 같음을 확인, 소켓 가드로 외부 연결 0건
     - `test_demo_scenarios_cover_cases`: 실제 `data/demo` 데이터(159장)로 design 결과 표를 확인한다. 쌀쌀한 아침 9.0 → `fallback=false`, 5건, 모든 차이 ≤ 3.0, 1위 `081_hiphop_varsity_baggy_denim`. 기록적 한파 −12.0 → `fallback=false`, 1건(`076_winter_navy_long_parka`, 차이 정확히 3.0, `071`은 3.5로 제외). 때 이른 무더위 30.0 → `fallback=true`, `applied_tolerance_c=5.0`, 5건, 모든 차이 3.5~5.0. 기록적 폭염 38.0 → `insufficient_data`, 빈 목록
     - `test_five_minute_demo_walkthrough`: README 5분 데모 절차의 API 호출 순서를 `TestClient`로 그대로 따라가며 각 단계의 기대 결과 확인

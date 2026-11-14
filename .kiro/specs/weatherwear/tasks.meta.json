@@ -567,6 +567,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012005
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794633789553
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794633996540
       }
     ],
     "11. Checkpoint - 백엔드 전체 확인": [
@@ -775,6 +785,16 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794629012096
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794634003393
+      },
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794634256851
       }
     ],
     "17.3 의존성 버전 최종 고정": [
@@ -880,6 +900,13 @@
         "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794633590532
+      }
+    ],
+    "10. REST API": [
+      {
+        "executionId": "f8d9e993-3b99-4e47-aa24-12c77f5c8d65",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794633996543
       }
     ]
   }

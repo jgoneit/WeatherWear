@@ -87,7 +87,8 @@ def main(argv: list[str] | None = None) -> int:
         from app.providers.vision.gemini import GeminiVisionProvider  # noqa: PLC0415
 
         provider = GeminiVisionProvider(model=args.model or config.gemini_model, api_key=config.gemini_api_key)
-        planned = min(len(truths), args.limit or len(truths))
+        selected = truths[: args.limit] if args.limit else truths
+        planned = sum((args.photos / t.file).is_file() for t in selected)  # missing files make no call
         print(f"live run: {planned} Gemini calls with model {provider.model}", file=sys.stderr)
     else:
         provider = FixtureVisionProvider.from_file()

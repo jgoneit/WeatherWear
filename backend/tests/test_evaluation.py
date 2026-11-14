@@ -142,7 +142,9 @@ def test_committed_labels_are_valid_and_match_the_demo_set() -> None:
     )
     manifest = json.loads((REPO_ROOT / "data" / "demo" / "photos.manifest.json").read_text())
     confirmed = {p["file"] for p in manifest["photos"] if p.get("rights_confirmed")}
-    assert {t.file for t in truths} == confirmed  # only rights-confirmed photos
+    # Every labeled photo must be rights-confirmed. The manifest may list more photos
+    # than are labeled yet (new photos need a hand-checked label first).
+    assert {t.file for t in truths} <= confirmed
 
 
 def _write_labels(path: Path, items: list[dict]) -> Path:

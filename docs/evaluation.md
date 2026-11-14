@@ -35,7 +35,8 @@ backend/.venv/bin/python scripts/evaluate_vision.py --provider gemini --baseline
 ## 정답 라벨 (`data/eval/labels.json`)
 
 - 159장: 착장 139, 비착장 20. 사람이 사진마다 확인한 라벨이며 `scripts/build_fixtures.py`의 Fixture 라벨과 같은 출처다.
-- 권리가 확인된 사진만 포함한다(`data/demo/photos.manifest.json`의 `rights_confirmed: true`와 일치. 테스트가 검증).
+- 권리가 확인된 사진만 포함한다(라벨된 파일은 모두 `data/demo/photos.manifest.json`의 `rights_confirmed: true`에 있어야 하며 테스트가 검증).
+- manifest는 174장이지만 라벨은 159장이다. `126_`~`140_` 15장은 아직 사람이 확인한 정답 라벨이 없어 평가에서 제외한다. 사진을 직접 보고 라벨을 추가한 뒤 `version`을 올린다.
 - 라벨은 어휘 검증을 거친다(`domain.py`의 허용값). 비착장 사진의 세 카테고리는 모두 `unknown`이다.
 - 라벨을 고치면 `version`을 올린다. 결과에 라벨 해시가 남아 어떤 라벨로 측정했는지 추적된다.
 - 색상(`colors`)과 겹 수(`layers_visible`)는 평가하지 않는다.

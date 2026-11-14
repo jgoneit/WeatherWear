@@ -57,6 +57,9 @@ class RawSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    # Google Cloud Agent Platform express mode API key (not a Google AI Studio key;
+    # AI Studio keys do not work). Only needed when VISION_PROVIDER=gemini. No
+    # project ID or location variable is needed in express mode (Req 16.1, 16.10).
     GEMINI_API_KEY: str = ""
     VISION_PROVIDER: str = DEFAULT_VISION_PROVIDER
     GEMINI_MODEL: str = DEFAULT_GEMINI_MODEL

@@ -1,9 +1,10 @@
 """Area (a) unit tests: ingestion and duplicate removal (task 6.7).
 
-Requirements 1.4, 1.5, 1.10, 1.11, 1.12, 2.6, 2.7, 3.8, 17.4(a).
+Requirements 1.4, 1.5, 1.10, 1.11, 1.12, 2.6, 2.7, 2.12, 2.16, 3.8, 17.4(a).
 
 Every test uses a fresh ``tmp_path`` photo folder with tiny generated PNGs
-and sidecars, a temporary SQLite file, and the real fixture providers.
+(plain PNGs with location sidecars, or PNGs with embedded UserComment EXIF),
+a temporary SQLite file, and the real fixture providers.
 """
 
 from __future__ import annotations
@@ -309,8 +310,48 @@ def test_seed_vote_saved_as_demo_seed(photo_dir: Path, engine, repo) -> None:
     )
 
 
-def test_source_is_demo_sidecar(photo_dir: Path, engine, repo) -> None:
-    write_photo(photo_dir, "a.png", png_bytes((1, 2, 3)))
+def exif_png_bytes(color: tuple[int, int, int], comment: dict) -> bytes:
+    """8×8 PNG with a UserComment JSON in EXIF, like the ex_img demo photos."""
+    exif = Image.Exif()
+    exif.get_ifd(0x8769)[0x9286] = b"ASCII\x00\x00\x00" + json.dumps(comment).encode()
+    buf = io.BytesIO()
+    Image.new("RGB", (8, 8), color).save(buf, format="PNG", exif=exif.tobytes())
+    return buf.getvalue()
+
+
+def test_source_is_exif_for_embedded_metadata(photo_dir: Path, engine, repo) -> None:
+    comment = {
+        "date": "2025-01-08", "time": "08:15:00", "utc_offset": "+09:00",
+        "latitude": 37.556, "longitude": 126.924, "synthetic": True,
+        "outfit": "코트", "location": "서울",
+    }
+    (photo_dir / "embedded.png").write_bytes(exif_png_bytes((1, 2, 3), comment))
+    # Vote-only sidecar: its location is not needed when EXIF is valid (Req 2.16).
+    (photo_dir / "embedded.metadata.json").write_text(
+        json.dumps({"thermal_vote": "hot"}), encoding="utf-8"
+    )
+    real = {**comment, "synthetic": False}
+    (photo_dir / "real.png").write_bytes(exif_png_bytes((4, 5, 6), real))  # no sidecar
+
+    report = make_service(photo_dir, repo).scan()
+
+    assert (report.succeeded, report.failed) == (2, 0)
+    by_name = {r.file_name: r for r in repo.list_outfits()}
+    embedded = by_name["embedded.png"]
+    assert embedded.source == "exif"
+    assert embedded.metadata_synthetic is True
+    assert embedded.captured_at.isoformat() == "2025-01-08T08:15:00+09:00"
+    assert (embedded.latitude, embedded.longitude) == (37.556, 126.924)
+    assert embedded.effective_vote == "hot"
+    assert by_name["real.png"].source == "exif"
+    assert by_name["real.png"].metadata_synthetic is False
+    assert by_name["real.png"].effective_vote is None
+    with Session(engine) as session:
+        assert set(session.exec(select(Outfit.source)).all()) == {"exif"}
+
+
+def test_source_is_demo_sidecar_for_sidecar_fallback(photo_dir: Path, engine, repo) -> None:
+    write_photo(photo_dir, "a.png", png_bytes((1, 2, 3)))  # no EXIF, sidecar has location
     write_photo(photo_dir, "b.png", png_bytes((4, 5, 6)))
 
     make_service(photo_dir, repo).scan()
@@ -318,6 +359,7 @@ def test_source_is_demo_sidecar(photo_dir: Path, engine, repo) -> None:
     records = repo.list_outfits()
     assert len(records) == 2
     assert {r.source for r in records} == {"demo_sidecar"}
+    assert all(r.metadata_synthetic for r in records)
     with Session(engine) as session:
         assert set(session.exec(select(Outfit.source)).all()) == {"demo_sidecar"}
 

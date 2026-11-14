@@ -22,7 +22,8 @@ function makeOutfit(overrides: Partial<Outfit> = {}): Outfit {
     captured_at: "2025-11-20T08:30:00+09:00",
     latitude: 37.5665,
     longitude: 126.978,
-    source: "demo_sidecar",
+    source: "exif",
+    metadata_synthetic: true,
     photo_url: "/api/outfits/21/photo",
     tags: {
       upper_type: "knit",
@@ -101,6 +102,17 @@ describe("OutfitDetailPage smoke", () => {
     expect(screen.getByText(STRINGS.vote.comfortable)).toBeInTheDocument();
     expect(screen.getByText("2025-11-20 08:30")).toBeInTheDocument();
     expect(screen.getAllByText(STRINGS.notice.virtualData)).toHaveLength(2);
+    expect(screen.getByTestId("metadata-source")).toHaveTextContent("촬영 정보: 사진 내장 메타데이터");
+  });
+
+  it("사이드카 출처이고 합성이 아니면 사이드카 표기만 보이고 메타 라벨은 없다", async () => {
+    stubFetch(() =>
+      jsonResponse(makeOutfit({ source: "demo_sidecar", metadata_synthetic: false, vision_provider: "gemini" })),
+    );
+    renderAt("/outfits/21");
+
+    expect(await screen.findByTestId("metadata-source")).toHaveTextContent("촬영 정보: 사이드카 파일");
+    expect(screen.queryByText(STRINGS.notice.virtualData)).not.toBeInTheDocument();
   });
 
   it("날씨가 없고 미평가인 착장은 안내 문구를 보여준다", async () => {

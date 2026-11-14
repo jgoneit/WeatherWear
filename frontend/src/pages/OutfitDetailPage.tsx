@@ -12,6 +12,7 @@ import {
   formatDate,
   formatHumidity,
   formatTemp,
+  metadataSourceLabel,
   provenance,
   voteLabel,
 } from "../lib/format";
@@ -147,6 +148,9 @@ function OutfitDetail({ outfit, timeZone }: { outfit: Outfit; timeZone: string }
             <Field label={S.capturedAt} value={`${formatDate(outfit.captured_at, timeZone)} ${time}`.trim()} />
             <Field label={S.location} value={`${outfit.latitude.toFixed(4)}, ${outfit.longitude.toFixed(4)}`} />
           </dl>
+          <p className="mt-2 text-xs text-slate-600" data-testid="metadata-source">
+            {S.metadataSource(metadataSourceLabel(outfit.source))}
+          </p>
         </Section>
 
         <Section title={S.tagsTitle} extra={labels.tags ? <VirtualDataLabel /> : null}>

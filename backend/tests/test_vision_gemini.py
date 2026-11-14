@@ -25,7 +25,9 @@ from app.providers.vision.gemini import (
     RESPONSE_SCHEMA,
     GeminiVisionProvider,
     _build_client,
+    build_client,
     strip_metadata,
+    uses_thinking_level,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -335,3 +337,130 @@ def test_factory_builds_gemini_provider_with_configured_model() -> None:
     assert provider.name == "gemini"
     provider.analyze(_jpeg_with_gps(), "image/jpeg")
     assert fake.models.calls[0]["model"] == "gemini-x-test"
+
+
+# --- Agent Platform express mode (task 19.10, Req 3.2, 3.7, 3.10, 16.5, 16.10) ---
+
+RESOURCE_MODEL = "projects/607486215042/locations/global/publishers/google/models/gemini-4-hydrogen"
+SHORT_MODEL = "gemini-3-flash-preview"
+
+
+def _capture_client_kwargs(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
+    """Replace ``genai.Client`` with a recorder; no client or request is made."""
+    from google import genai
+
+    captured: list[dict] = []
+
+    def fake_client(**kwargs):
+        captured.append(kwargs)
+        return FakeClient(_returns(json.dumps(VALID_TAGS)))
+
+    monkeypatch.setattr(genai, "Client", fake_client)
+    return captured
+
+
+@pytest.mark.parametrize("model", [SHORT_MODEL, RESOURCE_MODEL])
+def test_gemini_client_uses_agent_platform_express_mode(monkeypatch: pytest.MonkeyPatch, model: str) -> None:
+    captured = _capture_client_kwargs(monkeypatch)
+
+    GeminiVisionProvider(model=model, api_key=SecretStr(FAKE_KEY))
+
+    assert len(captured) == 1
+    kwargs = captured[0]
+    assert kwargs["enterprise"] is True
+    assert kwargs["api_key"] == FAKE_KEY
+    assert "vertexai" not in kwargs
+    assert "project" not in kwargs and "location" not in kwargs and "credentials" not in kwargs
+    http = kwargs["http_options"]
+    assert http.timeout == 30_000
+    assert http.retry_options.attempts == 1
+    if model == RESOURCE_MODEL:
+        assert http.base_url == "https://aiplatform.googleapis.com/"
+        assert http.api_version == "v1"
+    else:  # short IDs keep the SDK defaults
+        assert http.base_url is None
+        assert http.api_version is None
+
+
+def test_resource_path_client_targets_global_endpoint() -> None:
+    client = build_client(SecretStr(FAKE_KEY), RESOURCE_MODEL)
+    api = client._api_client
+    assert api.vertexai is True
+    assert api._http_options.base_url == "https://aiplatform.googleapis.com/"
+    assert api._http_options.api_version == "v1"
+    assert api._http_options.timeout == 30_000
+    assert api._http_options.retry_options.attempts == 1
+
+
+@pytest.mark.parametrize("model", [SHORT_MODEL, RESOURCE_MODEL])
+def test_request_passes_model_unchanged_for_both_forms(model: str) -> None:
+    client = FakeClient(_returns(json.dumps(VALID_ANALYSIS)))
+    provider = GeminiVisionProvider(model=model, api_key=SecretStr(FAKE_KEY), client=client)
+
+    assert provider.analyze(_jpeg_with_gps(), "image/jpeg") == VisionAnalysis(**VALID_ANALYSIS)
+
+    call = client.models.calls[0]
+    assert call["model"] == model
+    assert len(Image.open(io.BytesIO(call["contents"][0].inline_data.data)).getexif()) == 0
+    assert call["config"].thinking_config.thinking_level == types.ThinkingLevel.LOW
+
+
+@pytest.mark.parametrize(
+    ("model", "expected"),
+    [
+        ("gemini-4-hydrogen", True),
+        ("gemini-3-flash-preview", True),
+        ("gemini-3.1-pro-preview", True),
+        (RESOURCE_MODEL, True),
+        ("projects/1/locations/global/publishers/google/models/gemini-3-flash-preview", True),
+        ("gemini-2.5-flash", False),
+        ("projects/1/locations/global/publishers/google/models/gemini-2.5-flash", False),
+    ],
+)
+def test_gemini_thinking_level_low_for_gemini_3_and_4(model: str, expected: bool) -> None:
+    assert uses_thinking_level(model) is expected
+    client = FakeClient(_returns(json.dumps(VALID_TAGS)))
+    provider = GeminiVisionProvider(model=model, api_key=SecretStr(FAKE_KEY), client=client)
+    config = provider.build_request(_jpeg_with_gps(), "image/jpeg")["config"]
+    if expected:
+        assert config.thinking_config.thinking_level == types.ThinkingLevel.LOW
+    else:
+        assert config.thinking_config is None
+
+
+@pytest.mark.parametrize("model", [SHORT_MODEL, RESOURCE_MODEL])
+def test_gemini_model_unsupported_logs_status_only(caplog: pytest.LogCaptureFixture, model: str) -> None:
+    body = {"error": {"code": 404, "message": f"model not found, key={FAKE_KEY}", "status": "NOT_FOUND"}}
+    client = FakeClient(_raises(errors.ClientError(404, body)))
+    provider = GeminiVisionProvider(model=model, api_key=SecretStr(FAKE_KEY), client=client)
+
+    with caplog.at_level("WARNING"), pytest.raises(VisionError) as info:
+        provider.analyze(_jpeg_with_gps(), "image/jpeg")
+
+    assert info.value.kind == "api_error"
+    assert "404" in str(info.value)
+    assert len(client.models.calls) == 1
+    assert any(model in r.getMessage() and "404" in r.getMessage() for r in caplog.records)
+    text = caplog.text + str(info.value)
+    assert FAKE_KEY not in text
+    assert FAKE_KEY[:12] not in text
+    assert "model not found" not in text  # response body is never logged
+
+
+def test_strip_metadata_removes_user_comment_and_gps() -> None:
+    comment = json.dumps({"date": "2025-01-08", "time": "08:15:00", "latitude": 37.556, "longitude": 126.924})
+    exif = Image.Exif()
+    exif.get_ifd(0x8769)[0x9286] = b"ASCII\x00\x00\x00" + comment.encode()
+    exif.get_ifd(GPS_IFD).update({1: "N", 2: (37.0, 33.0, 21.6), 3: "E", 4: (126.0, 55.0, 26.4)})
+    for fmt, mime in (("JPEG", "image/jpeg"), ("PNG", "image/png")):
+        buf = io.BytesIO()
+        Image.new("RGB", (8, 8), (1, 2, 3)).save(buf, format=fmt, exif=exif.tobytes())
+        assert Image.open(io.BytesIO(buf.getvalue())).getexif().get_ifd(0x8769)  # precondition
+
+        clean = strip_metadata(buf.getvalue(), mime)
+
+        with Image.open(io.BytesIO(clean)) as img:
+            assert len(img.getexif()) == 0
+            assert not img.getexif().get_ifd(0x8769)
+            assert not img.getexif().get_ifd(GPS_IFD)
+        assert b"126.924" not in clean and b"2025-01-08" not in clean

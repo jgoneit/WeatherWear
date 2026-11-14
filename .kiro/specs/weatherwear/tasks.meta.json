@@ -975,6 +975,276 @@
         "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
         "timestamp": 1794634948125
       }
+    ],
+    "19.1 설정과 `.env.example` 갱신 (`backend/app/config.py`, `.env.example`, `backend/tests/test_config.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612148
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637623756
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637903266
+      }
+    ],
+    "19.2 도메인·DB·API 스키마에 메타데이터 출처 추가 (`backend/app/domain.py`, `db.py`, `schemas.py`, `repository.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612156
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637625177
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637903547
+      }
+    ],
+    "19.3 내장 메타데이터 리더와 사이드카 파서 수정 (`backend/app/ingestion/metadata.py`, `sidecar.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612164
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638217330
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638516121
+      }
+    ],
+    "19.7 내장 메타데이터 단위 테스트 작성 (`backend/tests/test_metadata.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612171
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638527993
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638724170
+      }
+    ],
+    "19.8 수집 서비스가 내장 메타데이터를 쓰도록 연결 (`backend/app/ingestion/service.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612177
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638528050
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638724584
+      }
+    ],
+    "19.9 GeminiVisionProvider를 Agent Platform express mode로 전환 (`backend/app/providers/vision/gemini.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612190
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637626652
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637904763
+      }
+    ],
+    "19.10 Gemini express mode 단위 테스트 작성 (`backend/tests/test_vision_gemini.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612198
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638217563
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638516618
+      }
+    ],
+    "19.12 `scripts/check_gemini_model.py` 갱신": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612203
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638217583
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638517824
+      }
+    ],
+    "19.13 착장이 아닌 사진을 추천 후보에서 제외 (`backend/app/recommendation/rule_based_v1.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612207
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637627568
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637905952
+      }
+    ],
+    "19.15 FixtureWeatherProvider가 기록 데이터 형식을 읽도록 수정 (`backend/app/providers/weather/fixture.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612232
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637628918
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637907116
+      }
+    ],
+    "19.16 사진 manifest를 174장으로 갱신 (`data/demo/photos.manifest.json`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612339
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638158665
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638204709
+      }
+    ],
+    "19.17 사진 복사 스크립트 수정 후 실행 (`scripts/prepare_demo_photos.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612475
+      }
+    ],
+    "19.18 `clothing_tags.json` 가져오기 스크립트 작성 후 실행 (`scripts/import_clothing_tags.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612495
+      }
+    ],
+    "19.19 날씨 기록 스크립트 작성 후 실행 (`scripts/record_fixture_weather.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612501
+      }
+    ],
+    "19.20 시나리오 선택·검사와 시드 투표 구현 후 실행 (`backend/app/demo_scenarios.py`, `scripts/select_scenarios.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612506
+      }
+    ],
+    "19.22 플레이스홀더 스크립트에 내장 메타데이터 추가 (`scripts/make_placeholders.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612513
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638528766
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638725581
+      }
+    ],
+    "19.23 데모 데이터·통합 테스트 기대값 갱신 (`backend/tests/test_demo_data.py`, `test_integration.py`, `test_demo_scripts.py`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612521
+      }
+    ],
+    "19.24 프론트엔드 라벨과 타입 갱신 (`frontend/src/api/schema.d.ts`, `src/lib/format.ts`, `src/lib/strings.ts`, `src/pages/OutfitDetailPage.tsx`, `scripts/check-bundle.mjs`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612528
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638217725
+      },
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794638519264
+      }
+    ],
+    "19.26 README 갱신 (`README.md`)": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612536
+      }
+    ],
+    "20. Final checkpoint - Phase 1 변경 확인": [
+      {
+        "executionId": "89392b19-9697-46a2-8474-142ca1045f06",
+        "chatSessionId": "sess_ddfa04a4-428b-4b41-9018-ae0a3d150410",
+        "timestamp": 1794637612554
+      }
     ]
   }
 }

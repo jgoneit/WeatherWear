@@ -135,7 +135,11 @@ def _candidate(outfit_id: int, temp: float, vote, clothing: ClothingTags) -> Out
 def test_strategy_fills_explanation_and_reasons() -> None:
     results = RuleBasedTemperatureStrategy().recommend(
         _today(9.0),
-        [_candidate(1, 8.0, "comfortable", tags()), _candidate(2, 9.0, None, UNKNOWN_TAGS)],
+        [
+            _candidate(1, 8.0, "comfortable", tags()),
+            # No displayable tags, but not a non-outfit photo (confidence > 0, Req 6.10).
+            _candidate(2, 9.0, None, UNKNOWN_TAGS.model_copy(update={"confidence": 0.5})),
+        ],
     )
     by_id = {r.outfit_id: r for r in results}
     assert by_id[1].explanation == (

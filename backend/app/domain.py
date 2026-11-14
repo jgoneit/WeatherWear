@@ -276,13 +276,34 @@ UNKNOWN_ANALYSIS = VisionAnalysis(
 )
 
 
-class SidecarMetadata(BaseModel):
-    """Virtual photo metadata read from ``*.metadata.json`` (Req 2.1, 2.8)."""
+Latitude = Annotated[float, Field(ge=-90.0, le=90.0)]
+Longitude = Annotated[float, Field(ge=-180.0, le=180.0)]
 
-    captured_at: AwareDatetime  # timezone offset required
-    latitude: Annotated[float, Field(ge=-90.0, le=90.0)]
-    longitude: Annotated[float, Field(ge=-180.0, le=180.0)]
+# Where an Outfit's capture time and location came from (Outfit.source, Req 2.7).
+MetadataSource = Literal["exif", "demo_sidecar"]
+
+
+class SidecarMetadata(BaseModel):
+    """Optional ``*.metadata.json`` next to a photo (Req 2.6, 2.9, 2.16).
+
+    ``captured_at``/``latitude``/``longitude`` are only required when the photo
+    has no valid embedded metadata; the sidecar parser enforces that.
+    """
+
+    captured_at: AwareDatetime | None = None  # timezone offset required when present
+    latitude: Latitude | None = None
+    longitude: Longitude | None = None
     thermal_vote: ThermalVote | None = None
+
+
+class CaptureMetadata(BaseModel):
+    """Capture time and location resolved by the Metadata_Reader (Req 2.1, 2.8, 2.15)."""
+
+    captured_at: AwareDatetime  # original local time + offset
+    latitude: Latitude
+    longitude: Longitude
+    synthetic: bool  # virtual (synthetic) metadata
+    origin: Literal["user_comment", "exif_standard", "sidecar"]  # for logs and tests
 
 
 class WeatherReading(BaseModel):

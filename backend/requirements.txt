@@ -4,6 +4,9 @@ uvicorn==0.54.0
 pydantic==2.14.3
 pydantic-settings==2.16.3
 sqlmodel==0.0.50
+# imported directly by app code (also transitive deps of sqlmodel / fastapi)
+sqlalchemy==2.1.8
+starlette==1.10.0
 httpx==0.28.1
 google-genai==3.3.0
 pillow==13.0.0

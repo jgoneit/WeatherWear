@@ -56,7 +56,7 @@ describe("NotificationCard smoke", () => {
     expect(screen.getByText(STRINGS.feedback.notificationHeader)).toBeInTheDocument();
     expect(screen.getByText(STRINGS.feedback.question("9.0°C"))).toBeInTheDocument();
     expect(screen.getByRole("img")).toHaveAttribute("src", expect.stringContaining("/api/outfits/81/photo"));
-    expect(buttons().map((b) => [b.dataset.vote, b.textContent?.replace("✓", "")])).toEqual([
+    expect(buttons().map((b) => [b.dataset.vote, b.textContent])).toEqual([
       ["cold", "🥶 추웠어"],
       ["comfortable", "😊 적당했어"],
       ["hot", "🥵 더웠어"],

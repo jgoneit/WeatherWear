@@ -49,17 +49,17 @@ export function FeedbackButtons({ selected, pending, pendingVote = null, onSelec
               if (!pending) onSelect(vote);
             }}
             className={[
-              "flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full px-2 text-sm font-semibold whitespace-nowrap",
+              "flex min-h-11 min-w-0 items-center justify-center rounded-full border px-1.5 text-[13px] font-semibold whitespace-nowrap min-[400px]:px-2 min-[400px]:text-sm",
               "transition-transform duration-120 active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900",
               "disabled:cursor-not-allowed disabled:opacity-60",
               isSelected
-                ? `${selectedClass} text-white shadow-sm`
-                : "border border-white/70 bg-white/70 text-slate-900",
+                ? `${selectedClass} border-slate-900/40 text-white shadow-sm`
+                : "border-white/70 bg-white/70 text-slate-900",
               isSaving ? "animate-pulse motion-reduce:animate-none" : "",
             ].join(" ")}
           >
-            {isSelected ? <span aria-hidden="true">✓</span> : null}
+            {/* 선택 상태는 채움색·테두리와 aria-pressed로만 표시한다. ✓를 붙이면 360px에서 라벨이 잘린다 (Req 13.2). */}
             <span className="min-w-0 truncate">{label}</span>
           </button>
         );

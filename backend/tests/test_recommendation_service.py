@@ -206,7 +206,10 @@ def test_outfit_with_unknown_tags_still_listed(tmp_path: Path) -> None:
 @pytest.fixture(scope="module")
 def demo_env(tmp_path_factory: pytest.TempPathFactory) -> tuple[RecommendationService, ScenarioStore, dict[int, str]]:
     if not any(DEMO_PHOTO_DIR.glob("*.png")):
-        pytest.skip("demo photos are not present (data/demo/photos is git-ignored)")
+        pytest.skip(
+            "data/demo/photos has no images (they are git-ignored); "
+            "run scripts/prepare_demo_photos.py to copy the 159 demo photos"
+        )
     engine = create_db_engine(f"sqlite:///{tmp_path_factory.mktemp('demo') / 'demo.db'}")
     repo = OutfitRepository(engine)
     weather = FixtureWeatherProvider(tz=SEOUL)

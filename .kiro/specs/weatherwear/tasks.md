@@ -109,7 +109,7 @@
     - **Validates: Requirements 3.3, 15.8**
 
   - [x] 4.3 Gemini 모델 ID 확인 (첫 live Vision 호출 전)
-    - Google AI 공식 모델 문서와 `google-genai` 문서에서 현재 Stable Flash 모델 ID를 다시 확인한다. design 기본값 `gemini-3.8-flash`와 다르면 `config.py`의 `GEMINI_MODEL` 기본값과 `.env.example`을 고친다
+    - Google AI 공식 모델 문서와 `google-genai` 문서에서 현재 Stable Flash 모델 ID를 다시 확인한다. design 기본값 `gemini-4-hydrogen`와 다르면 `config.py`의 `GEMINI_MODEL` 기본값과 `.env.example`을 고친다
     - `scripts/check_gemini_model.py` 작성: `GEMINI_API_KEY`가 있을 때만 `client.models.get(model=GEMINI_MODEL)`로 모델 존재를 확인하고 결과(모델 ID만, 키 제외)를 출력. 키가 없으면 실행하지 않고 안내만 출력. pytest에서는 실행하지 않는다
     - 확인 결과(날짜, 모델 ID, 출처 URL)를 README 작성(17.4)에 넘길 수 있도록 메모해 둔다
     - _Requirements: 3.2, 16.2, 16.5_
@@ -200,7 +200,7 @@
     - 영역 (a): `test_rescan_same_hash_creates_no_outfit`, `test_same_content_two_names_one_outfit`, `test_snapshot_insert_failure_rolls_back_outfit`, `test_photo_dir_missing_notdir_unreadable_raises`(3개 파라미터), `test_file_over_20mb_fails_without_vision`(sparse 파일), `test_seed_vote_saved_as_demo_seed`, `test_source_is_demo_sidecar`, `test_vision_provider_stored`
     - _Requirements: 1.4, 1.5, 1.10, 1.11, 1.12, 2.6, 2.7, 3.8, 17.4_
 
-- [~] 7. Checkpoint - 수집 슬라이스 확인
+- [x] 7. Checkpoint - 수집 슬라이스 확인
   - `cd backend && python -m pytest -q`가 외부 연결 없이 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
 - [x] 8. 피드백과 오늘 날씨
@@ -330,7 +330,7 @@
     - `test_scan_body_path_ignored`, `test_photo_dir_unavailable_returns_503`, `test_concurrent_scan_returns_409`, `test_missing_today_temperature_returns_503`, `test_insufficient_data_returns_200_empty`, `test_strategy_injected_via_dependency_override`, `test_env_precedence_process_over_dotenv_over_default`, `test_gemini_missing_key_falls_back_to_fixture_and_logs_name_only`
     - _Requirements: 1.9, 1.11, 1.13, 5.7, 6.8, 7.14, 8.7, 9.1, 9.2, 9.3, 9.7, 9.8, 10.2, 10.4, 10.5, 10.6, 10.8, 10.9, 15.6, 16.2, 17.4_
 
-- [~] 11. Checkpoint - 백엔드 전체 확인
+- [x] 11. Checkpoint - 백엔드 전체 확인
   - `cd backend && python -m pytest -q`가 실패 0건, 종료 코드 0으로 끝나는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
 - [x] 12. 프론트엔드 기반
@@ -421,10 +421,10 @@
     - `npm run check:bundle`: `vite build` 후 `dist/`에 `GEMINI` 문자열이 없으면 종료 코드 0, 있으면 1
     - _Requirements: 16.6_
 
-- [~] 16. Checkpoint - 프론트엔드 확인
+- [x] 16. Checkpoint - 프론트엔드 확인
   - `cd frontend && npx vitest --run`, `npm run typecheck`, `npm run check:bundle`이 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
-- [ ] 17. 통합, README, 5분 데모 확인
+- [x] 17. 통합, README, 5분 데모 확인
   - [x] 17.1 Fixture 모드 통합 테스트 작성 (`backend/tests/test_integration.py`)
     - `test_fixture_mode_end_to_end_deterministic`: 새 DB 2개에서 기동→스캔→시나리오 선택→추천→피드백을 반복하고 태그·날씨·순위가 같음을 확인, 소켓 가드로 외부 연결 0건
     - `test_demo_scenarios_cover_cases`: 실제 `data/demo` 데이터(159장)로 design 결과 표를 확인한다. 쌀쌀한 아침 9.0 → `fallback=false`, 5건, 모든 차이 ≤ 3.0, 1위 `081_hiphop_varsity_baggy_denim`. 기록적 한파 −12.0 → `fallback=false`, 1건(`076_winter_navy_long_parka`, 차이 정확히 3.0, `071`은 3.5로 제외). 때 이른 무더위 30.0 → `fallback=true`, `applied_tolerance_c=5.0`, 5건, 모든 차이 3.5~5.0. 기록적 폭염 38.0 → `insufficient_data`, 빈 목록
@@ -435,11 +435,11 @@
     - `test_env_example_and_gitignore`(12개 변수와 설명, `GEMINI_API_KEY=` 빈 값, `.env`/`!.env.example`), `test_dependencies_pinned`(`requirements.txt` 모든 줄 `==`, `package.json`에 `^`/`~` 없음), 커밋 대상 파일에 키 형태 문자열(`AIza`) 없음
     - _Requirements: 16.1, 16.3, 16.4, 17.7_
 
-  - [~] 17.3 의존성 버전 최종 고정
+  - [x] 17.3 의존성 버전 최종 고정
     - 백엔드·프론트엔드 의존성을 설치하고 pytest와 vitest가 통과한 버전을 `requirements.txt`, `package.json`(+lock 파일)에 정확히 기록. 호환 문제로 버전을 내렸으면 사유를 README용으로 메모
     - _Requirements: 17.7_
 
-  - [~] 17.4 README 작성 (`README.md`)
+  - [x] 17.4 README 작성 (`README.md`)
     - 별도 절: 백엔드 실행(`uvicorn`), 프론트엔드 실행(`npm run dev`), 12개 환경 변수 이름·기본값, API 키 설정 방법, Fixture/Live 모드 전환
     - 번호 매긴 5분 데모 절차(동작 + 화면 확인 결과, API 키 없이 Fixture 모드), 17.1 walkthrough 테스트와 단계 일치
     - 명시 사항: 촬영 시각·위치는 Sidecar 가상 메타데이터, Fixture 날씨, mock Vision, Archive API 재분석값과 최근 날짜 지연 시 fixture 대체, 자정 근처 시각 처리, 4.3에서 확인한 Gemini 모델 ID와 확인 날짜·출처, 데모 사진 출처/권한 또는 placeholder 사용 여부, Live 모드 첫 스캔(159장)은 Demo 패널 30초 제한을 넘길 수 있으니 발표 전에 미리 실행할 것
@@ -448,7 +448,7 @@
     - 완료 기능 목록은 테스트 또는 데모로 재현되는 것만, 나머지는 미완료/미검증으로 분리. API 키 값은 어디에도 적지 않는다
     - _Requirements: 16.5, 17.1, 17.2, 17.3, 17.6, 17.8, 17.9_
 
-- [~] 18. Final checkpoint - 전체 테스트 통과 확인
+- [x] 18. Final checkpoint - 전체 테스트 통과 확인
   - 백엔드 pytest, 프론트엔드 vitest·typecheck·check:bundle이 외부 API 호출 없이 모두 통과하는지 확인한다. 질문이 생기면 사용자에게 묻는다.
 
 ## Notes

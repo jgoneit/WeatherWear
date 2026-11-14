@@ -1,0 +1,61 @@
+# docker compose up --build
+#   frontend: http://localhost:5173   backend: http://localhost:8000/api/meta
+# Default is fixture mode: no API key needed. For Gemini live mode see README.
+name: weatherwear
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      VISION_PROVIDER: ${VISION_PROVIDER:-fixture}
+      WEATHER_PROVIDER: ${WEATHER_PROVIDER:-fixture}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-4-hydrogen}
+      # Passed through from the host environment / .env at runtime only.
+      # It is never copied into an image layer.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Seoul}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      # SQLite lives in a named volume so data survives `down` (not `down -v`).
+      - db-data:/data/db
+      # Photos and *.metadata.json sidecars (read-only). Override the host path
+      # with PHOTO_HOST_DIR to scan another folder.
+      - ${PHOTO_HOST_DIR:-./data/demo/photos}:/data/photos:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/meta', timeout=2).status == 200 else 1)"
+      interval: 15s
+      timeout: 3s
+      start_period: 10s
+      retries: 5
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    ports:
+      - "${FRONTEND_PORT:-5173}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  db-data:

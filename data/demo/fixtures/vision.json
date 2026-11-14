@@ -2544,5 +2544,248 @@
       "layers_visible": 0,
       "confidence": 0.0
     }
+  },
+  "b4e1a045689f2d12ab5c52f58d6aaaad903968314d2d913a32cfe78e94e5041b": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "turtleneck",
+      "outer_type": "long_puffer",
+      "lower_type": "trousers",
+      "colors": [
+        "charcoal",
+        "ivory",
+        "black"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.95
+    }
+  },
+  "51c17f920a6b5533c87936416c686ab4003e92c26e9358ac152de00bbe83d1a5": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "knit",
+      "outer_type": "long_puffer",
+      "lower_type": "jeans",
+      "colors": [
+        "cream",
+        "navy",
+        "indigo"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.95
+    }
+  },
+  "8e59fa8c299bf52376d2d382e67acf8ca878a0d59f199b6ad33e9d7280ccacde": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "hoodie",
+      "outer_type": "parka",
+      "lower_type": "cargo_pants",
+      "colors": [
+        "olive",
+        "gray",
+        "charcoal"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.95
+    }
+  },
+  "f9b2cb296205d645ce3a50bb5811d7d1e2d14f210dd4f7abfa17f8c641df425a": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "knit",
+      "outer_type": "puffer_jacket",
+      "lower_type": "trousers",
+      "colors": [
+        "navy",
+        "ivory",
+        "gray"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.95
+    }
+  },
+  "9b86661d560ee11b41ccb687cf03e53380cc8f93aa225a0158cca60bdbf29a6c": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "turtleneck",
+      "outer_type": "long_puffer",
+      "lower_type": "jeans",
+      "colors": [
+        "burgundy",
+        "black",
+        "blue"
+      ],
+      "layers_visible": 2,
+      "confidence": 0.95
+    }
+  },
+  "e24dbcf7ca1f36847eecab1a19bb530684987d86c555328e7190e101ef18f283": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "shirt",
+      "outer_type": "none",
+      "lower_type": "trousers",
+      "colors": [
+        "light blue",
+        "beige"
+      ],
+      "layers_visible": 1,
+      "confidence": 0.95
+    }
+  },
+  "6de3a70bd7e7dc15b0b0c4c47afca4b52f17c186ea49b6f1a68286dd9b7eb849": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "shorts",
+      "colors": [
+        "white",
+        "blue"
+      ],
+      "layers_visible": 1,
+      "confidence": 0.95
+    }
+  },
+  "5092d33a029c11a69e0a1b6abd0bcdba6f87113c0742b163e759a9d47a1c2e53": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "sleeveless_top",
+      "outer_type": "none",
+      "lower_type": "trousers",
+      "colors": [
+        "ivory",
+        "olive"
+      ],
+      "layers_visible": 1,
+      "confidence": 0.95
+    }
+  },
+  "56405c0e47ebff6e38b3834b03ea452e66e5ea18e07973f1eeca7f8c2d60aa91": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "skirt",
+      "colors": [
+        "navy",
+        "ivory"
+      ],
+      "layers_visible": 1,
+      "confidence": 0.95
+    }
+  },
+  "936cb64411437d4b1d9a200cba0783361d9b53a16ec3b5c2d66e985404fb92c1": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "dress",
+      "outer_type": "none",
+      "lower_type": "none",
+      "colors": [
+        "sage"
+      ],
+      "layers_visible": 1,
+      "confidence": 0.95
+    }
+  },
+  "53e6e0b9fcbfc45f7f0825fcd4c49207e595c63f10daef387d0de92e9a4a984f": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "blouse",
+      "outer_type": "none",
+      "lower_type": "shorts",
+      "colors": [
+        "white",
+        "sand"
+      ],
+      "layers_visible": 1,
+      "confidence": 0.95
+    }
+  },
+  "30377b6d91472c68f3da1f5d3d45fb015522961b0e9e78029beaae76f2208709": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "dress",
+      "outer_type": "none",
+      "lower_type": "none",
+      "colors": [
+        "light blue"
+      ],
+      "layers_visible": 1,
+      "confidence": 0.95
+    }
+  },
+  "2dd73db84c9babbc358646ca742ef5d4d10ae060e4585e96477d06dbf86d3a59": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "sleeveless_top",
+      "outer_type": "none",
+      "lower_type": "shorts",
+      "colors": [
+        "coral",
+        "ivory"
+      ],
+      "layers_visible": 1,
+      "confidence": 0.95
+    }
+  },
+  "3ce0158b7db5abd648a5758c7b3f49a91a4e53bd5c8df9b896d91b8e3196eea9": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "shirt",
+      "outer_type": "none",
+      "lower_type": "trousers",
+      "colors": [
+        "yellow",
+        "white"
+      ],
+      "layers_visible": 1,
+      "confidence": 0.95
+    }
+  },
+  "ef3d060950fc5cccc35eb0d87eb1ea68e092b09f15f2062f5a91b95207dbb481": {
+    "photo_type": "outfit",
+    "photo_type_confidence": 1.0,
+    "reason": "Generated full-body outfit; manually reviewed demo fixture, not a live model result.",
+    "tags": {
+      "upper_type": "t_shirt",
+      "outer_type": "none",
+      "lower_type": "skirt",
+      "colors": [
+        "white",
+        "beige"
+      ],
+      "layers_visible": 1,
+      "confidence": 0.95
+    }
   }
 }

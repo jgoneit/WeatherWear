@@ -13,6 +13,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from tests.demo_inventory import full_demo_images_present
+
 from app.config import resolve_config
 from app.db import create_db_engine
 from app.domain import UNKNOWN_TAGS, ClothingTags, ThermalVote, WeatherContext, WeatherReading
@@ -216,20 +218,20 @@ def test_non_outfit_photo_still_listed_in_outfits(tmp_path: Path) -> None:
 
 @pytest.fixture(scope="module")
 def demo_env(tmp_path_factory: pytest.TempPathFactory) -> tuple[RecommendationService, ScenarioStore, dict[int, str]]:
-    if not any(DEMO_PHOTO_DIR.glob("*.png")):
+    if not full_demo_images_present():
         pytest.skip(
-            "data/demo/photos has no images (they are git-ignored); "
-            "run scripts/prepare_demo_photos.py to copy the 159 demo photos"
+            "The complete private demo album is not installed; "
+            "run scripts/prepare_demo_photos.py to copy the demo photos"
         )
     engine = create_db_engine(f"sqlite:///{tmp_path_factory.mktemp('demo') / 'demo.db'}")
     repo = OutfitRepository(engine)
     weather = FixtureWeatherProvider(tz=SEOUL)
     report = ImageIngestionService(DEMO_PHOTO_DIR, FixtureVisionProvider.from_file(), weather, repo, SEOUL).scan()
     assert report.failed == 0, report.errors
-    assert report.succeeded == 139
+    assert report.succeeded == 154
     assert report.skipped_non_outfit == 20
-    assert report.uncertain == 0
-    assert report.scanned == 159
+    assert report.uncertain == 15
+    assert report.scanned == 189
 
     scenarios, errors = load_scenarios(DEFAULT_SCENARIOS_PATH)
     assert errors == []
@@ -258,23 +260,17 @@ def test_demo_chilly_morning(demo_env) -> None:  # type: ignore[no-untyped-def]
     assert resp.items[1].score < 115.0
 
 
-def test_demo_cold_snap_boundary(demo_env) -> None:  # type: ignore[no-untyped-def]
-    resp, files = _demo(demo_env, "cold-snap")
+@pytest.mark.parametrize("scenario_id,prefix", [
+    ("cold-snap", "141_cold_"),
+    ("early-heat", "146_summer_"),
+    ("heatwave", "151_heatwave_"),
+])
+def test_demo_extreme_weather_has_five_matches(demo_env, scenario_id, prefix) -> None:
+    resp, files = _demo(demo_env, scenario_id)
     assert resp.status == "ok" and resp.fallback is False
-    assert files == ["076_winter_navy_long_parka.png"]
-    assert resp.items[0].temperature_diff_c == 3.0
-    assert resp.items[0].confidence_level == "high"
-
-
-def test_demo_early_heat_fallback(demo_env) -> None:  # type: ignore[no-untyped-def]
-    resp, _ = _demo(demo_env, "early-heat")
-    assert resp.status == "ok" and resp.fallback is True and resp.applied_tolerance_c == 5.0
+    assert resp.applied_tolerance_c == 3.0
     assert len(resp.items) == 5
-    assert all(i.selected_by_fallback for i in resp.items)
-    assert all(3.5 <= i.temperature_diff_c <= 5.0 for i in resp.items)
-    assert all(i.confidence_level in ("medium", "low") for i in resp.items)
-
-
-def test_demo_heatwave_insufficient(demo_env) -> None:  # type: ignore[no-untyped-def]
-    resp, _ = _demo(demo_env, "heatwave")
-    assert resp.status == "insufficient_data" and resp.fallback is True and resp.items == []
+    assert files[0].startswith(prefix)
+    assert resp.items[0].temperature_diff_c == 0.0
+    assert all(i.temperature_diff_c <= 3.0 for i in resp.items)
+    assert all(not i.selected_by_fallback for i in resp.items)

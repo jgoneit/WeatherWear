@@ -71,57 +71,31 @@ function makeItem(overrides: Partial<RecommendationItem> = {}): RecommendationIt
 }
 
 describe("WeatherHero", () => {
-  it("오늘 기온을 크게, 체감을 소수 첫째 자리로 보이고 추정치 안내와 fixture 배지를 붙인다", () => {
+  it("기온과 체감만 보이고 기술적인 출처 정보는 홈에서 숨긴다", () => {
     render(<WeatherHero today={today} />);
-    const hero = screen.getByTestId("hero-temperature");
-    expect(hero).toHaveTextContent("9.0°C");
-    expect(hero.className).toContain("text-7xl");
-    expect(hero.className).toContain("tabular-nums");
+    expect(screen.getByTestId("hero-temperature")).toHaveTextContent("9°");
     expect(screen.getByText(/체감 6\.5°C/)).toBeInTheDocument();
-    expect(screen.getByText(/쌀쌀한 아침/)).toBeInTheDocument();
-    expect(screen.getByText(STRINGS.notice.estimate)).toBeInTheDocument();
-    expect(screen.getByText(STRINGS.notice.fixture)).toBeInTheDocument();
+    expect(screen.queryByText(STRINGS.notice.fixture)).not.toBeInTheDocument();
+    expect(screen.queryByText(/쌀쌀한 아침/)).not.toBeInTheDocument();
   });
-
-  it("showNotice=false면 안내를 숨긴다", () => {
-    render(<WeatherHero today={today} showNotice={false} />);
-    expect(screen.queryByText(STRINGS.notice.estimate)).not.toBeInTheDocument();
+  it("영하와 소수 기온을 그대로 보인다", () => {
+    render(<WeatherHero today={{ ...today, actual_temperature_c: -2.5 }} />);
+    expect(screen.getByTestId("hero-temperature")).toHaveTextContent("-2.5°");
   });
 });
 
 describe("WeatherBento", () => {
-  it("체감·습도·강수·출처 타일 4개를 보인다", () => {
-    render(<WeatherBento weather={today} />);
+  it("체감 중복과 제공자 이름 없이 습도·강수를 보여준다", () => {
+    render(<WeatherBento weather={today} showNotice={false} />);
     const tiles = screen.getAllByRole("definition");
-    expect(tiles).toHaveLength(4);
-    expect(screen.getAllByRole("term").map((t) => t.textContent)).toEqual([
-      STRINGS.home.apparentTemperature,
-      STRINGS.home.humidity,
-      STRINGS.home.precipitation,
-      STRINGS.home.source,
-    ]);
-    expect(tiles[0]).toHaveTextContent("6.5°C");
-    expect(tiles[1]).toHaveTextContent("55%");
-    expect(tiles[2]).toHaveTextContent("0.0 mm");
-    expect(tiles[3]).toHaveTextContent("시나리오 · 쌀쌀한 아침");
-    expect(screen.getByText(STRINGS.notice.estimate)).toBeInTheDocument();
+    expect(tiles).toHaveLength(2);
+    expect(tiles[0]).toHaveTextContent("55%");
+    expect(tiles[1]).toHaveTextContent("0.0 mm");
+    expect(screen.queryByText(STRINGS.home.source)).not.toBeInTheDocument();
   });
-
-  it("값이 없으면 –를 보이고 fixture가 아니면 배지를 붙이지 않는다", () => {
-    render(
-      <WeatherBento
-        weather={{
-          apparent_temperature_c: null,
-          relative_humidity_pct: null,
-          precipitation_mm: null,
-          provider: "open_meteo",
-          is_fixture: false,
-        }}
-      />,
-    );
-    const tiles = screen.getAllByRole("definition");
-    expect(tiles.slice(0, 3).map((t) => t.textContent)).toEqual(["–", "–", "–"]);
-    expect(tiles[3]).toHaveTextContent("Open-Meteo");
+  it("값이 없으면 대시를 보인다", () => {
+    render(<WeatherBento weather={{ apparent_temperature_c: null, relative_humidity_pct: null, precipitation_mm: null, provider: "open_meteo", is_fixture: false }} />);
+    expect(screen.getAllByRole("definition").map(t => t.textContent)).toEqual(["–", "–"]);
     expect(screen.queryByText(STRINGS.notice.fixture)).not.toBeInTheDocument();
   });
 });
@@ -193,17 +167,17 @@ describe("RecommendationCard", () => {
   it("사진, 과거 기온, 차이, 태그 칩, 신뢰도, 라벨을 보인다", () => {
     render(<RecommendationCard item={makeItem()} timeZone="Asia/Seoul" />);
     const card = screen.getByTestId("recommendation-card");
-    expect(card.className).toContain("aspect-[4/5]");
+    expect(within(card).getByText(STRINGS.confidence.high)).not.toBeVisible();
+    fireEvent.click(within(card).getByRole("button", { name: STRINGS.recommendation.expand }));
 
     const img = within(card).getByRole("img");
     expect(img).toHaveAttribute("src", expect.stringMatching(/\/api\/outfits\/81\/photo$/));
     expect(img).toHaveAttribute("loading", "lazy");
     expect(img).toHaveAttribute("decoding", "async");
 
-    expect(card).toHaveTextContent(STRINGS.recommendation.rank(1));
     expect(card).toHaveTextContent(`${STRINGS.recommendation.pastTemperature} 9.0°C`);
     expect(card).toHaveTextContent(`${STRINGS.recommendation.temperatureDiff} 0.0°C`);
-    for (const tag of ["varsity_jacket", "hoodie", "jeans"]) {
+    for (const tag of ["바시티 재킷", "후디", "데님"]) {
       expect(within(card).getByText(tag)).toBeInTheDocument();
     }
     expect(within(card).getByText(STRINGS.confidence.high)).toBeInTheDocument();

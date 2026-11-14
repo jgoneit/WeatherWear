@@ -16,7 +16,7 @@ interface NotificationCardProps {
 }
 
 /**
- * iOS 알림 배너 형태의 원클릭 피드백 카드 (Req 13.1~13.8).
+ * Compact feedback card; successful saves also announce confirmation.
  * - 버튼을 탭하면 확인 없이 POST 1회, 대기 중 3버튼 비활성화.
  * - 성공하면 탭한 버튼을 선택 상태로 바꾸고 onSaved() 호출.
  * - 실패/10초 초과면 토스트를 띄우고 요청 이전 선택을 유지한다.
@@ -50,6 +50,7 @@ export function NotificationCard({ outfit, todayTemperatureC, onSaved }: Notific
       try {
         await api.postFeedback(outfit.id, vote);
         setSelected(vote);
+        setToast(STRINGS.feedback.saved);
         onSaved?.(vote);
       } catch {
         // 선택 상태는 요청 전에 바꾸지 않았으므로 그대로 유지된다 (Req 13.7).
@@ -77,7 +78,7 @@ export function NotificationCard({ outfit, todayTemperatureC, onSaved }: Notific
         data-testid="notification-card"
         aria-label={STRINGS.feedback.notificationLabel}
         onClick={handleBodyClick}
-        className="glass flex min-w-0 cursor-pointer flex-col gap-3 rounded-3xl p-4"
+        className="notification flex min-w-0 cursor-pointer flex-col gap-4"
       >
         <Link
           to={detailHref}
@@ -86,13 +87,7 @@ export function NotificationCard({ outfit, todayTemperatureC, onSaved }: Notific
         >
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-slate-600">
-              <span
-                aria-hidden="true"
-                className="flex size-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-cold to-mild text-[11px] leading-none text-white"
-              >
-                ☀︎
-              </span>
-              <span className="truncate">{STRINGS.feedback.notificationHeader}</span>
+<span className="notification-title">{STRINGS.feedback.notificationHeader}</span>
             </div>
             <p className="mt-1.5 text-[15px] leading-snug font-semibold text-slate-900">
               {STRINGS.feedback.question(tempLabel)}

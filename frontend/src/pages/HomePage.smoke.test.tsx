@@ -112,7 +112,7 @@ describe("HomePage smoke", () => {
     const fetchMock = stubFetch([() => json(response())]);
     await renderHome();
 
-    expect(screen.getByTestId("hero-temperature")).toHaveTextContent("9.0°C");
+    expect(screen.getByTestId("hero-temperature")).toHaveTextContent("9°");
     expect(screen.getByTestId("notification-card")).toBeInTheDocument();
     const carousel = screen.getByTestId("recommendation-carousel");
     expect(within(carousel).getAllByTestId("recommendation-card")).toHaveLength(4);
@@ -137,7 +137,7 @@ describe("HomePage smoke", () => {
     expect(screen.getByText(STRINGS.notice.insufficientData)).toBeInTheDocument();
     expect(screen.queryByTestId("notification-card")).not.toBeInTheDocument();
     expect(screen.queryByTestId("recommendation-card")).not.toBeInTheDocument();
-    expect(screen.getByTestId("hero-temperature")).toHaveTextContent("9.0°C");
+    expect(screen.getByTestId("hero-temperature")).toHaveTextContent("9°");
   });
 
   it("keeps previous content and shows ErrorRetry when a reload fails", async () => {
@@ -157,7 +157,7 @@ describe("HomePage smoke", () => {
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent(STRINGS.error.loadFailed);
-    expect(screen.getByTestId("hero-temperature")).toHaveTextContent("9.0°C");
+    expect(screen.getByTestId("hero-temperature")).toHaveTextContent("9°");
     expect(screen.getByTestId("notification-card")).toBeInTheDocument();
 
     await act(async () => {
@@ -169,6 +169,7 @@ describe("HomePage smoke", () => {
   it("shows the demo link only in dev mode", async () => {
     stubFetch([() => json(response())]);
     await renderHome(true);
-    expect(screen.getByRole("link", { name: STRINGS.home.demoLink })).toHaveAttribute("href", "/demo");
+    fireEvent.click(screen.getByText("이 추천에 관하여"));
+    expect(screen.getByRole("link", { name: /데모 관리 화면으로/ })).toHaveAttribute("href", "/demo");
   });
 });

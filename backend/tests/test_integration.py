@@ -21,6 +21,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+
+from tests.demo_inventory import full_demo_images_present as demo_images_present
 from fastapi.testclient import TestClient
 from PIL import Image
 
@@ -43,18 +45,12 @@ def confirmed_demo_photos() -> list[str]:
     return [p["file"] for p in manifest["photos"] if p.get("rights_confirmed") is True]
 
 
-def demo_images_present() -> bool:
-    return DEMO_PHOTO_DIR.is_dir() and any(
-        p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
-        for p in DEMO_PHOTO_DIR.iterdir()
-    )
-
 
 requires_demo_photos = pytest.mark.skipif(
     not demo_images_present(),
     reason=(
-        "data/demo/photos has no images (they are git-ignored); "
-        "run scripts/prepare_demo_photos.py to copy the 159 demo photos"
+        "The complete private demo album is not installed; "
+        "run scripts/prepare_demo_photos.py to copy the demo photos"
     ),
 )
 
@@ -309,18 +305,18 @@ def test_fixture_mode_end_to_end_deterministic(
 
 @requires_demo_photos
 def test_demo_scenarios_cover_cases(tmp_path: Path, connect_log: list[object]) -> None:
-    """The four demo scenarios give design.md's result table (Req 15.9)."""
+    """All four demo scenarios have five relevant outfits after the supplement."""
     expected_total = len(confirmed_demo_photos())
-    assert expected_total == 159
+    assert expected_total == 189
 
     with TestClient(make_app(tmp_path / "demo.db", DEMO_PHOTO_DIR)) as client:
         report = client.post("/api/demo/scan").json()
         assert report["scanned"] == expected_total, "data/demo/photos is incomplete"
-        assert report["succeeded"] == 139
+        assert report["succeeded"] == 154
         assert report["skipped_non_outfit"] == 20
-        assert report["uncertain"] == 0
+        assert report["uncertain"] == 15
         assert report["failed"] == 0 and report["errors"] == []
-        assert len(report["decisions"]) == 20
+        assert len(report["decisions"]) == 35
 
         # 쌀쌀한 아침 9.0: 5 items within 3.0, no fallback, 081 first with 115.0.
         select_scenario(client, "chilly-morning")
@@ -338,38 +334,27 @@ def test_demo_scenarios_cover_cases(tmp_path: Path, connect_log: list[object]) -
         assert top["temperature_diff_c"] == 0.0
         assert all(i["score"] < 115.0 for i in body["items"][1:])  # unique top score
 
-        # 기록적 한파 −12.0: only 076 (diff exactly 3.0); 071 (3.5) excluded.
-        select_scenario(client, "cold-snap")
-        body = recommend(client)
-        assert body["status"] == "ok"
-        assert body["fallback"] is False
-        assert len(body["items"]) == 1
-        only = body["items"][0]
-        assert stem_of(client, only["outfit"]["id"]) == "076_winter_navy_long_parka"
-        assert only["temperature_diff_c"] == 3.0
-        assert only["selected_by_fallback"] is False
-        assert only["confidence_level"] == "high"
-
-        # 때 이른 무더위 30.0: nothing within 3.0, widened to 5.0, 5 items.
-        select_scenario(client, "early-heat")
-        body = recommend(client)
-        assert body["status"] == "ok"
-        assert body["fallback"] is True
-        assert body["applied_tolerance_c"] == 5.0
-        assert len(body["items"]) == 5
-        for item in body["items"]:
-            assert 3.5 <= item["temperature_diff_c"] <= 5.0
-            assert item["selected_by_fallback"] is True
-            assert item["confidence_level"] in ("medium", "low")
-            assert "기온 허용 범위를 5.0°C로 확장" in item["explanation"]
-
-        # 기록적 폭염 38.0: nothing within 5.0 either.
-        select_scenario(client, "heatwave")
-        body = recommend(client)
-        assert body["status"] == "insufficient_data"
-        assert body["fallback"] is True
-        assert body["items"] == []
-        assert body["today"]["actual_temperature_c"] == 38.0
+        # Generated, synthetic records fill the three extreme-temperature bands.
+        for scenario_id, expected_top, temperature in [
+            ("cold-snap", "141_cold_charcoal_long_down", -12.0),
+            ("early-heat", "146_summer_blue_linen_trousers", 30.0),
+            ("heatwave", "151_heatwave_white_linen_shorts", 38.0),
+        ]:
+            select_scenario(client, scenario_id)
+            body = recommend(client)
+            assert body["status"] == "ok"
+            assert body["fallback"] is False
+            assert body["applied_tolerance_c"] == 3.0
+            assert body["today"]["actual_temperature_c"] == temperature
+            assert len(body["items"]) == 5
+            assert stem_of(client, body["items"][0]["outfit"]["id"]) == expected_top
+            assert body["items"][0]["temperature_diff_c"] == 0.0
+            for item in body["items"]:
+                assert item["temperature_diff_c"] <= 3.0
+                assert item["selected_by_fallback"] is False
+                photo = client.get(item["outfit"]["photo_url"])
+                assert photo.status_code == 200
+                assert photo.headers["content-type"].startswith("image/")
 
     assert [a for a in connect_log if not _is_local_address(a)] == []
 
@@ -380,9 +365,9 @@ def test_five_minute_demo_walkthrough(tmp_path: Path, connect_log: list[object])
 
     1. 상태 확인: ``GET /api/demo/status`` → vision/weather 모두 ``fixture``,
        ``gemini_api_key_configured=false``, 착장 0건.
-    2. 폴더 스캔: ``POST /api/demo/scan`` → scanned 159, succeeded 139,
-       skipped_non_outfit 20, duplicate 0, failed 0.
-    3. 기록 화면: ``GET /api/outfits`` → 착장 사진 139건, 촬영 시각 최신순.
+    2. 폴더 스캔: ``POST /api/demo/scan`` → scanned 189, succeeded 154,
+       skipped_non_outfit 20, uncertain 15 (original unlabeled photos), duplicate 0, failed 0.
+    3. 기록 화면: ``GET /api/outfits`` → 착장 사진 154건, 촬영 시각 최신순.
        첫 항목의 ``GET /api/outfits/{id}/photo`` → 200 이미지.
     4. 시나리오 선택: ``GET /api/demo/scenarios`` → 4개.
        ``PUT /api/demo/scenarios/selected`` ``{"scenario_id": "chilly-morning"}``.
@@ -393,7 +378,7 @@ def test_five_minute_demo_walkthrough(tmp_path: Path, connect_log: list[object])
     7. 추천 재조회: ``GET /api/recommendations/today`` → 081은 85.0점으로 떨어져
        상위 5건에서 빠지고, 1위가 ``052_burgundy_sweater_skirt_full``(110.0점)로 바뀐다.
        ``GET /api/outfits/{id}``의 ``effective_vote``는 ``hot``.
-    8. 재스캔: ``POST /api/demo/scan`` → duplicate 139, skipped_non_outfit 20,
+    8. 재스캔: ``POST /api/demo/scan`` → duplicate 154, skipped_non_outfit 20,
        succeeded 0, 착장 수 그대로.
     """
     with TestClient(make_app(tmp_path / "walkthrough.db", DEMO_PHOTO_DIR)) as client:
@@ -413,17 +398,17 @@ def test_five_minute_demo_walkthrough(tmp_path: Path, connect_log: list[object])
                 "skipped_non_outfit", "uncertain",
             )
         } == {
-            "scanned": 159,
-            "succeeded": 139,
+            "scanned": 189,
+            "succeeded": 154,
             "duplicate": 0,
             "failed": 0,
             "skipped_non_outfit": 20,
-            "uncertain": 0,
+            "uncertain": 15,
         }
 
         # 3. 기록 화면
         outfits = client.get("/api/outfits").json()
-        assert len(outfits) == 139
+        assert len(outfits) == 154
         instants = [datetime.fromisoformat(o["captured_at"]) for o in outfits]
         assert instants == sorted(instants, reverse=True)
         photo = client.get(outfits[0]["photo_url"])
@@ -476,13 +461,13 @@ def test_five_minute_demo_walkthrough(tmp_path: Path, connect_log: list[object])
                 "skipped_non_outfit", "uncertain",
             )
         } == {
-            "scanned": 159,
+            "scanned": 189,
             "succeeded": 0,
-            "duplicate": 139,
+            "duplicate": 154,
             "failed": 0,
             "skipped_non_outfit": 20,
-            "uncertain": 0,
+            "uncertain": 15,
         }
-        assert client.get("/api/demo/status").json()["outfit_count"] == 139
+        assert client.get("/api/demo/status").json()["outfit_count"] == 154
 
     assert [a for a in connect_log if not _is_local_address(a)] == []

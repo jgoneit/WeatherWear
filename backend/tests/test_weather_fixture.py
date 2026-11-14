@@ -34,7 +34,7 @@ def test_satisfies_weather_provider_protocol() -> None:
     provider = _provider()
     assert isinstance(provider, WeatherProvider)
     assert provider.name == "fixture"
-    assert provider.entry_count == 159
+    assert provider.entry_count == 174
 
 
 @pytest.mark.parametrize(

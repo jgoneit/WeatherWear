@@ -13,6 +13,8 @@ import io
 from pathlib import Path
 
 import pytest
+
+from tests.demo_inventory import full_demo_images_present as demo_images_present
 from fastapi.testclient import TestClient
 from PIL import Image
 
@@ -319,20 +321,12 @@ def test_export_openapi_script_matches_app(tmp_path: Path) -> None:
 # --- End to end with the real demo data -------------------------------------
 
 
-def demo_images_present() -> bool:
-    # The sidecar *.metadata.json files are tracked but the photos are
-    # git-ignored, so a fresh clone has the folder without any images.
-    return DEMO_PHOTO_DIR.is_dir() and any(
-        p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
-        for p in DEMO_PHOTO_DIR.iterdir()
-    )
-
 
 @pytest.mark.skipif(
     not demo_images_present(),
     reason=(
-        "data/demo/photos has no images (they are git-ignored); "
-        "run scripts/prepare_demo_photos.py to copy the 159 demo photos"
+        "The complete private demo album is not installed; "
+        "run scripts/prepare_demo_photos.py to copy the demo photos"
     ),
 )
 def test_demo_data_end_to_end(tmp_path: Path) -> None:
@@ -341,9 +335,9 @@ def test_demo_data_end_to_end(tmp_path: Path) -> None:
     repo = app.state.container.repository
     with TestClient(app, raise_server_exceptions=False) as test_client:
         report = test_client.post("/api/demo/scan").json()
-        assert report["succeeded"] == 139, report["errors"][:3]
+        assert report["succeeded"] == 154, report["errors"][:3]
         assert report["skipped_non_outfit"] == 20
-        assert report["uncertain"] == 0
+        assert report["uncertain"] == 15
         assert report["failed"] == 0 and report["duplicate"] == 0
 
         file_by_id = {r.id: r.file_name for r in repo.list_outfits()}
@@ -360,7 +354,8 @@ def test_demo_data_end_to_end(tmp_path: Path) -> None:
         test_client.put("/api/demo/scenarios/selected", json={"scenario_id": "heatwave"})
         heat = test_client.get("/api/recommendations/today")
         assert heat.status_code == 200
-        assert heat.json()["status"] == "insufficient_data" and heat.json()["items"] == []
+        assert heat.json()["status"] == "ok" and len(heat.json()["items"]) == 5
+        assert heat.json()["fallback"] is False
 
         unknown = test_client.put("/api/demo/scenarios/selected", json={"scenario_id": "no-such"})
         assert unknown.status_code == 404

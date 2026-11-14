@@ -102,7 +102,7 @@ def test_load_skips_invalid_entries(tmp_path: Path) -> None:
 
 def test_real_fixture_uses_only_canonical_categories() -> None:
     fixture = load_vision_fixture(DEFAULT_VISION_FIXTURE_PATH)
-    assert len(fixture) == 159
+    assert len(fixture) == 174
     for analysis in fixture.values():
         tags = analysis.tags
         assert tags.upper_type in UPPER_TYPES
@@ -125,7 +125,7 @@ def test_real_demo_fixture_matches_demo_photo() -> None:
     if not DEMO_PHOTO.exists():
         pytest.skip("demo photos not prepared")
     provider = FixtureVisionProvider.from_file(DEFAULT_VISION_FIXTURE_PATH)
-    assert len(provider) == 159
+    assert len(provider) == 174
 
     data = DEMO_PHOTO.read_bytes()
     analysis = provider.analyze(data, "image/png", hashlib.sha256(data).hexdigest())

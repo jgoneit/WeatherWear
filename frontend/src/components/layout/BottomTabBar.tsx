@@ -6,6 +6,7 @@ export function BottomTabBar({ showDemoTab = IS_DEV }: { showDemoTab?: boolean }
   const tabs = [
     { to: "/", label: STRINGS.nav.home, icon: "home" as const, end: true },
     { to: "/history", label: STRINGS.nav.history, icon: "grid" as const, end: false },
+    { to: "/notifications", label: STRINGS.nav.notifications, icon: "bell" as const, end: false },
     ...(showDemoTab ? [{ to: "/demo", label: STRINGS.nav.demo, icon: "settings" as const, end: false }] : []),
   ];
   return <nav aria-label={STRINGS.nav.label} className="app-nav"><ul>{tabs.map(tab =>

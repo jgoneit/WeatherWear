@@ -16,13 +16,28 @@ The recommendation strategy is chosen by ``get_strategy`` (which calls
 ``scan_lock`` is the process-wide lock for ``POST /api/demo/scan``. The scan
 router takes it with ``scan_lock.acquire(blocking=False)`` and returns 409
 ``SCAN_IN_PROGRESS`` when that fails (Req 1.13).
+
+Phase 2 (design.md §20, tasks 7.1): ``build_container`` also builds the
+gallery runtime (``app.gallery.runtime.build_gallery_runtime``) and the brief
+runtime (``app.notifications.runtime.build_brief_runtime``) and copies their
+services into the container. Building them touches no folder and opens no
+connection: the watcher and the scheduler only exist when their setting is on
+and only run once ``main.lifespan`` starts their threads. With
+``WEATHER_PROVIDER=open_meteo`` the home "today" weather switches to the brief
+location's Forecast ``current`` (decision A8, Req 10.7); fixture mode keeps the
+Phase 1 ``TodayWeatherService``. Routers get services through the ``get_*``
+functions below; ``require`` answers 501 ``NOT_IMPLEMENTED`` only when a field
+is left ``None`` (e.g. a test container built by hand).
 """
 
 from __future__ import annotations
 
+import logging
 import threading
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, NoReturn, TypeVar
 
 from fastapi import Depends, Request
 from sqlalchemy.engine import Engine
@@ -30,7 +45,10 @@ from sqlalchemy.engine import Engine
 from app.config import AppConfig
 from app.db import create_db_engine
 from app.feedback import FeedbackService
+from app.gallery.runtime import build_gallery_runtime
 from app.ingestion.service import ImageIngestionService
+from app.location import LatLon, LocationService
+from app.notifications.runtime import build_brief_runtime
 from app.providers.vision.base import VisionProvider
 from app.providers.vision.factory import build_vision_provider
 from app.providers.weather.base import WeatherProvider
@@ -46,6 +64,8 @@ from app.today_weather import (
     TodayWeatherService,
     load_scenarios,
 )
+
+logger = logging.getLogger(__name__)
 
 # Process-wide: one scan at a time per server process (Req 1.13).
 scan_lock = threading.Lock()
@@ -77,11 +97,50 @@ class AppContainer:
     strategy: RecommendationStrategy
     scenario_errors: list[str]
 
+    # --- Phase 2 (design.md §20). ``None`` until the owning task wires it. -------
+    # Lead (1.8): last browser location. Place labels come from flow B's
+    # ``app.notifications.places.place_label`` once 7.1 connects it; until then
+    # ``build_container`` uses ``fallback_place_label``.
+    location: LocationService | None = None
+    place_label: Callable[[float, float], str] | None = None
+    # Flow A (3.3, 3.11, 3.13, 3.20), wired in 7.1 from ``build_gallery_runtime()``.
+    gallery_store: Any = None  # app.gallery.store.GalleryStore
+    gallery_importer: Any = None  # app.gallery.processor.GalleryImportService
+    gallery_watcher: Any = None  # app.gallery.watcher.GalleryWatcher (None when watching is off)
+    outfit_confirm: Any = None  # app.gallery.confirm.OutfitConfirmService
+    # Flow B (4.3, 4.6, 4.7, 4.9, 4.11), wired in 7.1 from ``build_brief_runtime()``.
+    current_weather: Any = None  # app.notifications.current_weather.CurrentWeatherService
+    notification_log: Any = None  # app.notifications.records.NotificationLog
+    push_store: Any = None  # app.notifications.push_store.PushSubscriptionStore
+    vapid_keys: Any = None  # app.notifications.vapid.VapidKeyStore
+    notifier: Any = None  # app.notifications.notifier.Notifier
+    daily_brief: Any = None  # app.notifications.daily_brief.DailyBriefService
+    brief_runs: Any = None  # app.notifications.daily_brief.DailyBriefRuns
+    brief_scheduler: Any = None  # app.notifications.scheduler.DailyBriefScheduler (None when off)
+    # Objects with ``close()`` (HTTP clients) that ``main.lifespan`` closes on shutdown.
+    closables: list[Any] = field(default_factory=list)
+
+
+FALLBACK_PLACE_LABEL = "현재 위치"
+
+
+def fallback_place_label(latitude: float, longitude: float) -> str:
+    """Place label used until flow B's ``place_label`` is connected in 7.1."""
+    return FALLBACK_PLACE_LABEL
+
 
 def build_container(
-    config: AppConfig, *, scenarios_path: Path = DEFAULT_SCENARIOS_PATH
+    config: AppConfig,
+    *,
+    scenarios_path: Path = DEFAULT_SCENARIOS_PATH,
+    on_vapid_secrets: Callable[[list[str]], object] | None = None,
 ) -> AppContainer:
-    """Build the engine (``create_all`` runs inside), providers and services."""
+    """Build the engine (``create_all`` runs inside), providers and services.
+
+    ``on_vapid_secrets`` receives the VAPID private key strings when the key is
+    first loaded or created; ``create_app`` passes the RedactingFilter's
+    ``add_secrets`` so the key is redacted from logs (Req 18.7).
+    """
     engine = create_db_engine(config.database_url)
     repository = OutfitRepository(engine)
     vision_provider = build_vision_provider(config)
@@ -92,7 +151,10 @@ def build_container(
     today_weather = TodayWeatherService(
         config, weather_provider, scenario_store, fallback=fixture_weather
     )
-    return AppContainer(
+    location = LocationService(
+        engine, LatLon(config.default_latitude, config.default_longitude)
+    )
+    container = AppContainer(
         config=config,
         engine=engine,
         repository=repository,
@@ -104,7 +166,51 @@ def build_container(
         feedback_service=FeedbackService(repository),
         strategy=build_strategy(tolerance_c=config.temperature_tolerance_c),
         scenario_errors=scenario_errors,
+        location=location,
+        place_label=fallback_place_label,
     )
+    wire_automation(container, on_vapid_secrets=on_vapid_secrets)
+    return container
+
+
+def wire_automation(
+    container: AppContainer,
+    *,
+    on_vapid_secrets: Callable[[list[str]], object] | None = None,
+) -> None:
+    """Fill the Phase 2 fields from the flow A and B runtime builders (tasks 7.1)."""
+    config = container.config
+
+    gallery = build_gallery_runtime(config, container)
+    container.gallery_store = gallery.store
+    container.gallery_importer = gallery.importer
+    container.gallery_watcher = gallery.watcher
+    container.outfit_confirm = gallery.outfit_confirm
+
+    brief = build_brief_runtime(config, container, on_vapid_secrets=on_vapid_secrets)
+    container.place_label = brief.place_label
+    container.current_weather = brief.current_weather
+    container.notification_log = brief.notification_log
+    container.push_store = brief.push_store
+    container.vapid_keys = brief.vapid_keys
+    container.notifier = brief.notifier
+    container.daily_brief = brief.daily_brief
+    container.brief_runs = brief.runs
+    container.brief_scheduler = brief.brief_scheduler
+    if brief.forecast is not None:
+        container.closables.append(brief.forecast)
+
+    # Decision A8 (Req 10.7, 10.8): only Live mode reads the home weather from
+    # the brief location's Forecast ``current``. The brief's recommendations
+    # read ``container.today_weather`` on every call, so replacing it is safe.
+    if config.weather_provider == "open_meteo":
+        container.today_weather = TodayWeatherService(
+            config,
+            container.weather_provider,
+            container.scenario_store,
+            fallback=container.fixture_weather,
+            live_current=brief.live_current,
+        )
 
 
 # --- Dependency functions ---------------------------------------------------
@@ -170,3 +276,72 @@ def get_ingestion_service(
 
 def get_scan_lock() -> threading.Lock:
     return scan_lock
+
+
+# --- Phase 2 dependency functions ---------------------------------------------
+
+T = TypeVar("T")
+
+NOT_IMPLEMENTED_MESSAGE = "아직 준비되지 않은 기능입니다."
+
+
+def not_implemented(task: str) -> NoReturn:
+    """501 ``NOT_IMPLEMENTED`` for a Phase 2 route whose task has not filled it yet.
+
+    ``task`` is the tasks.md id that fills the route; it is logged, not returned.
+    """
+    logger.info("Phase 2 route not implemented yet (tasks %s)", task)
+    raise ApiError(501, "NOT_IMPLEMENTED", NOT_IMPLEMENTED_MESSAGE)
+
+
+def require(service: T | None, task: str) -> T:
+    """Return ``service`` or answer 501 until ``task`` wires it into the container."""
+    if service is None:
+        not_implemented(task)
+    return service
+
+
+def get_location_service(container: AppContainer = Depends(get_container)) -> LocationService:
+    return require(container.location, "1.8")
+
+
+def get_place_label(
+    container: AppContainer = Depends(get_container),
+) -> Callable[[float, float], str]:
+    return container.place_label or fallback_place_label
+
+
+def get_gallery_store(container: AppContainer = Depends(get_container)) -> Any:
+    return require(container.gallery_store, "3.3/7.1")
+
+
+def get_gallery_importer(container: AppContainer = Depends(get_container)) -> Any:
+    return require(container.gallery_importer, "3.11/7.1")
+
+
+def get_outfit_confirm_service(container: AppContainer = Depends(get_container)) -> Any:
+    return require(container.outfit_confirm, "3.20/7.1")
+
+
+def get_current_weather_service(container: AppContainer = Depends(get_container)) -> Any:
+    return require(container.current_weather, "4.3/7.1")
+
+
+def get_notification_log(container: AppContainer = Depends(get_container)) -> Any:
+    return require(container.notification_log, "4.6/7.1")
+
+
+def get_push_store(container: AppContainer = Depends(get_container)) -> Any:
+    return require(container.push_store, "4.9/7.1")
+
+
+def get_vapid_keys(container: AppContainer = Depends(get_container)) -> Any:
+    return require(container.vapid_keys, "4.7/7.1")
+
+
+def get_notifier(container: AppContainer = Depends(get_container)) -> Any:
+    return require(container.notifier, "4.6/7.1")
+
+
+def get_daily_brief_service(container: AppContainer = Depends(get_container)) -> Any:
+    return require(container.daily_brief, "4.11/7.1")

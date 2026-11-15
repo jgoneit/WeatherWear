@@ -9,6 +9,7 @@ export const STRINGS = {
     home: "홈",
     history: "기록",
     demo: "설정",
+    notifications: "알림",
     label: "주요 메뉴",
   },
 
@@ -208,6 +209,135 @@ export const STRINGS = {
 
   toast: {
     dismiss: "닫기",
+  },
+
+  // -------------------------------------------------------------------------
+  // Phase 2 (자동화) 문구 (Req 16.9). 화면은 아래 묶음과 nav.notifications만 쓴다.
+  // -------------------------------------------------------------------------
+
+  /** 알림 탭(Notifications_Page)의 화면 틀, 브리핑 설정, 최근 알림. */
+  notifications: {
+    title: "알림",
+    subtitle: "아침 브리핑과 새 사진 정리를 한곳에서.",
+    loading: "불러오는 중이에요…",
+    briefTitle: "매일 브리핑",
+    briefEnabled: (time: string) => `매일 ${time}에 오늘 입을 옷을 알려 드려요.`,
+    briefDisabled: "매일 브리핑이 꺼져 있어요.",
+    briefTimezone: (timeZone: string) => `기준 시간대 ${timeZone}`,
+    briefReadOnly: "사용 여부와 시각은 서버 설정에서 바꿔요.",
+    briefLoadFailed: "브리핑 설정을 불러오지 못했어요",
+    recentTitle: "최근 알림",
+    recentLabel: "최근 알림 목록",
+    recentEmpty: "아직 받은 알림이 없어요.",
+    recentLoadFailed: "알림 목록을 불러오지 못했어요",
+    kind: { daily_brief: "매일 브리핑", push_test: "테스트 알림" },
+  },
+
+  /** 푸시 알림 켜기/끄기 (Req 16.3~16.5). */
+  push: {
+    title: "푸시 알림",
+    stateLabel: "알림 상태",
+    state: { unsupported: "지원 안 함", off: "꺼짐", on: "켜짐", blocked: "차단됨" },
+    enable: "알림 켜기",
+    disable: "알림 끄기",
+    working: "설정 중…",
+    saveFailed: "알림 설정을 저장하지 못했어요",
+    onHelp: "아침 브리핑이 이 기기로 와요.",
+    offHelp: "켜 두면 앱을 닫아도 아침 브리핑을 받아요.",
+    blockedHelp:
+      "알림이 차단되어 있어요. 브라우저 주소창의 사이트 설정에서 알림 권한을 '허용'으로 바꾼 뒤 이 화면을 다시 열어 주세요.",
+    unsupportedHelp:
+      "이 브라우저에서는 푸시 알림을 쓸 수 없어요. http://localhost나 HTTPS 주소로 열어 주세요. iPhone은 홈 화면에 추가한 앱에서만 알림을 받아요.",
+  },
+
+  /** 현재 위치 보고 (Req 16.6, 16.7). */
+  location: {
+    title: "위치",
+    useCurrent: "현재 위치 사용",
+    working: "위치 확인 중…",
+    lastLabel: "마지막으로 보낸 위치",
+    last: (place: string, at: string) => `${place} · ${at}`,
+    none: "아직 보낸 위치가 없어요.",
+    briefSource: (place: string) => `브리핑 날씨 기준: ${place}`,
+    sent: "현재 위치를 저장했어요.",
+    fallback: "기본 위치(서울) 날씨로 알려 드릴게요",
+    saveFailed: "위치를 저장하지 못했어요",
+    loadFailed: "위치 정보를 불러오지 못했어요",
+    help: "한 번 허용하면 앱을 열 때 30분에 한 번까지 위치를 조용히 갱신해요.",
+  },
+
+  /** 감시로 들어온 사진: 확인이 필요한 사진, 처리 기록, 감시 상태 (Req 5.5, 6.8, 6.9, 6.15, 17.3, 17.4). */
+  gallery: {
+    reviewTitle: "확인이 필요한 사진",
+    reviewLabel: "확인이 필요한 사진 목록",
+    reviewHelp: "착장인지 확실하지 않은 사진이에요. 착장이 맞으면 기록에 추가해 주세요.",
+    reviewEmpty: "확인할 사진이 없어요.",
+    reviewLoadFailed: "확인이 필요한 사진을 불러오지 못했어요",
+    confirm: "착장 맞음",
+    reanalyze: "다시 분석",
+    working: "처리 중…",
+    confirmed: "기록에 추가했어요",
+    confirmedNoTags: "태그가 없어 추천에는 쓰이지 않아요",
+    confirmFailed: "기록에 추가하지 못했어요",
+    reanalyzeQueued: "다시 분석을 요청했어요",
+    reanalyzeFailed: "다시 분석을 요청하지 못했어요",
+    stateChanged: "사진 상태가 바뀌어 목록을 다시 불러왔어요",
+    historyTitle: "사진 처리 기록",
+    historyLabel: "사진 처리 기록 목록",
+    historyEmpty: "아직 처리한 사진이 없어요.",
+    historyLoadFailed: "사진 처리 기록을 불러오지 못했어요",
+    status: {
+      pending: "대기",
+      processing: "처리 중",
+      imported: "가져옴",
+      duplicate: "중복",
+      skipped_non_outfit: "비착장 제외",
+      uncertain: "확인 필요",
+      retry_wait: "재시도 대기",
+      failed: "실패",
+    },
+    estimated: "촬영 정보 추정",
+    confidence: (percent: number) => `신뢰도 ${percent}%`,
+    attempts: (n: number) => `시도 ${n}회`,
+    lastError: (stage: string, code: string) => `${stage} · ${code}`,
+    nextAttempt: (at: string) => `다음 시도 ${at}`,
+    openOutfit: "기록 보기",
+
+    automationTitle: "자동화 상태",
+    automationLoadFailed: "자동화 상태를 불러오지 못했어요",
+    automationRefresh: "자동화 상태 새로고침",
+    watcher: "갤러리 감시",
+    watcherRunning: "동작 중",
+    watcherStopped: "멈춤",
+    watcherDisabled: "꺼짐",
+    watcherDirMissing: "폴더를 찾을 수 없음",
+    lastPoll: "마지막 확인",
+    pendingCount: "대기 중",
+    uncertainCount: "확인 필요",
+    recentImports: "최근 사진 처리",
+    recentImportsLoadFailed: "최근 사진 처리를 불러오지 못했어요",
+    never: "아직 없음",
+  },
+
+  /** 매일 브리핑: 홈 카드, 지금 보내기, 예약 상태 (Req 13.4, 14.6, 17.4). */
+  brief: {
+    cardLabel: "오늘의 브리핑",
+    cardHeader: (time: string) => `WeatherWear · 오늘 ${time}`,
+    photoAlt: "브리핑 착장 사진",
+    runNow: "오늘 브리핑 지금 보내기",
+    runDescription: "예약 시각을 기다리지 않고 오늘 브리핑을 바로 만들어 보내요.",
+    runFailed: "브리핑 보내기에 실패했어요",
+    runInProgress: "이미 만드는 중이에요",
+    runDone: "오늘 브리핑 보내기",
+    nextRun: "다음 브리핑",
+    scheduleOff: "꺼짐",
+    lastScheduled: "마지막 예약 실행",
+    lastScheduledStatus: { running: "진행 중", sent: "보냄", failed: "실패" },
+    notifier: "NOTIFIER",
+    vapid: "푸시 키",
+    vapidReady: "준비됨",
+    vapidMissing: "없음",
+    subscriptions: (n: number) => `구독 ${n}개`,
   },
 
   emptyValue: "–",

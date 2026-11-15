@@ -192,6 +192,229 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/gallery/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Gallery Imports
+         * @description Gallery_File records except baselines, newest ``updated_at`` first (Req 17.3, 5.5, 6.9).
+         */
+        get: operations["list_gallery_imports_api_gallery_imports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gallery/imports/{import_id}/reanalyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reanalyze Gallery Import
+         * @description Queue an ``uncertain``/``failed`` record for one more analysis (Req 6.8).
+         *
+         *     404 ``GALLERY_IMPORT_NOT_FOUND``, 409 ``GALLERY_IMPORT_NOT_REANALYZABLE``.
+         */
+        post: operations["reanalyze_gallery_import_api_gallery_imports__import_id__reanalyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gallery/imports/{import_id}/confirm-outfit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Gallery Import
+         * @description "착장 맞음": store an ``uncertain`` photo as an Outfit without Vision (Req 6.12-6.15).
+         *
+         *     200 with ``status=imported`` and ``outfit_id``; 404 ``GALLERY_IMPORT_NOT_FOUND``,
+         *     409 ``GALLERY_IMPORT_NOT_CONFIRMABLE``, 500 ``STORAGE_ERROR``.
+         */
+        post: operations["confirm_gallery_import_api_gallery_imports__import_id__confirm_outfit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Location */
+        get: operations["get_location_api_location_get"];
+        put?: never;
+        /** Report Location */
+        post: operations["report_location_api_location_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Notifications
+         * @description Newest first (``created_at`` desc, then ``id`` desc), with delivery summaries (Req 14.5).
+         */
+        get: operations["list_notifications_api_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/vapid-public-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vapid Public Key
+         * @description base64url public key only; 503 ``VAPID_KEY_UNAVAILABLE`` (Req 15.1, 15.4, 15.10).
+         */
+        get: operations["vapid_public_key_api_push_vapid_public_key_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Push Subscription
+         * @description Upsert by endpoint; 422 ``PUSH_SUBSCRIPTION_INVALID`` (Req 15.5).
+         */
+        post: operations["create_push_subscription_api_push_subscriptions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/subscriptions/{subscription_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Push Subscription
+         * @description 204; 404 ``PUSH_SUBSCRIPTION_NOT_FOUND`` (Req 15.6).
+         */
+        delete: operations["delete_push_subscription_api_push_subscriptions__subscription_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Push Test
+         * @description "알림이 켜졌어요" test push; 409 ``WEB_PUSH_DISABLED`` with NOTIFIER=log (Req 15.9).
+         */
+        post: operations["send_push_test_api_push_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/daily-brief/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Daily Brief
+         * @description Make one manual Daily_Brief now (Req 13.1).
+         */
+        post: operations["run_daily_brief_api_daily_brief_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/automation/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Automation Status
+         * @description Watcher, daily brief, Notifier and location state (Req 17.1).
+         */
+        get: operations["automation_status_api_automation_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -218,6 +441,13 @@ export interface components {
              * @enum {string}
              */
             weather_provider: "open_meteo" | "fixture";
+        };
+        /** AutomationStatusOut */
+        AutomationStatusOut: {
+            gallery: components["schemas"]["GalleryStatusOut"];
+            daily_brief: components["schemas"]["DailyBriefStatusOut"];
+            notifier: components["schemas"]["NotifierStatusOut"];
+            location: components["schemas"]["LocationStatusOut"];
         };
         /**
          * ClothingTags
@@ -251,6 +481,44 @@ export interface components {
             layers_visible: number;
             /** Confidence */
             confidence: number;
+        };
+        /**
+         * DailyBriefRunOut
+         * @description ``POST /api/daily-brief/run`` (Req 13.1).
+         */
+        DailyBriefRunOut: {
+            notification: components["schemas"]["NotificationOut"];
+            /**
+             * Trigger
+             * @enum {string}
+             */
+            trigger: "scheduled" | "manual";
+        };
+        /** DailyBriefStatusOut */
+        DailyBriefStatusOut: {
+            /** Enabled */
+            enabled: boolean;
+            /** Time */
+            time: string;
+            /** Timezone */
+            timezone: string;
+            /** Next Run At */
+            next_run_at: string | null;
+            last_scheduled: components["schemas"]["LastScheduledBriefOut"] | null;
+        };
+        /**
+         * DeliverySummaryOut
+         * @description Delivery results of one notification (Req 14.5).
+         */
+        DeliverySummaryOut: {
+            /** Log Recorded */
+            log_recorded: boolean;
+            /** Webpush Sent */
+            webpush_sent: number;
+            /** Webpush Failed */
+            webpush_failed: number;
+            /** Webpush Gone */
+            webpush_gone: number;
         };
         /**
          * DemoStatus
@@ -321,10 +589,181 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * GalleryImportOut
+         * @description One Gallery_File record. ``file_name`` is relative to Gallery_Dir.
+         */
+        GalleryImportOut: {
+            /** Id */
+            id: number;
+            /** File Name */
+            file_name: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "processing" | "imported" | "duplicate" | "skipped_non_outfit" | "uncertain" | "retry_wait" | "failed";
+            /** Attempts */
+            attempts: number;
+            /** Last Error Stage */
+            last_error_stage: string | null;
+            /** Last Error Code */
+            last_error_code: string | null;
+            /** Next Attempt At */
+            next_attempt_at: string | null;
+            /** Outfit Id */
+            outfit_id: number | null;
+            /** Photo Type */
+            photo_type: ("outfit" | "non_outfit" | "uncertain") | null;
+            /** Photo Type Confidence */
+            photo_type_confidence: number | null;
+            /** Reason */
+            reason: string | null;
+            /** Capture Origin */
+            capture_origin: ("exif" | "estimated") | null;
+            /**
+             * First Seen At
+             * Format: date-time
+             */
+            first_seen_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** GalleryStatusOut */
+        GalleryStatusOut: {
+            /** Enabled */
+            enabled: boolean;
+            /** Running */
+            running: boolean;
+            /** Dir Available */
+            dir_available: boolean;
+            /** Last Poll At */
+            last_poll_at: string | null;
+            /** Pending */
+            pending: number;
+            /** Uncertain */
+            uncertain: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** LastScheduledBriefOut */
+        LastScheduledBriefOut: {
+            /** Date */
+            date: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "sent" | "failed";
+        };
+        /**
+         * LocationIn
+         * @description Body of ``POST /api/location``. Strict: booleans and strings are rejected (Req 9.2).
+         *
+         *     A validation failure on this body becomes 422 ``INVALID_LOCATION`` in
+         *     ``main.py``. ``LocationService`` validates again (``validate_location``).
+         */
+        LocationIn: {
+            /** Latitude */
+            latitude: number;
+            /** Longitude */
+            longitude: number;
+            /** Accuracy M */
+            accuracy_m?: number | null;
+        };
+        /**
+         * LocationOut
+         * @description The stored Last_Location: values rounded to 2 decimal places.
+         */
+        LocationOut: {
+            /** Latitude */
+            latitude: number;
+            /** Longitude */
+            longitude: number;
+            /** Accuracy M */
+            accuracy_m: number | null;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /** Place Label */
+            place_label: string;
+        };
+        /**
+         * LocationStateOut
+         * @description ``GET /api/location`` (Req 9.3).
+         */
+        LocationStateOut: {
+            last: components["schemas"]["LocationOut"] | null;
+            /** Default Latitude */
+            default_latitude: number;
+            /** Default Longitude */
+            default_longitude: number;
+            /**
+             * Brief Source
+             * @enum {string}
+             */
+            brief_source: "browser" | "default";
+            /** Brief Place Label */
+            brief_place_label: string;
+        };
+        /** LocationStatusOut */
+        LocationStatusOut: {
+            /** Has Last */
+            has_last: boolean;
+            /** Received At */
+            received_at: string | null;
+            /** Place Label */
+            place_label: string | null;
+        };
+        /** NotificationOut */
+        NotificationOut: {
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "daily_brief" | "push_test";
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /** Url */
+            url: string;
+            /** Outfit Id */
+            outfit_id: number | null;
+            /** Photo Url */
+            photo_url: string | null;
+            /** Weather Provider */
+            weather_provider: ("open_meteo" | "fixture" | "scenario") | null;
+            /** Weather Is Fixture */
+            weather_is_fixture: boolean | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            delivery: components["schemas"]["DeliverySummaryOut"];
+        };
+        /** NotifierStatusOut */
+        NotifierStatusOut: {
+            /**
+             * Name
+             * @enum {string}
+             */
+            name: "log" | "webpush";
+            /** Vapid Ready */
+            vapid_ready: boolean;
+            /** Subscription Count */
+            subscription_count: number;
         };
         /** OutfitOut */
         OutfitOut: {
@@ -360,6 +799,34 @@ export interface components {
             weather: components["schemas"]["WeatherSnapshotOut"] | null;
             /** Effective Vote */
             effective_vote: ("cold" | "comfortable" | "hot") | null;
+        };
+        /** PushKeysIn */
+        PushKeysIn: {
+            /** P256Dh */
+            p256dh: string;
+            /** Auth */
+            auth: string;
+        };
+        /** PushSubscriptionCreatedOut */
+        PushSubscriptionCreatedOut: {
+            /** Id */
+            id: number;
+        };
+        /**
+         * PushSubscriptionIn
+         * @description Browser ``PushSubscription.toJSON()``.
+         *
+         *     Shape only. The format rules of Req 15.5 (https endpoint <= 2,048 chars,
+         *     base64url ``p256dh`` of 65 bytes, ``auth`` of 16 bytes) are checked by the
+         *     push subscription store (tasks 4.9); a body that does not match this shape
+         *     becomes 422 ``PUSH_SUBSCRIPTION_INVALID`` in ``main.py``.
+         */
+        PushSubscriptionIn: {
+            /** Endpoint */
+            endpoint: string;
+            /** Expirationtime */
+            expirationTime?: number | null;
+            keys: components["schemas"]["PushKeysIn"];
         };
         /** RecommendationItemOut */
         RecommendationItemOut: {
@@ -517,6 +984,14 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /**
+         * VapidPublicKeyOut
+         * @description base64url public key only (Req 15.4).
+         */
+        VapidPublicKeyOut: {
+            /** Public Key */
+            public_key: string;
         };
         /**
          * WeatherContextOut
@@ -716,7 +1191,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unprocessable Entity */
+            /** @description Unprocessable Content */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -948,6 +1423,417 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppMeta"];
+                };
+            };
+        };
+    };
+    list_gallery_imports_api_gallery_imports_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                status?: ("pending" | "processing" | "imported" | "duplicate" | "skipped_non_outfit" | "uncertain" | "retry_wait" | "failed") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GalleryImportOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reanalyze_gallery_import_api_gallery_imports__import_id__reanalyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GalleryImportOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_gallery_import_api_gallery_imports__import_id__confirm_outfit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GalleryImportOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_location_api_location_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationStateOut"];
+                };
+            };
+        };
+    };
+    report_location_api_location_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationOut"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_notifications_api_notifications_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                kind?: ("daily_brief" | "push_test") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vapid_public_key_api_push_vapid_public_key_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VapidPublicKeyOut"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_push_subscription_api_push_subscriptions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushSubscriptionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSubscriptionCreatedOut"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_push_subscription_api_push_subscriptions__subscription_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_push_test_api_push_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    run_daily_brief_api_daily_brief_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DailyBriefRunOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    automation_status_api_automation_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationStatusOut"];
                 };
             };
         };

@@ -193,6 +193,12 @@ def test_redacting_filter_with_empty_secret_is_noop():
 
 ENV_EXAMPLE = Path(__file__).resolve().parents[2] / ".env.example"
 DOCUMENTED_VARS = ALL_VARS + ("VITE_API_BASE_URL",)
+# Phase 2 automation variables (Phase 2 Req 18.1, 18.5, 20.4).
+PHASE2_VARS = (
+    "GALLERY_WATCH_ENABLED", "GALLERY_DIR", "GALLERY_POLL_SECONDS", "USER_PHOTO_DIR",
+    "DAILY_BRIEF_ENABLED", "DAILY_BRIEF_TIME", "NOTIFIER", "VAPID_KEY_DIR", "VAPID_SUBJECT",
+    "PUSH_ALLOWED_HOSTS",
+)
 
 
 def _env_example_assignments() -> dict[str, str]:
@@ -205,10 +211,11 @@ def _env_example_assignments() -> dict[str, str]:
     return values
 
 
-def test_env_example_lists_exactly_twelve_vars_with_empty_key():
+def test_env_example_lists_phase1_and_phase2_vars_with_empty_key():
     values = _env_example_assignments()
-    assert set(values) == set(DOCUMENTED_VARS)
-    assert len(values) == 12
+    assert set(values) == set(DOCUMENTED_VARS) | set(PHASE2_VARS)
+    assert len(DOCUMENTED_VARS) == 12 and len(PHASE2_VARS) == 10
+    assert len(values) == 22
     assert values["GEMINI_API_KEY"] == ""
     assert values["GEMINI_MODEL"] == "gemini-4-hydrogen"
     # Express mode needs no project ID or location variable (Req 16.10).
@@ -230,5 +237,6 @@ def test_env_example_describes_agent_platform_express_mode_key():
 
 
 def test_raw_settings_declares_same_backend_vars_and_model_default():
-    assert set(RawSettings.model_fields) == set(ALL_VARS)
+    assert set(RawSettings.model_fields) == set(ALL_VARS) | set(PHASE2_VARS)
+    assert len(RawSettings.model_fields) == 21
     assert RawSettings.model_fields["GEMINI_MODEL"].default == "gemini-4-hydrogen"

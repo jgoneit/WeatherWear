@@ -90,7 +90,16 @@ class RecommendationService:
 
         Raises ``MissingTodayTemperature`` when today's temperature is unknown.
         """
-        today = self._today_weather.get_today()
+        return self.recommendations_for(self._today_weather.get_today())
+
+    def recommendations_for(self, today: WeatherContext) -> RecommendationResponse:
+        """Recommendations for a given "today" weather (Phase 2 Req 11.1).
+
+        The daily brief passes the Forecast ``current`` weather of the brief
+        location here; ``today_recommendations`` passes TodayWeatherService's
+        value. Same strategy, same candidates, no cache. Raises
+        ``MissingTodayTemperature`` when ``today.actual_temperature_c`` is None.
+        """
         records = self._repo.list_outfits()
         by_id = {r.id: r for r in records}
 

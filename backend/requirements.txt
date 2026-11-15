@@ -11,6 +11,11 @@ httpx==0.28.1
 google-genai==3.3.0
 pillow==13.0.0
 python-dotenv==1.2.4
+# Phase 2 Web Push (tasks 7.4): pywebpush sends VAPID-signed pushes; app code
+# also uses cryptography directly for the P-256 VAPID key pair.
+pywebpush==2.5.0
+cryptography==50.0.2
+requests==2.34.2  # imported by app/notifications/webpush.py (pywebpush's HTTP client)
 
 # Backend test
 pytest==9.2.0

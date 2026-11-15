@@ -28,6 +28,7 @@ from __future__ import annotations
 import importlib
 import logging
 import re
+import threading
 from collections.abc import AsyncIterator, Iterable
 from contextlib import asynccontextmanager
 from dataclasses import replace
@@ -41,16 +42,19 @@ from sqlalchemy.engine import make_url
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import (
+    DEFAULT_USER_PHOTO_DIR,
     AppConfig,
     ConfigIssue,
     RawSettings,
     RedactingFilter,
     configure_logging,
     resolve_config,
+    user_photo_dir_conflicts,
 )
-from app.deps import ApiError, build_container
+from app.deps import ApiError, AppContainer, build_container
 from app.feedback import FeedbackSaveFailed, OutfitNotFound
 from app.ingestion.service import PhotoDirUnavailable
+from app.notifications.vapid import VapidKeyUnavailable
 from app.recommendation.base import MissingTodayTemperature
 from app.schemas import ErrorDetail, ErrorResponse
 from app.today_weather import UnknownScenario
@@ -62,13 +66,34 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ENV_FILE = REPO_ROOT / ".env"
 
 # Router modules under app/api/ (tasks 10.2-10.4). Each module exposes
-# ``router: APIRouter``; all of them are required.
-ROUTER_MODULES: tuple[str, ...] = ("outfits", "demo", "weather", "recommendations", "meta")
+# ``router: APIRouter``; all of them are required. The last six are Phase 2
+# (Phase 2 tasks 1.7; bodies filled by 1.8, 3.16, 3.20, 4.13 and 7.2).
+ROUTER_MODULES: tuple[str, ...] = (
+    "outfits",
+    "demo",
+    "weather",
+    "recommendations",
+    "meta",
+    "gallery",
+    "location",
+    "notifications",
+    "push",
+    "daily_brief",
+    "automation",
+)
 
 # Loggers whose handlers do not propagate to root under uvicorn's log config.
 _EXTRA_LOGGERS = ("uvicorn", "uvicorn.error", "uvicorn.access")
 
 _FEEDBACK_PATH = re.compile(r"^/api/outfits/[^/]+/feedback/?$")
+
+# Phase 2 (design.md §19): body validation errors on these POST paths get
+# their own code instead of VALIDATION_ERROR.
+_BODY_ERROR_CODES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (_FEEDBACK_PATH, "INVALID_THERMAL_VOTE"),
+    (re.compile(r"^/api/location/?$"), "INVALID_LOCATION"),
+    (re.compile(r"^/api/push/subscriptions/?$"), "PUSH_SUBSCRIPTION_INVALID"),
+)
 
 MESSAGES = {
     "SCAN_IN_PROGRESS": "이미 스캔이 진행 중입니다.",
@@ -84,7 +109,32 @@ MESSAGES = {
     "NOT_FOUND": "요청한 경로를 찾을 수 없습니다.",
     "METHOD_NOT_ALLOWED": "허용되지 않는 요청 방식입니다.",
     "HTTP_ERROR": "요청을 처리할 수 없습니다.",
+    # Phase 2 (design.md "오류 코드 표")
+    "INVALID_LOCATION": "위치 값이 올바르지 않습니다.",
+    "GALLERY_IMPORT_NOT_FOUND": "사진 처리 기록을 찾을 수 없습니다.",
+    "GALLERY_IMPORT_NOT_REANALYZABLE": "이 사진은 다시 분석할 수 없는 상태입니다.",
+    "GALLERY_IMPORT_NOT_CONFIRMABLE": "이 사진은 착장으로 확정할 수 없는 상태입니다.",
+    "DAILY_BRIEF_IN_PROGRESS": "브리핑을 만드는 중입니다. 잠시 뒤 다시 시도해 주세요.",
+    "PUSH_SUBSCRIPTION_INVALID": "푸시 구독 정보가 올바르지 않습니다.",
+    "PUSH_SUBSCRIPTION_NOT_FOUND": "푸시 구독을 찾을 수 없습니다.",
+    "WEB_PUSH_DISABLED": "웹 푸시가 꺼져 있습니다.",
+    "VAPID_KEY_UNAVAILABLE": "푸시 키를 준비하지 못했습니다.",
+    # Phase 2 skeleton routes before their task fills them (tasks 1.7)
+    "NOT_IMPLEMENTED": "아직 준비되지 않은 기능입니다.",
 }
+
+# The nine Phase 2 error codes of design.md "오류 코드 표".
+PHASE2_ERROR_CODES: tuple[str, ...] = (
+    "INVALID_LOCATION",
+    "GALLERY_IMPORT_NOT_FOUND",
+    "GALLERY_IMPORT_NOT_REANALYZABLE",
+    "GALLERY_IMPORT_NOT_CONFIRMABLE",
+    "DAILY_BRIEF_IN_PROGRESS",
+    "PUSH_SUBSCRIPTION_INVALID",
+    "PUSH_SUBSCRIPTION_NOT_FOUND",
+    "WEB_PUSH_DISABLED",
+    "VAPID_KEY_UNAVAILABLE",
+)
 
 
 def error_response(status_code: int, code: str, message: str | None = None) -> JSONResponse:
@@ -95,11 +145,17 @@ def error_response(status_code: int, code: str, message: str | None = None) -> J
 # --- Config and logging -----------------------------------------------------
 
 
+def _absolute(path: Path, root: Path) -> Path:
+    return path if path.is_absolute() else (root / path).resolve()
+
+
 def resolve_paths(config: AppConfig, root: Path = REPO_ROOT) -> AppConfig:
-    """Make relative PHOTO_DIR and SQLite file paths absolute against ``root``."""
-    photo_dir = config.photo_dir
-    if not photo_dir.is_absolute():
-        photo_dir = (root / photo_dir).resolve()
+    """Make relative PHOTO_DIR and SQLite file paths absolute against ``root``.
+
+    Phase 1 behaviour, unchanged: Phase 2 paths are handled by
+    ``resolve_automation_paths``, which ``create_app`` calls right after this.
+    """
+    photo_dir = _absolute(config.photo_dir, root)
 
     database_url = config.database_url
     url = make_url(database_url)
@@ -115,6 +171,64 @@ def resolve_paths(config: AppConfig, root: Path = REPO_ROOT) -> AppConfig:
         database_url = url.render_as_string(hide_password=False)
 
     return replace(config, photo_dir=photo_dir, database_url=database_url)
+
+
+def resolve_automation_paths(
+    config: AppConfig,
+    root: Path = REPO_ROOT,
+    *,
+    issues: list[ConfigIssue] | None = None,
+) -> AppConfig:
+    """Phase 2 paths against ``root`` (Req 18.3) and the USER_PHOTO_DIR check (Req 4.2).
+
+    GALLERY_DIR, USER_PHOTO_DIR and VAPID_KEY_DIR become absolute. When
+    USER_PHOTO_DIR equals, contains or sits inside PHOTO_DIR or GALLERY_DIR
+    (compared as absolute paths), the default is used; if the default
+    conflicts too, watching is turned off. Each problem is one ``ConfigIssue``,
+    logged at ERROR and, when ``issues`` is given, appended to it.
+    """
+    automation = config.automation
+    found: list[ConfigIssue] = []
+    photo_dir = _absolute(config.photo_dir, root)
+    gallery_dir = _absolute(automation.gallery_dir, root)
+    user_photo_dir = _absolute(automation.user_photo_dir, root)
+    vapid_key_dir = _absolute(automation.vapid_key_dir, root)
+    watch_enabled = automation.gallery_watch_enabled
+
+    if user_photo_dir_conflicts(user_photo_dir, photo_dir, gallery_dir):
+        found.append(
+            ConfigIssue(
+                variable="USER_PHOTO_DIR",
+                message=(
+                    "USER_PHOTO_DIR는 PHOTO_DIR, GALLERY_DIR와 같거나 서로 포함하면 안 됩니다. "
+                    "기본값 ./data/user/photos를 사용합니다."
+                ),
+            )
+        )
+        user_photo_dir = _absolute(DEFAULT_USER_PHOTO_DIR, root)
+        if user_photo_dir_conflicts(user_photo_dir, photo_dir, gallery_dir):
+            found.append(
+                ConfigIssue(
+                    variable="USER_PHOTO_DIR",
+                    message=(
+                        "USER_PHOTO_DIR 기본값도 PHOTO_DIR 또는 GALLERY_DIR와 겹칩니다. "
+                        "갤러리 감시를 끕니다."
+                    ),
+                )
+            )
+            watch_enabled = False
+
+    log_config_issues(found)
+    if issues is not None:
+        issues.extend(found)
+    resolved = replace(
+        automation,
+        gallery_watch_enabled=watch_enabled,
+        gallery_dir=gallery_dir,
+        user_photo_dir=user_photo_dir,
+        vapid_key_dir=vapid_key_dir,
+    )
+    return replace(config, automation=resolved)
 
 
 def install_logging(config: AppConfig) -> RedactingFilter:
@@ -156,12 +270,10 @@ def _register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
         body_error = any(err.get("loc", ())[:1] == ("body",) for err in exc.errors())
-        if (
-            request.method == "POST"
-            and _FEEDBACK_PATH.match(request.url.path)
-            and body_error
-        ):
-            return error_response(422, "INVALID_THERMAL_VOTE")
+        if request.method == "POST" and body_error:
+            for pattern, code in _BODY_ERROR_CODES:
+                if pattern.match(request.url.path):
+                    return error_response(422, code)
         return error_response(422, "VALIDATION_ERROR")
 
     @app.exception_handler(StarletteHTTPException)
@@ -215,6 +327,57 @@ def _include_routers(app: FastAPI) -> None:
         app.include_router(module.router)
 
 
+# --- Phase 2 background work (design.md §20, tasks 7.1) -------------------------
+
+THREAD_JOIN_TIMEOUT_S = 35.0  # Req 1.2: the watcher finishes the file it is on
+
+
+def start_automation(container: AppContainer, stop: threading.Event) -> list[threading.Thread]:
+    """Prepare VAPID keys and start the watcher / scheduler daemon threads.
+
+    - NOTIFIER=webpush: ``vapid_keys.ensure()`` loads or creates the key pair
+      (Req 15.1). A failure is logged and startup continues (Req 15.10).
+    - The watcher thread exists only with GALLERY_WATCH_ENABLED and the
+      scheduler thread only with DAILY_BRIEF_ENABLED (Req 1.1, 1.3, 12.1, 12.2).
+      With the code defaults no thread starts and Gallery_Dir is never read.
+    """
+    if container.config.automation.notifier == "webpush" and container.vapid_keys is not None:
+        try:
+            container.vapid_keys.ensure()
+        except VapidKeyUnavailable as exc:
+            logger.error("VAPID 키를 준비하지 못했습니다; 웹 푸시 없이 계속합니다 (%s)", exc)
+
+    threads: list[threading.Thread] = []
+    for name, target in (
+        ("gallery-watcher", container.gallery_watcher),
+        ("daily-brief", container.brief_scheduler),
+    ):
+        if target is None:
+            continue
+        thread = threading.Thread(target=target.run, args=(stop,), name=name, daemon=True)
+        thread.start()
+        threads.append(thread)
+        logger.info("백그라운드 작업을 시작했습니다: %s", name)
+    return threads
+
+
+def stop_automation(
+    container: AppContainer, stop: threading.Event, threads: list[threading.Thread]
+) -> None:
+    """Signal the threads, wait for them (Req 1.2), close HTTP clients, dispose the engine."""
+    stop.set()
+    for thread in threads:
+        thread.join(timeout=THREAD_JOIN_TIMEOUT_S)
+        if thread.is_alive():
+            logger.warning("백그라운드 작업이 제때 끝나지 않았습니다: %s", thread.name)
+    for closable in container.closables:
+        try:
+            closable.close()
+        except Exception as exc:  # shutdown must not fail on a client close
+            logger.warning("종료 중 연결을 닫지 못했습니다 (%s)", type(exc).__name__)
+    container.engine.dispose()
+
+
 # --- App factory ------------------------------------------------------------
 
 
@@ -225,18 +388,20 @@ def create_app(
     issues: list[ConfigIssue] = []
     if config is None:
         config, issues = load_settings(env_file)
-    install_logging(config)
+    redacting = install_logging(config)
     log_config_issues(issues)
-    config = resolve_paths(config)
+    config = resolve_automation_paths(resolve_paths(config))
 
-    container = build_container(config)
+    container = build_container(config, on_vapid_secrets=redacting.add_secrets)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        stop = threading.Event()
+        threads = start_automation(container, stop)
         try:
             yield
         finally:
-            container.engine.dispose()
+            stop_automation(container, stop, threads)
 
     app = FastAPI(title="WeatherWear API", version="0.1.0", lifespan=lifespan)
     app.state.container = container

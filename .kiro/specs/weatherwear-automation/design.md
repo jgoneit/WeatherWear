@@ -22,11 +22,12 @@ Phase 2는 `requirements.md`의 Requirement 1~20을 구현한다. Phase 1(`.kiro
 | 주제 | 근거 수준 | 내용 | 설계 반영 |
 |---|---|---|---|
 | `ex_img/` 내용 | 저장소 확인 | 원본 체크아웃 `ex_img/`에는 데모 사진 174장(PNG 134 `007_…`~`140_…`, JPG 40 `2025-…_KST.jpg`)과 `clothing_tags.json`만 있다. 데모에 쓰지 않은 이미지는 없다 | 감시 첫 시작 때 기준선으로 기록한다(Req 2.4). 흉내 스크립트 원본은 `--source` / Capture_Pool_Dir / 플레이스홀더에서 고른다(Req 8.2, 가정 A6) |
-| 요구 예시 문장 | 저장소 확인 | `weather.json`의 `today_default`는 14.5°C, 습도 55다. `scenario_expectations.json`의 `chilly-morning`(14.5°C) 1위는 `015_loose_hair_front_cream.png`다(과거 14.4°C, `comfortable`). main의 `vision.json`에서 이 사진의 태그는 `knit`, `outer_type: none`, 색상 `cream`이다 | fixture 데모 데이터로 사용자 결정 2의 예시 문장이 정확히 나오는지 예제 테스트로 고정한다(Req 20.3 (h)) |
+| main `cf87e92` | 저장소 확인 | 데모 사진 189장(생성 사진 `141_…`~`155_…` 15장 추가, EXIF 없이 사이드카)이다. `compose.yaml`(PR #7)은 backend를 `read_only`로 띄우고, DB는 named volume, 사진은 `:ro`로 마운트한다. Vision 평가 도구(PR #8)가 있다. UI(PR #10)는 `home-dashboard` 그리드, `app-nav`, `Icon`, `app.css`다. `today_default`는 9.0°C(체감 6.5, 습도 55)이고 `scenario_expectations.json`은 없다. 그 뒤 `b29c9cf`(PR #9)에서 `today_default`가 14.5°C/55로 돌아오고 `scenario_expectations.json`, `ex_img_vision.json`(ex_img 해시별 분석, 비정규 태그·`photo_type` 없음)이 생겼다. 저장소는 `jgoneit/kirothon-020`이다 | 데모 사진 수 불변식은 189로 둔다. 예시 문장은 단위 테스트로 고정하고 통합 테스트는 병합 데이터에서 기대 문장을 만든다. compose에 Phase 2 변수와 볼륨을 더한다(아래 결정). 프론트엔드 태스크를 새 구조에 맞춘다 |
+| 요구 예시 문장 | 저장소 확인 (이 브랜치 데이터) | 이 브랜치의 `weather.json`에서 `today_default`는 14.5°C, 습도 55다. `scenario_expectations.json`의 `chilly-morning`(14.5°C) 1위는 `015_loose_hair_front_cream.png`다(과거 14.4°C, `comfortable`). main의 `vision.json`에서 이 사진의 태그는 `knit`, `outer_type: none`, 색상 `cream`이다 | 이 값으로 만든 입력을 단위 테스트에 넣어 예시 문장과 정확히 같은지 고정한다. main 데이터(`cf87e92` 9.0°C, `b29c9cf` 14.5°C)와 병합한 뒤에도 깨지지 않게 통합 테스트는 기대 문장을 데이터에서 만든다(Req 20.3 (h)) |
 | main PR #6 | 저장소 확인(`origin/main` `a63e37c`) | `VisionAnalysis`와 Photo_Gate(0.70)가 있다. `photo_analyses` 테이블(해시별 판정)이 있다. Fixture는 미등록 해시를 `uncertain`으로 판정한다. 의류 타입은 닫힌 snake_case 목록이다. `SCHEMA_VERSION`은 2 그대로이고, `photo_analyses`는 `create_all()`로 추가했다 | 수집 결과를 5가지(`imported`/`duplicate`/`skipped_non_outfit`/`uncertain`/실패)로 처리한다. 한국어 태그 표기는 닫힌 목록 전체를 덮는다(Req 11.7). DB 추가 방식은 main과 같은 방향이다 |
-| main `vision.json` 키 수 | 저장소 확인 | main의 `data/demo/fixtures/vision.json`은 159개 키다. 이 브랜치의 manifest와 `vision.sources.json`은 174장이다 | Phase 1 병합 담당 worker에게 알린다(이 문서의 범위 밖). Phase 2는 키 수에 의존하지 않는다 |
+| main `vision.json` 키 수 | 저장소 확인 | `cf87e92`에서 174개, `b29c9cf`에서 189개 키로 manifest 189장과 같다 | Phase 2는 키 수에 의존하지 않는다. 감시로 들어온 새 사진은 Vision_Fixture_Overlay로만 fixture 판정을 더한다 |
 | Open-Meteo 최근 날씨 | Phase 1 리서치 | Historical(Archive) API는 재분석 자료라 최근 며칠 값이 늦게 들어온다. 공식 문서는 최근 데이터에 Forecast API의 `past_days` 사용을 권한다(Phase 1 design 리서치 요약, Historical Weather API 문서와 이슈 #1480) | 촬영일이 최근 7일 안이면 Forecast `past_days` + `hourly`, 아니면 Archive를 쓴다(Req 7) |
-| Forecast API 파라미터 | 가정 | `https://api.open-meteo.com/v1/forecast`는 `latitude`, `longitude`, `hourly`, `current`, `timezone`, `past_days`(0~92), `forecast_days`(0~16)를 받는다. 응답의 `hourly`는 Archive와 같은 `time[]` + 변수 배열 형식이고, `current`는 `time`, `interval`과 요청한 변수를 담는다. 변수 이름은 `temperature_2m`, `relative_humidity_2m`, `apparent_temperature`, `precipitation`, `wind_speed_10m`, `weather_code`이고 기본 단위는 °C, %, mm, km/h다 | `hourly` 변환은 Phase 1 `map_archive_response`를 다시 쓴다. 구현 첫 단계에서 공식 문서로 이름·범위·단위를 확인한다(tasks 4.1) |
+| Forecast API 파라미터 | 공식 문서 확인(2026-11-14, coordinator, https://open-meteo.com/en/docs) | endpoint `https://api.open-meteo.com/v1/forecast`. `current`·`hourly` 변수 `temperature_2m`, `relative_humidity_2m`, `apparent_temperature`, `precipitation`, `wind_speed_10m`, `weather_code`가 있다. `past_days`는 0~92, `forecast_days`는 0~16(기본 7)이다. `timezone`을 주면 응답에 `utc_offset_seconds`가 오고 시각은 오프셋 없는 ISO 문자열이다. `current`는 `time`, `interval`과 요청한 변수를 담는다. 기본 단위는 °C, %, mm, km/h다. `current_units`는 문서에 없다 | `hourly` 변환은 Phase 1 `map_archive_response`를 다시 쓴다. 상수는 `providers/weather/forecast.py` 한 곳에 있다. `current_units`가 없으면 기본 단위로 본다(tasks 4.1). 문서와 구현이 일치한다 |
 | Archive 지연 일수 | 가정 | 공식 문서는 지연을 "최근 며칠"로만 적는다(Phase 1 리서치). 정확한 일수는 확인하지 않았다 | Recent_Weather_Window를 7일로 둔다. 상수 1곳(`RECENT_DAYS_BACK`)이다 |
 | Web Push 표준 | 가정(널리 알려진 표준) | 브라우저 `PushManager.subscribe({userVisibleOnly: true, applicationServerKey})`의 키는 P-256 공개키 비압축 점(65바이트)이다. 서버는 VAPID(RFC 8292) JWT와 RFC 8291 암호화로 endpoint에 POST한다. 404/410은 구독 만료를 뜻한다. Service Worker, Push, Geolocation은 secure context(`localhost` 포함)에서만 쓸 수 있다. iOS Safari(16.4+)는 홈 화면에 추가한 웹 앱에서만 Web Push를 받는다 | 키 생성, 구독 API, 410 처리, README 안내(Req 15, 16, 20.7) |
 | `pywebpush` | 가정 | `webpush(subscription_info, data, vapid_private_key, vapid_claims, ttl, timeout)`가 RFC 8291 암호화와 VAPID 서명을 한다. `vapid_private_key`에는 PEM 파일 경로를 줄 수 있다. 실패하면 `WebPushException`을 내고 `.response.status_code`가 있다. HTTP는 `requests`로 보낸다(httpx가 아니라서 respx로 막을 수 없다) | `PyWebPushSender` 한 곳에서만 쓰고, 테스트는 가짜 Push_Sender를 주입한다. 구현 시 설치한 버전의 시그니처를 확인한다 |
@@ -116,12 +117,13 @@ flowchart LR
 ```
 .
 ├── .env.example / .gitignore / README.md          # 리드 (Req 18.5, 18.6, 4.5, 20.7, 20.8)
+├── compose.yaml                                   # 리드: Phase 2 변수·볼륨 (Req 18.10)
 ├── backend/
 │   ├── requirements.txt                           # 리드: pywebpush, cryptography 고정 (Req 20.6)
 │   ├── app/
-│   │   ├── config.py                              # 리드: AutomationConfig, RawSettings 9개, resolve_automation_config()
+│   │   ├── config.py                              # 리드: AutomationConfig, RawSettings 10개, resolve_automation_config()
 │   │   ├── db.py                                  # 리드: SCHEMA_VERSION=3, migrate_schema() (Req 19)
-│   │   ├── db_automation.py                       # 리드: Phase 2 SQLModel 테이블 8개
+│   │   ├── db_automation.py                       # 리드: Phase 2 SQLModel 테이블 9개
 │   │   ├── schemas_automation.py                  # 리드: Phase 2 API 요청/응답 모델
 │   │   ├── location.py                            # 리드: LocationService, round_location()
 │   │   ├── deps.py / main.py                      # 리드: 컨테이너 필드·getter, lifespan, 라우터, 오류 매핑
@@ -137,6 +139,7 @@ flowchart LR
 │   │   │   ├── estimate.py     #   read_partial_exif(), estimate_capture(), estimated_sidecar_json()
 │   │   │   ├── weather_recent.py  # choose_weather_endpoint(), RecentWeatherProvider
 │   │   │   ├── processor.py    #   GalleryImportService, failure_transition() 순수 함수
+│   │   │   ├── confirm.py      #   OutfitConfirmService, confirmed_analysis() (Req 6.12~6.15)
 │   │   │   ├── watcher.py      #   GalleryWatcher(poll_once, run)
 │   │   │   ├── simulate.py     #   Capture_Simulator 순수 helper (EXIF 바이트, 이름, overlay 항목)
 │   │   │   └── runtime.py      #   build_gallery_runtime(config, container)
@@ -151,7 +154,7 @@ flowchart LR
 │   │       ├── records.py      #   NotificationLog
 │   │       ├── notifier.py     #   Notifier, DeliveryResult, LogNotifier, build_notifier()
 │   │       ├── vapid.py        #   VapidKeyStore
-│   │       ├── push_store.py   #   PushSubscriptionStore, validate_subscription()
+│   │       ├── push_store.py   #   PushSubscriptionStore, validate_subscription(), Push_Host_Allowlist
 │   │       ├── webpush.py      #   PushSender, PyWebPushSender, WebPushNotifier, classify_push_status()
 │   │       ├── daily_brief.py  #   DailyBriefService
 │   │       ├── scheduler.py    #   scheduled_decision(), next_run_at(), DailyBriefScheduler
@@ -169,7 +172,8 @@ flowchart LR
         ├── api/client.ts (schema.d.ts는 리드가 재생성)
         ├── lib/push.ts, lib/location.ts, lib/strings.ts
         ├── components/DailyBriefCard.tsx, PushToggle.tsx, LocationToggle.tsx, GalleryImportList.tsx
-        ├── components/layout/BottomTabBar.tsx     #   "알림" 탭
+        ├── components/layout/BottomTabBar.tsx     #   "알림" 탭 (PR #10 tabs 배열 + Icon "bell")
+        ├── components/Icon.tsx, styles/automation.css (app.css에서 @import)
         └── pages/NotificationsPage.tsx, HomePage.tsx, HistoryPage.tsx, DemoPage.tsx, App.tsx(라우트)
 ```
 
@@ -279,15 +283,17 @@ sequenceDiagram
 | 쓰기 중 파일 | File_Signature `(size, mtime_ns)`가 0보다 크고, 연속 두 번 관찰에서 같고, 처음 관찰한 뒤 GALLERY_POLL_SECONDS가 지나야 Stable_File이다 | 크기만 보면 미리 할당하는 복사 도구에서 틀린다. mtime을 함께 본다. 그래도 쓰기가 오래 멈춘 경우 잘린 파일이 Phase 1 `check_image`에서 `INVALID_IMAGE_FORMAT`이 될 수 있다. 쓰기가 다시 시작되면 서명이 바뀌어 새 버전으로 다시 처리되므로 스스로 회복한다(Req 2.3) |
 | 후보·무시 규칙 | Phase 1 `SUPPORTED_EXTENSIONS`와 사이드카 규칙을 다시 쓰고, 숨김 파일, `~`, `.tmp`/`.part`/`.crdownload`/`.download`/`.partial`을 더 뺀다 | Phase 1 수집과 같은 확장자다(Req 2.1). 흉내 스크립트의 `.`로 시작하는 임시 파일도 이 규칙으로 무시된다 |
 | 기준선 | Gallery_Dir별 첫 시작 때 후보를 `baseline`으로 기록한다. 이후에는 SHA-256 중복 제거를 함께 쓴다 | 사용자 결정 1의 "이미 있던 사진은 다시 분석하지 않는다"를 지킨다. 데모 스캔 전이라도 `ex_img/`의 174장이 사용자 사진으로 잘못 수집되지 않는다. `app_state`에 `gallery.baseline:<gallery_key>` 표시를 남겨 빈 폴더 첫 시작과 기록 없음을 구분한다 |
-| 새 사진 경로 | User_Photo_Dir(`data/user/photos`)로 **바이트 그대로 복사**한 뒤 복사본을 Phase 1 `ingest_file()`에 넣는다. 사진 위치는 `user_photos(sha256 → file_name)`로 찾는다 | Photo_Dir에 넣으면 `test_demo_data_layout`, `test_image_check`(manifest 174장) 불변식이 깨진다. 원본 경로(`ex_img/`)로 바로 수집하면 갤러리에서 사진을 지우거나 옮길 때 기록 사진이 사라진다. 바이트 그대로 복사하므로 해시와 Embedded_Metadata가 같고, 중복 제거가 원본 기준으로 맞다. `outfits`에 열을 더하는 대신 별도 테이블을 쓴다. 그래서 Phase 1 테이블과 `OutfitCreate`가 바뀌지 않는다 |
+| 새 사진 경로 | User_Photo_Dir(`data/user/photos`)로 **바이트 그대로 복사**한 뒤 복사본을 Phase 1 `ingest_file()`에 넣는다. 사진 위치는 `user_photos(sha256 → file_name)`로 찾는다 | Photo_Dir에 넣으면 `test_demo_data_layout`, `test_image_check`(manifest 189장) 불변식이 깨진다. 원본 경로(`ex_img/`)로 바로 수집하면 갤러리에서 사진을 지우거나 옮길 때 기록 사진이 사라진다. 바이트 그대로 복사하므로 해시와 Embedded_Metadata가 같고, 중복 제거가 원본 기준으로 맞다. `outfits`에 열을 더하는 대신 별도 테이블을 쓴다. 그래서 Phase 1 테이블과 `OutfitCreate`가 바뀌지 않는다 |
 | 권한 규칙 충돌 | Phase 1 tasks 19.16 규칙은 "데모 데이터로 옮길 때"에만 적용한다. 감시 사진은 사용자 본인 사진이고, git 무시 폴더에만 두며, manifest는 그대로다 | 사용자 결정 1은 `ex_img/`를 사용자 갤러리로 본다. 데모 데이터(공개·커밋 대상)와 사용자 데이터(로컬 전용)를 저장 위치로 분리하면 두 규칙이 충돌하지 않는다(Req 4.3, 4.4) |
 | Vision과 게이트 | 두 모드 모두 시도 1회당 Vision 1회, main의 Photo_Gate 그대로 쓴다. fixture 모드에서는 Vision_Fixture_Overlay를 데모 fixture보다 먼저 찾는다 | fixture는 미등록 해시를 `uncertain`으로 판정하므로, overlay가 없으면 fixture 모드에서 새 사진이 저장되지 않는다. 흉내 스크립트가 파일을 넣기 **전에** overlay에 판정을 기록하면 경쟁 없이 저장된다. 데모 fixture 파일은 커밋 대상이라 고치지 않는다. overlay 판정도 `vision_provider=fixture`로 저장되어 화면에 fixture 라벨이 붙으므로, 실제 분석처럼 보이지 않는다 |
 | 재시도 | 일시적 오류(Vision API·시간 초과·스키마, 저장, 날씨, 파일 읽기, 복사)는 1분, 5분 뒤 다시 시도하고 3회째 실패하면 `failed`. 형식 오류·크기 초과는 바로 `failed`. `uncertain`과 `skipped_non_outfit`은 그 버전의 최종 결과 | 같은 파일이 2초마다 Gemini를 부르지 않게 한다. 파일 버전당 호출은 최대 3회다(Req 6.11). `uncertain`을 자동으로 다시 분석하면 fixture에서는 결과가 같고, Gemini에서는 비용만 든다. 사용자가 원하면 "다시 분석"(Req 6.8)을 누른다 |
-| 건너뛴 사진 알림 | `non_outfit`은 알리지 않는다. `uncertain`은 푸시하지 않고 Notifications_Page "확인이 필요한 사진"에만 보인다 | 실제 갤러리에는 음식·스크린샷이 많다. 사진마다 알리면 귀찮은 일이 늘어 제품 목표와 맞지 않는다(가정 A5). `uncertain`은 사용자가 할 수 있는 일(다시 분석)이 있어서 앱 안에만 보여 준다 |
+| 건너뛴 사진 알림 | `non_outfit`은 알리지 않는다. `uncertain`은 푸시하지 않고 Notifications_Page "확인이 필요한 사진"에만 보인다 | 실제 갤러리에는 음식·스크린샷이 많다. 사진마다 알리면 귀찮은 일이 늘어 제품 목표와 맞지 않는다(결정 A5). `uncertain`은 사용자가 할 수 있는 일(착장 맞음, 다시 분석)이 있어서 앱 안에만 보여 준다 |
+| uncertain 확정 | `POST /api/gallery/imports/{id}/confirm-outfit`. Vision을 다시 부르지 않고 저장된 판정의 태그로 `outfit` 판정을 만든다. Gallery_Dir 원본을 다시 복사하고 Phase 1 메타데이터 → 날씨 → 저장을 진행한다. Outfit 저장, `photo_analyses` 변경, `photo_confirmations` 감사 기록은 한 트랜잭션이다 | 결정 A5다. 원본을 다시 복사하는 이유는 `uncertain` 복사본을 남기지 않는 규칙(Req 3.4)을 그대로 두기 위해서다. 원본이 없거나 해시가 다르면 409를 낸다. 같은 바이트가 아니면 사용자가 본 사진과 저장할 사진이 다를 수 있기 때문이다. 태그가 모두 `unknown`이면 기록에는 보이지만 Phase 1 규칙대로 추천에서는 빠진다. 사용자에게 그 사실을 안내한다 |
+| Docker Compose | backend 서비스에 Phase 2 변수(감시·브리핑 기본 `true`, NOTIFIER `log`)를 넘기고 컨테이너 경로를 고정한다. 볼륨은 `ex_img` → `/data/gallery:ro`, `./data/user` → `/data/user`(바인드, 쓰기), named volume `vapid-keys` → `/data/secrets` | `read_only` 루트 파일시스템을 유지하려면 쓰는 곳을 모두 볼륨으로 빼야 한다. 감시는 Gallery_Dir에 쓰지 않으므로 `:ro`가 된다(Req 1.6). Capture_Simulator는 호스트에서 돌려 `ex_img/`와 `data/user/fixtures`에 쓰므로 `data/user`는 바인드 마운트다. 키는 호스트와 공유할 필요가 없어서 named volume에 둔다. 호스트 스크립트는 컨테이너 DB를 읽을 수 없으므로 위치는 `--lat/--lon` 또는 기본 위치를 쓴다 |
 | 메타데이터 대체 | 내장 메타데이터가 없으면 Estimated_Capture를 만들어 복사본 옆 사이드카로 쓴다. 그러면 Phase 1 사이드카 대체 경로가 읽는다(`source=demo_sidecar`, `metadata_synthetic=true`) | Phase 1 design이 이미 "내장 메타데이터가 없는 사진은 사이드카로 대체 출처를 쓴다"를 정의했다. 새 `source` 값을 넣으면 `outfits`의 CHECK 제약을 바꿔야 하는데, SQLite는 CHECK를 바꾸려면 테이블을 다시 만들어야 한다(Req 19.5 위반). 추정 여부는 `gallery_files.capture_origin`과 `user_photos.capture_estimated`에 남겨 화면에 "촬영 정보 추정"을 보인다. 사이드카는 Photo_Gate가 `outfit`일 때만 읽힌다 |
-| 추정 촬영 시각 | EXIF DateTimeOriginal(오프셋 없으면 APP_TIMEZONE) → 감시가 그 파일 버전을 처음 본 시각 | 사용자 결정 1의 "방금 찍었다고 가정"을 그대로 옮겼다. 파일 수정 시각은 Finder 복사에서 원래 값이 유지되므로 "방금"과 다를 수 있다. 서버가 멈춘 동안 생긴 파일은 재시작 시각이 되는 한계가 있다(열린 질문) |
+| 추정 촬영 시각 | EXIF DateTimeOriginal(오프셋 없으면 APP_TIMEZONE) → 파일 수정 시각(mtime, APP_TIMEZONE). mtime이 미래이면 처리 시각 | 결정 A3이다. mtime은 서버가 멈춘 동안 생긴 파일에도 실제 시각에 가깝고, `os.utime`으로 테스트를 결정적으로 만들 수 있다. Finder 복사처럼 원래 mtime이 유지되는 경우 오래된 시각이 될 수 있지만, 그 사진의 실제 날짜에 더 가깝다 |
 | 촬영 시점 날씨 | 최근 7일 안이면 Forecast `hourly` + `past_days`, 그 밖은 Phase 1 Archive. Forecast가 실패하면 Archive → fixture | Phase 1 리서치의 공식 권장을 따랐다. 데모 스캔(Phase 1)은 바꾸지 않는다(Req 7.5) |
-| 오늘 현재 날씨 | 브리핑만 Forecast `current`를 쓴다. 시나리오 선택 시 시나리오, 실패 시 `today_default` | Phase 1 오늘 날씨는 Archive로 조회해 대부분 fixture로 대체된다. 브리핑은 "현재 기온과 습도"가 목적이라 `current`가 맞다. 홈 화면은 가정 A8에 따라 그대로 둔다. 시나리오를 우선하는 이유는 데모에서 홈 화면 기온과 알림 기온이 어긋나지 않게 하기 위해서다 |
+| 오늘 현재 날씨 | 브리핑은 항상 Current_Weather_Service(시나리오 > Forecast `current` > `today_default`)를 쓴다. 홈 화면은 Live 모드에서만 같은 서비스를 쓰고(마지막 위치), fixture 모드는 Phase 1 그대로다 | 결정 A8이다. Phase 1 오늘 날씨는 Archive로 조회해서 Live 모드에서도 대부분 fixture로 대체된다. 브리핑과 Live 홈이 같은 서비스를 쓰면 같은 시각의 기온이 서로 어긋나지 않는다(Req 10.8). `TodayWeatherService`에는 선택 인자 `live_current`만 더한다. 그래서 Phase 1 단위 테스트가 직접 만드는 인스턴스는 동작이 그대로다 |
 | 스케줄러 | 앱 안 표준 라이브러리 루프(30초 tick, 주입한 시계) + CLI `scripts/daily_brief.py`(cron/launchd용). APScheduler는 쓰지 않는다 | 필요한 기능은 "하루 1회, 시각 이후, 놓치면 3시간 안 따라잡기"뿐이다. 순수 함수 `scheduled_decision()` 1개로 끝난다. APScheduler는 3.x와 4.x API가 크게 다르고 오프라인에서 버전을 확인할 수 없다. 멱등성도 결국 DB로 해야 한다(여러 프로세스). OS cron/launchd만 쓰면 사용자가 plist/crontab을 직접 설정해야 해서 제품 목표와 맞지 않는다. 그래서 CLI는 선택 경로로 둔다 |
 | 하루 1회 멱등성 | `daily_brief_runs`의 부분 고유 인덱스 `UNIQUE(brief_date) WHERE trigger='scheduled'`에 INSERT해 처리권을 얻는다 | 서버 재시작, `uvicorn --workers N`, CLI 동시 실행에도 1회만 나간다. 수동 실행은 인덱스 대상이 아니라서 데모에서 몇 번이든 보낼 수 있다(Req 13.1) |
 | 데이터 부족 | "비슷한 기온에서 입었던 착장 기록이 아직 없어요. 오늘 입은 옷을 찍어 두면 다음에 알려 드릴게요." 알림을 보낸다 | 알림이 오지 않으면 사용자는 기능이 고장 났다고 생각한다. 사진을 찍으라는 안내가 자동 수집으로 이어진다 |
@@ -296,15 +302,15 @@ sequenceDiagram
 | 알림 화면 | 홈에 Daily_Brief_Card를 새로 두고, Phase 1 Notification_Card(피드백 버튼)는 그대로 둔다 | Phase 1 카드의 동작과 테스트(Req 13)를 건드리지 않는다. 브리핑 카드는 읽기 전용이고, 누르면 그 Outfit 상세로 간다. 상세 화면에서 Phase 1 피드백을 남긴다 |
 | Notifier | 알림 기록을 먼저 저장한 뒤 Notifier로 보낸다. 기본값은 `log` | 웹 내부 카드는 기록만으로 동작한다. 그래서 `log`만으로 데모와 테스트가 끝난다. `webpush`는 같은 기록에 전달 결과만 더한다 |
 | Web Push | `pywebpush`로 보내고 키는 `cryptography`로 직접 만든다. 개인키는 PKCS8 PEM 파일(0600), 공개키는 base64url 파일. 404/410이면 구독을 지운다 | 키 생성 API가 단순하고 안정적이다. 파일 생성은 `O_CREAT|O_EXCL`이라 동시 첫 실행에도 1쌍만 생긴다. 키가 깨지면 지우지 않고 이름을 바꾼 뒤 다시 만든다. Phase 1 DB 백업과 같은 방식이다. 이전 키로 만든 구독은 새 키로 보낼 수 없으므로 지운다 |
-| DB 변경 | `create_all()`의 `CREATE TABLE IF NOT EXISTS`로 테이블 8개를 더하고 `user_version`을 2 → 3으로 올린다. 2 미만만 Phase 1처럼 백업 후 다시 만든다 | Phase 1 규칙(`user_version < SCHEMA_VERSION`이면 백업 후 새로 만들기)을 그대로 두고 버전만 3으로 올리면 모든 Phase 1 DB가 백업되고 사용자 피드백이 활성 DB에서 사라진다. 바뀌는 것이 새 테이블뿐이라 추가 방식으로 충분하다. main도 `photo_analyses`를 같은 방식으로 더했다 |
-| 환경 변수 | 9개를 더한다(합계 21개). 값 검증은 Phase 1처럼 이슈를 기록하고 기본값으로 대체한다 | 시간 간격·재시도 같은 운영 상수는 코드 상수로 둔다(Recent_Weather_Window 7일, Catch_Up_Window 3시간, 재시도 1분/5분). 변수가 늘수록 사용자 설정 부담이 커지기 때문이다 |
+| DB 변경 | `create_all()`의 `CREATE TABLE IF NOT EXISTS`로 테이블 9개를 더하고 `user_version`을 2 → 3으로 올린다. 2 미만만 Phase 1처럼 백업 후 다시 만든다 | Phase 1 규칙(`user_version < SCHEMA_VERSION`이면 백업 후 새로 만들기)을 그대로 두고 버전만 3으로 올리면 모든 Phase 1 DB가 백업되고 사용자 피드백이 활성 DB에서 사라진다. 바뀌는 것이 새 테이블뿐이라 추가 방식으로 충분하다. main도 `photo_analyses`를 같은 방식으로 더했다 |
+| 환경 변수 | 10개를 더한다(합계 22개). 값 검증은 Phase 1처럼 이슈를 기록하고 기본값으로 대체한다 | 시간 간격·재시도 같은 운영 상수는 코드 상수로 둔다(Recent_Weather_Window 7일, Catch_Up_Window 3시간, 재시도 1분/5분). 변수가 늘수록 사용자 설정 부담이 커지기 때문이다 |
 
 ## Components and Interfaces
 
 ### 1. AutomationConfig (`app/config.py`, 리드)
 
 ```python
-class RawSettings(BaseSettings):          # Phase 1 필드 11개 + 아래 9개
+class RawSettings(BaseSettings):          # Phase 1 필드 11개 + 아래 10개
     GALLERY_WATCH_ENABLED: str = "false"
     GALLERY_DIR: str = "./ex_img"
     GALLERY_POLL_SECONDS: str = "2"
@@ -314,6 +320,7 @@ class RawSettings(BaseSettings):          # Phase 1 필드 11개 + 아래 9개
     NOTIFIER: str = "log"
     VAPID_KEY_DIR: str = "./data/secrets"
     VAPID_SUBJECT: str = "mailto:weatherwear@example.com"
+    PUSH_ALLOWED_HOSTS: str = ""          # 쉼표 구분 호스트 이름 또는 *.도메인 (검토 반영)
 
 @dataclass(frozen=True)
 class AutomationConfig:                   # 기본값 = 모두 꺼짐 (Req 18.4)
@@ -326,6 +333,7 @@ class AutomationConfig:                   # 기본값 = 모두 꺼짐 (Req 18.4)
     notifier: Literal["log", "webpush"] = "log"
     vapid_key_dir: Path = Path("./data/secrets")
     vapid_subject: str = "mailto:weatherwear@example.com"
+    push_allowed_hosts: tuple[str, ...] = ()   # DEFAULT_PUSH_HOSTS에 더할 호스트
 
     @property
     def vision_overlay_path(self) -> Path:   # data/user/fixtures/vision.overlay.json
@@ -338,13 +346,14 @@ class AppConfig:                          # Phase 1 필드 11개는 그대로
 
 def parse_bool(value: str) -> bool | None: ...          # true/false/1/0/yes/no/on/off, 대소문자 무시
 def parse_hhmm(value: str) -> time | None: ...          # ^([01]\d|2[0-3]):[0-5]\d$
+def parse_host_list(value: str) -> tuple[str, ...] | None: ...   # 소문자, 중복 제거, 항목 하나라도 틀리면 None
 def resolve_automation_config(raw: Mapping[str, str], *, photo_dir: Path) -> tuple[AutomationConfig, list[ConfigIssue]]: ...
 ```
 
 - `resolve_config()`는 Phase 1 해석 뒤 `resolve_automation_config()`를 불러 결과를 `automation`에 넣고 이슈를 합친다. 메시지에는 변수 이름과 허용값만 넣는다(Req 18.2).
-- `main.resolve_paths()`가 `gallery_dir`, `user_photo_dir`, `vapid_key_dir`도 저장소 루트 기준 절대 경로로 바꾼다(Req 18.3). 경로 충돌 검사(Req 4.2)는 절대 경로가 된 뒤 `resolve_paths()`에서 한다. `user_photo_dir`이 `photo_dir`/`gallery_dir`와 같거나 조상·자손 관계이면 이슈를 기록하고 기본값(절대 경로)을 쓴다. 기본값도 충돌하면 감시를 끈다.
+- `main.resolve_automation_paths(config, root, *, issues=None)`가 `gallery_dir`, `user_photo_dir`, `vapid_key_dir`를 저장소 루트 기준 절대 경로로 바꾼다(Req 18.3). `create_app`은 `resolve_automation_paths(resolve_paths(config))` 순서로 부른다. Phase 1 `resolve_paths()`는 그대로 두어 Phase 1 `test_resolve_paths_uses_repo_root_for_relative_paths`가 고치지 않고 통과한다. 경로 충돌 검사(Req 4.2)는 `resolve_automation_config()`에서 설정 문자열 기준으로 한 번, `resolve_automation_paths()`에서 절대 경로 기준으로 한 번 더 한다. `user_photo_dir`이 `photo_dir`/`gallery_dir`와 같거나 조상·자손 관계이면 이슈를 기록하고 기본값(절대 경로)을 쓴다. 기본값도 충돌하면 감시를 끈다.
 - `VITE_API_BASE_URL`처럼 프론트엔드 전용 변수는 더하지 않는다(Req 16.10).
-- `.env.example`에 9개 변수를 더한다(Req 18.5). Phase 1 테스트 2개는 Phase 1 목록(12/11)과 Phase 2 목록(9/9)의 합으로 정확히 비교하도록 고친다(Req 20.4).
+- `.env.example`에 10개 변수를 더한다(Req 18.5). Phase 1 테스트 2개는 Phase 1 목록(12/11)과 Phase 2 목록(10/10)의 합으로 정확히 비교하도록 고친다(Req 20.4).
 
 ### 2. Phase 1 접점의 작은 리팩터 (리드)
 
@@ -367,6 +376,10 @@ class ImageIngestionService:
 ```
 
 `create_outfit_bundle()`이 돌려주는 id를 `Stored.outfit_id`로 내보낸다. 기존 `test_ingestion*.py`, `test_integration.py`가 고치지 않고 통과하는지로 리팩터를 확인한다.
+
+uncertain 확정(Req 6.12~6.15)을 위해 선택 인자 두 개를 더한다. `ingest_file(..., analysis_override: VisionAnalysis | None = None, before_commit: Callable[[Session], None] | None = None)`. `analysis_override`가 있으면 Vision 호출, Photo_Gate, `save_photo_analysis`를 건너뛰고 그 판정으로 메타데이터 → 날씨 → 저장을 진행한다. `before_commit`은 `OutfitRepository.create_outfit_bundle(..., before_commit=...)`로 넘겨 같은 트랜잭션 안에서 부른다. 기본값 `None`이면 동작은 그대로다.
+
+**Live 홈 오늘 날씨** (`app/today_weather.py`, B, Req 10.7, 10.8): `TodayWeatherService(..., live_current: Callable[[], WeatherContext] | None = None)`. 시나리오가 없고 `live_current`가 있으면 그 결과를 쓴다. 컨테이너는 `weather_provider == "open_meteo"`일 때만 `lambda: current_weather.get_current(location.brief_location()[0])`를 넘긴다(7.1). fixture 모드와 Phase 1 단위 테스트는 `None`이라 그대로다.
 
 **`RecommendationService.recommendations_for(today: WeatherContext) -> RecommendationResponse`** (`app/recommendation/service.py`): `today_recommendations()`의 본문을 옮기고, 기존 메서드는 `self.recommendations_for(self._today_weather.get_today())`만 부른다(Req 11.1).
 
@@ -428,7 +441,7 @@ class GalleryStore:
         """pending, 또는 next_attempt_at ≤ now인 retry_wait, 또는 lease가 끝난 processing. (first_seen_at, file_name) 순."""
     def claim(self, row_id: int, now: datetime) -> bool:
         """UPDATE … SET status='processing', lease_until=now+LEASE WHERE id=? AND (조건은 due_rows와 같음). rowcount==1."""  # Req 1.7
-    def finish(self, row_id: int, outcome: ImportOutcome, now: datetime) -> None: ...
+    def finish(self, row_id: int, outcome: ImportOutcome, now: datetime) -> bool: ...   # failed면 같은 트랜잭션에서 duplicate 재개
     def active_with_sha(self, sha256: str, *, exclude_id: int) -> bool: ...   # 같은 해시의 다른 imported/uncertain/활성 행
     def reset_for_reanalyze(self, row_id: int) -> Literal["ok", "not_found", "not_allowed"]: ...   # Req 6.8
     def list_imports(self, limit: int, status: GalleryStatus | None) -> list[GalleryFileRow]: ...   # baseline 제외
@@ -440,6 +453,13 @@ class GalleryStore:
 ```
 
 tracker는 메모리에만 둔다. 재시작하면 처음부터 다시 관찰하지만, `upsert_version`이 서명이 같은 행을 무시하므로 다시 처리되지 않는다.
+
+**같은 바이트의 앞 파일이 실패할 때 (검토 반영, Req 2.6)**
+
+- `finish()`가 `failed`를 기록하면, 같은 트랜잭션에서 그 해시의 다른 행 가운데 `imported`, `uncertain`, `retry_wait`, `pending`, `processing`이 있는지 본다.
+- 하나도 없으면 그 해시로 `duplicate`가 된 행을 `pending`으로 되돌린다. attempts는 0, 결과 필드는 비우고, sha256은 그대로 둔다.
+- 되돌린 행은 다음 `due_rows()`에서 그 해시의 새 보유자로 처리된다.
+- 전에는 앞 파일이 `retry_wait`인 동안 들어온 같은 바이트 사진이 `duplicate`로 끝나서, 앞 파일이 실패하면 그 사진이 영영 저장되지 않았다.
 
 ### 5. 추정 촬영 정보 (`app/gallery/estimate.py`, A, 순수 함수)
 
@@ -456,12 +476,12 @@ class EstimatedCapture:
     captured_at: datetime                 # 항상 aware
     latitude: float
     longitude: float
-    time_source: Literal["exif_datetime", "first_seen"]
+    time_source: Literal["exif_datetime", "file_mtime"]
     location_source: Literal["exif_gps", "browser", "default"]
 
 def read_partial_exif(data: bytes) -> PartialExif: ...     # Phase 1 metadata.py의 DMS 변환 helper 재사용
-def estimate_capture(partial: PartialExif, first_seen: datetime, last_location: LatLon | None,
-                     default_location: LatLon, tz: ZoneInfo) -> EstimatedCapture: ...   # Req 5.2, 5.6
+def estimate_capture(partial: PartialExif, file_mtime: datetime, now: datetime, last_location: LatLon | None,
+                     default_location: LatLon, tz: ZoneInfo) -> EstimatedCapture: ...   # Req 5.2, 5.6 (mtime > now → now)
 def estimated_sidecar_json(estimate: EstimatedCapture) -> str:
     """{"captured_at": iso(오프셋 포함), "latitude", "longitude", "estimated": true,
         "time_source", "location_source"} — 추가 필드는 Phase 1 parse_sidecar_text가 무시한다."""   # Req 5.3, 5.7
@@ -512,6 +532,26 @@ class GalleryImportService:
    - `NotOutfit` → `skipped_non_outfit` 또는 `uncertain`(decision). 복사본·사이드카·`user_photos` 삭제(Req 3.4).
    - `Failed` → `failure_transition()`. 최종 `failed`이면 복사본·사이드카·`user_photos`를 지운다. `retry_wait`이면 복사본을 남겨 다음 시도에 다시 쓴다.
 7. 로그에는 파일 이름, 상태, 단계·코드만 남긴다(Req 6.10).
+
+**uncertain 확정** (`app/gallery/confirm.py`, A, Req 6.12~6.15):
+
+```python
+class ConfirmOutcome(Enum): CONFIRMED, NOT_FOUND, NOT_CONFIRMABLE, SOURCE_MISSING
+
+def confirmed_analysis(stored: VisionAnalysis | None) -> VisionAnalysis:
+    """photo_type='outfit', photo_type_confidence=stored 값(없으면 0.0), reason='user confirmed',
+    tags=stored.tags (없으면 UNKNOWN_TAGS). Photo_Gate를 거치지 않는다."""
+
+class OutfitConfirmService:
+    def confirm(self, row_id: int, now: datetime) -> tuple[ConfirmOutcome, GalleryFileRow | None]:
+        """claim(status='uncertain' → 'processing') 실패 → NOT_CONFIRMABLE.
+        원본 재읽기 + SHA-256 비교 실패 → 상태 원복, SOURCE_MISSING(409).
+        복사 → (내장 메타데이터 없으면 추정 사이드카) → ingest_file(copy, analysis_override=…, before_commit=write_audit)
+        write_audit: photo_analyses UPDATE(outfit) + photo_confirmations INSERT. Stored → finish(imported).
+        Failed → 복사본 정리, 상태 uncertain 원복, 오류 코드 반환."""
+```
+
+Vision 호출이 없으므로 재시도 일정(Req 6.5)을 적용하지 않는다. 확정 중 실패하면 기록은 `uncertain`으로 돌아가고 API는 Phase 1 오류 형식으로 실패를 알린다.
 
 갤러리 수집용 `ImageIngestionService`는 컨테이너가 따로 만든다. `photo_dir=user_photo_dir`, `weather=RecentWeatherProvider`, Vision은 API_Server와 같은 provider다.
 
@@ -795,10 +835,16 @@ class VapidKeyStore:
 ### 17. Push 구독과 WebPushNotifier (`app/notifications/{push_store,webpush}.py`, B)
 
 ```python
-def validate_subscription(payload: PushSubscriptionIn) -> str | None:
-    """endpoint: https://, ≤ 2048자. p256dh: base64url → 65바이트, 0x04 시작. auth: base64url → 16바이트."""   # Req 15.5
+DEFAULT_PUSH_HOSTS = ("fcm.googleapis.com", "android.googleapis.com", "updates.push.services.mozilla.com",
+                      "*.notify.windows.com", "web.push.apple.com")    # Push_Host_Allowlist 기본값 (검토 반영)
 
-class PushSubscriptionStore:
+def endpoint_allowed(endpoint: str, patterns: Sequence[str]) -> bool:
+    """https, userinfo 없음, 포트 없음 또는 443, 호스트가 patterns 중 하나와 일치(*.도메인은 하위 호스트만)."""
+
+def validate_subscription(payload: PushSubscriptionIn, allowed_hosts: Sequence[str] = DEFAULT_PUSH_HOSTS) -> str | None:
+    """endpoint: https://, ≤ 2048자, endpoint_allowed. p256dh: base64url → 65바이트, 0x04 시작. auth: base64url → 16바이트."""   # Req 15.5
+
+class PushSubscriptionStore:                   # (engine, clock, *, allowed_hosts) — upsert가 같은 목록으로 검증
     def upsert(self, sub: PushSubscriptionIn, public_key: str, now: datetime) -> int: ...   # endpoint UNIQUE
     def delete(self, sub_id: int) -> bool: ...
     def list_active(self) -> list[PushSubscriptionRow]: ...
@@ -824,10 +870,18 @@ class WebPushNotifier:
     name = "webpush"
     def send(self, n: NotificationRecord) -> list[DeliveryResult]:
         """payload = json {"title","body","url","notification_id","kind"} (UTF-8, ≤ 3000바이트, 넘으면 body 자르기).
-        구독마다 sender.send 1회, gone이면 store.delete. 키를 못 얻으면 [] (기록만)."""   # Req 14.3, 15.7, 15.8, 15.10
+        구독마다 sender.send 1회, gone이면 store.delete. 키를 못 얻으면 [] (기록만).
+        endpoint_allowed가 거짓인 저장 구독은 보내지 않고 failed/PUSH_ENDPOINT_NOT_ALLOWED."""   # Req 14.3, 15.5, 15.7, 15.8, 15.10
 ```
 
 로그에는 구독 id와 `urlparse(endpoint).hostname`만 남긴다(Req 18.7).
+
+**Push_Host_Allowlist (검토 반영, Req 15.5)**
+
+- API에는 인증이 없다. 그래서 목록이 없으면 누구나 임의 endpoint를 등록할 수 있다. 그러면 `POST /api/push/test`나 브리핑이 서버에서 그 주소(사설 IP, 클라우드 메타데이터 주소 포함)로 HTTP 요청을 보내게 된다(SSRF).
+- 런타임은 `DEFAULT_PUSH_HOSTS + config.automation.push_allowed_hosts`로 `PushSubscriptionStore`를 만든다.
+- API는 422 판정 전에 그 저장소의 `allowed_hosts`로 검증한다.
+- 목록은 요청 위조를 막을 뿐 인증을 대신하지 않는다. README "인증 없는 로컬 전용 API"가 공개 주소로 열 때의 위험을 적는다.
 
 ### 18. DailyBriefService와 스케줄러 (`app/notifications/{daily_brief,scheduler}.py`, `scripts/daily_brief.py`, B)
 
@@ -845,14 +899,18 @@ class DailyBriefService:
                  notifier: Notifier, runs: DailyBriefRuns, tz: ZoneInfo, clock: Callable[[], datetime]): ...
     def run(self, trigger: Trigger, brief_date: date | None = None) -> BriefRunResult:
         """process-wide Lock(non-blocking) 실패 → DailyBriefInProgress (API 409).
-        scheduled: runs.claim(brief_date) 실패 → BriefRunResult(skipped=True).
+        scheduled: runs.claim(brief_date)도 runs.retry(brief_date)도 실패 → BriefRunResult(skipped=True).
         위치 → 현재 날씨 → recommendations_for → compose_brief → log.create → notifier.send → log.add_deliveries → runs.finish."""
 
 def scheduled_decision(now_local: datetime, brief_time: time, run: RunRow | None
                        ) -> Literal["run", "retry", "wait", "missed", "done"]:
     """start = combine(now_local.date(), brief_time, tz); end = start + CATCH_UP.
     now < start → wait; now ≥ end → (run 없음 → missed, 있음 → done);
-    run 없음 → run; run.status == failed and attempts < 3 and now ≥ run.last + 10분 → retry; 그 밖 → done."""   # Req 12.1, 12.4, 12.5, 12.8
+    run 없음 → run; counts_as_failed(run, now) and attempts < 3 and now ≥ run.last + 10분 → retry; 그 밖 → done."""   # Req 12.1, 12.4, 12.5, 12.8
+
+STALE_RUNNING_AFTER = timedelta(minutes=10)
+def is_interrupted(run: RunRow, now: datetime) -> bool: ...    # running, notification_id 없음, now ≥ started_at + 10분
+def counts_as_failed(run: RunRow, now: datetime) -> bool: ...  # failed or is_interrupted (검토 반영)
 
 def next_run_at(now: datetime, brief_time: time, tz: ZoneInfo, done_today: bool) -> datetime: ...   # Automation_Status 표시용
 
@@ -865,26 +923,33 @@ class DailyBriefScheduler:
 
 - 현지 날짜와 시각은 `now.astimezone(tz)`로 계산한다. `datetime.combine(..., tzinfo=tz)`에서 DST gap/overlap이 생겨도 날짜 키가 1개라 실행은 1회다(Req 12.7).
 - 시계가 뒤로 가도 이미 있는 행 때문에 다시 실행되지 않는다(Req 12.8).
-- `DailyBriefRuns.claim(date)`는 부분 고유 인덱스에 INSERT한다(`status=running`, `attempts=1`). `retry`는 같은 행을 `UPDATE … WHERE status='failed' AND attempts < 3`으로 되찾는다.
+- `DailyBriefRuns.claim(date)`는 부분 고유 인덱스에 INSERT한다(`status=running`, `attempts=1`).
+- `retry`는 그 날짜의 행을 읽어서 `counts_as_failed`이고 attempts < 3일 때 되찾는다. 조건은 `UPDATE … WHERE id=? AND status=<읽은 값> AND attempts=<읽은 값> AND notification_id IS NULL`이다. 시도마다 status나 attempts가 바뀌므로 두 프로세스가 같은 행을 동시에 되찾아도 하나만 성공한다.
+- **중단된 실행 (검토 반영, Req 12.5)**
+  - `log.create(..., before_commit=…)`가 알림 행과 실행 행의 `notification_id`를 한 트랜잭션에 쓴다(`DailyBriefRuns.link_notification`).
+  - 그래서 `running`인데 notification_id가 없는 행은 알림을 저장하기 전에 멈춘 실행뿐이다. 시작 뒤 10분이 지나면 실패로 보고 같은 재시도 규칙(10분, 최대 3회, Catch_Up_Window 안)을 적용한다.
+  - 전달 중에 죽은 실행은 `running`에 notification_id가 있으므로 다시 시도하지 않는다(하루 1회 유지).
+  - Automation_Status의 `last_scheduled.status`는 `effective_status`를 보인다(중단된 실행은 `failed`).
 - `scripts/daily_brief.py [--force]`: 스케줄러와 같은 서비스로 `run("scheduled", today)` 또는 `run("manual")`을 부른다. `skipped`이면 "이미 보냄"을 출력하고 0으로 끝낸다(Req 12.6).
 - `skipped_non_outfit`/`uncertain` 사진은 브리핑 입력(RecommendationService)에 들어가지 않는다. Photo_Gate가 저장하지 않기 때문이다(Req 6.9).
 
 ### 19. REST API (Phase 2 추가분)
 
-Phase 1 공통 오류 형식 `{"error": {"code", "message"}}`를 그대로 쓴다. 스키마는 `schemas_automation.py`에 두고 OpenAPI로 노출한다.
+Phase 1 공통 오류 형식 `{"error": {"code", "message"}}`를 그대로 쓴다. 스키마는 `schemas_automation.py`에 두고 OpenAPI로 노출한다. 경로 변수 이름은 Phase 1 `{outfit_id}`처럼 `{import_id}`, `{subscription_id}`다(요구사항의 `{id}`와 같은 URL). 1.7 골격 단계에서는 본문을 채우지 않은 경로가 501 `NOT_IMPLEMENTED`("아직 준비되지 않은 기능입니다.")를 낸다. 이 코드는 해당 태스크가 경로를 채우면 더 나오지 않는다.
 
 | 메서드 · 경로 | 성공 | 오류 | 소유 | Req |
 |---|---|---|---|---|
 | `GET /api/automation/status` | 200 `AutomationStatusOut` | – | 리드 | 17.1, 17.2, 1.5 |
 | `GET /api/gallery/imports?limit&status` | 200 `list[GalleryImportOut]` | 422 `VALIDATION_ERROR` | A | 17.3, 5.5, 6.9 |
-| `POST /api/gallery/imports/{id}/reanalyze` | 202 `GalleryImportOut` | 404 `GALLERY_IMPORT_NOT_FOUND`, 409 `GALLERY_IMPORT_NOT_REANALYZABLE` | A | 6.8 |
+| `POST /api/gallery/imports/{import_id}/reanalyze` | 202 `GalleryImportOut` | 404 `GALLERY_IMPORT_NOT_FOUND`, 409 `GALLERY_IMPORT_NOT_REANALYZABLE` | A | 6.8 |
+| `POST /api/gallery/imports/{import_id}/confirm-outfit` | 200 `GalleryImportOut`(imported, outfit_id) | 404 `GALLERY_IMPORT_NOT_FOUND`, 409 `GALLERY_IMPORT_NOT_CONFIRMABLE`, 500 `STORAGE_ERROR` | A | 6.12~6.15 |
 | `POST /api/location` | 200 `LocationOut` | 422 `INVALID_LOCATION` | 리드 | 9.1, 9.2 |
 | `GET /api/location` | 200 `LocationStateOut` | – | 리드 | 9.3 |
 | `GET /api/notifications?limit&kind` | 200 `list[NotificationOut]` | 422 `VALIDATION_ERROR` | B | 14.5 |
 | `POST /api/daily-brief/run` | 200 `DailyBriefRunOut` | 409 `DAILY_BRIEF_IN_PROGRESS` | B | 13.1~13.3 |
 | `GET /api/push/vapid-public-key` | 200 `{"public_key": str}` | 503 `VAPID_KEY_UNAVAILABLE` | B | 15.1, 15.4, 15.10 |
 | `POST /api/push/subscriptions` | 201 `{"id": int}` | 422 `PUSH_SUBSCRIPTION_INVALID` | B | 15.5 |
-| `DELETE /api/push/subscriptions/{id}` | 204 | 404 `PUSH_SUBSCRIPTION_NOT_FOUND` | B | 15.6 |
+| `DELETE /api/push/subscriptions/{subscription_id}` | 204 | 404 `PUSH_SUBSCRIPTION_NOT_FOUND` | B | 15.6 |
 | `POST /api/push/test` | 200 `NotificationOut` | 409 `WEB_PUSH_DISABLED`, 503 `VAPID_KEY_UNAVAILABLE` | B | 15.9 |
 
 주요 스키마는 다음과 같다. 모든 datetime은 오프셋을 포함한다(Phase 1 Req 10.10).
@@ -939,8 +1004,11 @@ class AutomationStatusOut(BaseModel):
 
 `AppContainer`에 다음 필드를 더한다. 모두 기본값 `None`이고 `build_container`가 채운다.
 
-- `location`, `gallery_store`, `gallery_importer`, `gallery_watcher`(감시 꺼짐이면 `None`)
-- `notification_log`, `push_store`, `vapid_keys`, `notifier`, `daily_brief`, `brief_scheduler`(꺼짐이면 `None`)
+- `location`, `place_label`(1.8에서 `fallback_place_label` "현재 위치", 7.1에서 `notifications.places.place_label`로 교체)
+- `gallery_store`, `gallery_importer`, `gallery_watcher`(감시 꺼짐이면 `None`), `outfit_confirm`(3.20의 `OutfitConfirmService`)
+- `current_weather`, `notification_log`, `push_store`, `vapid_keys`, `notifier`, `daily_brief`, `brief_scheduler`(꺼짐이면 `None`)
+
+라우터는 `deps.get_*` 의존성 함수로 서비스를 받는다. 필드가 `None`이면 `deps.require()`가 501 `NOT_IMPLEMENTED`를 낸다. 흐름 A·B의 API 테스트는 `app.dependency_overrides[get_*]`로 자기 서비스를 넣어 7.1 연결 전에도 돈다.
 
 갤러리 런타임은 `gallery/runtime.py`, 브리핑 런타임은 `notifications/runtime.py`의 builder가 만든다. 각 흐름이 자기 builder만 고치므로 `deps.py` 충돌이 없다.
 
@@ -1000,15 +1068,18 @@ export async function reportLocation(api: Api): Promise<"sent" | "denied" | "tim
 
 **화면** (Req 14.6, 16.8, 16.11, 13.4, 17.4, 5.5, 6.9):
 
-- `DailyBriefCard`: `GET /api/notifications?kind=daily_brief&limit=1` 결과가 오늘(`/api/meta`의 `app_timezone` 기준)이면 표시한다. Soft Glass 알림 배너 스타일로 앱 아이콘, "WeatherWear · 오늘 07:30", 본문, Outfit 썸네일, FixtureBadge(날씨 fixture일 때)를 보인다. 누르면 `url`로 이동한다. 홈에서 Phase 1 `NotificationCard` 위에 둔다.
+PR #10 UI 구조에 맞춘다. 화면 구조는 `HomePage`의 `home-dashboard` 그리드, `BottomTabBar`의 `tabs` 배열 + `app-nav`/`nav-link` + `Icon`, `AppShell`의 `ShellFrame`이다. Phase 2 스타일은 `src/styles/automation.css` 한 파일에 두고 `app.css`에서 `@import` 1줄로 불러온다. 여러 태스크가 `app.css`를 동시에 고치지 않기 위해서다. `Icon`의 `name`에 `bell`을 더한다.
+
+- `DailyBriefCard`: `GET /api/notifications?kind=daily_brief&limit=1` 결과가 오늘(`/api/meta`의 `app_timezone` 기준)이면 표시한다. `glass` 표면의 알림 배너로 "WeatherWear · 오늘 07:30", 본문, Outfit 썸네일, FixtureBadge(날씨 fixture일 때)를 보인다. 누르면 `url`로 이동한다. 홈 `home-dashboard`의 맨 앞에 `<div className="home-brief">`로 둔다(`home-weather` 앞). `home-feedback`의 Phase 1 `NotificationCard`는 그대로다.
 - `NotificationsPage`(`/notifications`): `PushToggle`(상태 4종 + 켜기/끄기 + 차단 안내), `LocationToggle`(마지막 보고 시각·Place_Label, "현재 위치 사용"), 브리핑 설정(사용 여부·시각, 읽기 전용), 최근 알림 목록, "확인이 필요한 사진"(`GET /api/gallery/imports?status=uncertain`)과 "다시 분석" 버튼이 있다. 앱을 열 때 `AppShell`에서 `shouldReportLocation`이 true이면 `reportLocation()`을 조용히 부른다.
-- `BottomTabBar`: 홈 / 기록 / 알림, 개발 모드에서만 데모를 더한다. `AppShell.test.tsx` 기대값을 고친다(Req 20.4).
+- `BottomTabBar`: `tabs` 배열에 `{ to: "/notifications", label: STRINGS.nav.notifications, icon: "bell", end: false }`를 기록 다음에 더한다(홈 / 기록 / 알림, 개발 모드에서만 데모). `AppShell.test.tsx` 기대값을 고친다(Req 20.4).
+- "확인이 필요한 사진" 항목에는 "착장 맞음"(`POST …/confirm-outfit`, 처리 중 비활성, 성공 시 목록에서 빼고 태그가 모두 `unknown`이면 "태그가 없어 추천에는 쓰이지 않아요" 안내)과 "다시 분석" 버튼이 있다.
 - `HistoryPage`: `document.visibilitychange`로 `visible`이 되면 목록을 다시 불러온다. 이때 이전 목록은 유지한다(Phase 1 Req 12.7).
 - `DemoPage`: "오늘 브리핑 지금 보내기" 버튼(30초 제한, 중복 방지, 실패 표시)과 자동화 상태 카드(감시 동작·마지막 확인·최근 처리 5건·다음 브리핑·NOTIFIER)를 더한다.
 - `GalleryImportList`: 상태 칩은 가져옴·중복·비착장 제외·확인 필요·재시도 대기·실패이고, `capture_origin=estimated`에는 "촬영 정보 추정"을 붙인다.
 - 문구는 모두 `strings.ts`의 `notifications`, `push`, `location`, `gallery`, `brief` 묶음에 둔다(Req 16.9).
 
-**번들 검사** (`scripts/check-bundle.mjs`, Req 18.8): 기존 `GEMINI` 검사에 두 가지를 더한다. (1) `PRIVATE KEY` 문자열. (2) VAPID_KEY_DIR(프로세스 환경 변수 → 루트 `.env` → `data/secrets`)의 `vapid_private.pem`이 있으면 PEM 본문 base64에서 연속 16자 창 전체를 검사한다. 출력에는 파일 이름만 나온다.
+**번들 검사** (`scripts/check-bundle.mjs`, Req 18.8): 기존 `GEMINI` 검사에 두 가지를 더한다. (1) `PRIVATE KEY` 문자열. (2) VAPID_KEY_DIR(프로세스 환경 변수 → 루트 `.env` → `data/secrets`)의 `vapid_private.pem`이 있으면 PEM 본문 base64에서 연속 16자 창 전체를 검사한다. 검토 반영으로 PEM에서 꺼낸 개인 스칼라 `d`의 base64url·표준 base64(16자 창)와 hex 소문자·대문자(24자 창)도 검사한다. 형태 계산은 `scripts/vapid-secret-forms.mjs`에 있고, `src/checkBundle.test.ts`가 매번 새로 만든 임시 키로 확인한다. 출력에는 파일 이름만 나온다.
 
 ## Data Models
 
@@ -1054,6 +1125,17 @@ erDiagram
     TEXT gallery_file_name
     INTEGER capture_estimated "0/1"
     TEXT created_at
+  }
+  photo_confirmations {
+    INTEGER id PK
+    TEXT sha256 "64 hex"
+    INTEGER gallery_file_id FK
+    INTEGER outfit_id FK
+    TEXT previous_photo_type "uncertain"
+    REAL previous_confidence
+    TEXT previous_reason
+    TEXT source "user_action"
+    TEXT confirmed_at "UTC ISO"
   }
   user_location {
     INTEGER id PK "CHECK id = 1"
@@ -1113,6 +1195,7 @@ erDiagram
 
 - `gallery_files`: `UNIQUE(gallery_key, file_name)`. status·capture_origin·photo_type에 CHECK를 둔다. 인덱스는 `(gallery_key, status, next_attempt_at)`, `(sha256)`, `(updated_at DESC, id DESC)`. `outfit_id REFERENCES outfits(id) ON DELETE SET NULL`.
 - `user_photos.file_name UNIQUE`: 복사본 이름 충돌을 막는 최종 방어선이다.
+- `photo_confirmations`: INSERT만 한다(감사 기록). `UNIQUE(gallery_file_id)`로 같은 기록의 이중 확정을 막는다. `outfit_id … ON DELETE SET NULL`.
 - `user_location`: `CHECK (id = 1)`로 1행만 둔다(Req 9.4).
 - `push_subscriptions.endpoint UNIQUE`(Req 15.5).
 - `notifications`: 인덱스 `(created_at DESC, id DESC)`, `(kind, created_at)`. `kind` CHECK.
@@ -1190,7 +1273,7 @@ def migrate_schema(path: Path | None, engine: Engine) -> Literal["new", "rebuilt
 
 ### Property 6: 추정 촬영 정보 우선순위
 
-*For any* (DateTimeOriginal 있음/없음, OffsetTimeOriginal 있음/없음, GPS 유효/없음/범위 밖, Last_Location 있음/없음, 임의 first_seen과 tz) 조합에 대해, `estimate_capture`는 Req 5.2의 우선순위를 옮긴 참조 함수와 같은 시각·위치·출처를 돌려주고, captured_at은 항상 aware이며, 위경도는 항상 범위 안이다. 내장 메타데이터가 유효하면 수집은 Phase 1 값과 `source=exif`를 쓴다.
+*For any* (DateTimeOriginal 있음/없음, OffsetTimeOriginal 있음/없음, GPS 유효/없음/범위 밖, Last_Location 있음/없음, 임의 mtime(현재보다 미래 포함)·now·tz) 조합에 대해, `estimate_capture`는 Req 5.2의 우선순위를 옮긴 참조 함수와 같은 시각·위치·출처를 돌려주고, captured_at은 항상 aware이며, 위경도는 항상 범위 안이다. 내장 메타데이터가 유효하면 수집은 Phase 1 값과 `source=exif`를 쓴다.
 
 **Validates: Requirements 5.1, 5.2, 5.6**
 
@@ -1268,7 +1351,7 @@ def migrate_schema(path: Path | None, engine: Engine) -> Literal["new", "rebuilt
 
 ### Property 19: 예약 실행은 날짜당 1회다
 
-*For any* 시계 진행 순서(30초 tick, 재시작, 뒤로 가는 시각, 날짜 경계, 서버가 Catch_Up_Window 뒤에 켜짐, DST가 있는 타임존)와 예외 주입에 대해, `scheduled_decision` + `DailyBriefRuns.claim`으로 만든 예약 알림 수는 현지 날짜마다 1 이하이고, 시작 시각은 모두 그 날짜의 Catch_Up_Window 안이며, 실패한 날짜의 시도는 10분 간격 최대 3회다.
+*For any* 시계 진행 순서(30초 tick, 재시작, 뒤로 가는 시각, 날짜 경계, 서버가 Catch_Up_Window 뒤에 켜짐, DST가 있는 타임존)와 예외 주입, 프로세스 중단(`running`으로 남은 행)에 대해, `scheduled_decision` + `DailyBriefRuns.claim`/`retry`로 만든 예약 알림 수는 현지 날짜마다 1 이하이고, 시작 시각은 모두 그 날짜의 Catch_Up_Window 안이며, 실패한 날짜의 시도는 10분 간격 최대 3회다.
 
 **Validates: Requirements 12.1, 12.3, 12.4, 12.5, 12.7, 12.8**
 
@@ -1292,13 +1375,13 @@ def migrate_schema(path: Path | None, engine: Engine) -> Literal["new", "rebuilt
 
 ### Property 23: 구독 검증과 upsert
 
-*For any* 구독 JSON(https/http/기타 scheme, 길이 경계, 잘못된 base64url, 길이가 다른 p256dh·auth, 같은 endpoint 반복)에 대해, `validate_subscription`은 Req 15.5 규칙의 참조 함수와 같은 판정을 내리고, 유효한 같은 endpoint를 여러 번 등록해도 행은 1개이며 마지막 키 값이 남는다.
+*For any* 구독 JSON(https/http/기타 scheme, Push_Host_Allowlist 안팎의 호스트·포트·사용자 정보, 길이 경계, 잘못된 base64url, 길이가 다른 p256dh·auth, 같은 endpoint 반복)에 대해, `validate_subscription`은 Req 15.5 규칙의 참조 함수와 같은 판정을 내리고, 유효한 같은 endpoint를 여러 번 등록해도 행은 1개이며 마지막 키 값이 남는다.
 
 **Validates: Requirements 15.5**
 
 ### Property 24: Phase 2 설정 해석
 
-*For any* Phase 2 변수 9개에 대한 임의 문자열(빈 값, 대소문자 변형 불리언, 범위 밖·NaN 숫자, 잘못된 시각, 허용 밖 notifier, scheme 없는 subject)과 임의 경로 조합(USER_PHOTO_DIR가 PHOTO_DIR·GALLERY_DIR와 같거나 안팎에 있음)에 대해, 해석은 예외 없이 AutomationConfig를 만들고, 각 변수는 유효하면 그 값, 무효하면 기본값이며, 무효 변수마다 변수 이름만 담은 ConfigIssue가 1건 생기고, 입력값은 메시지에 나오지 않는다.
+*For any* Phase 2 변수 10개에 대한 임의 문자열(빈 값, 대소문자 변형 불리언, 범위 밖·NaN 숫자, 잘못된 시각, 허용 밖 notifier, scheme 없는 subject, 잘못된 호스트 목록)과 임의 경로 조합(USER_PHOTO_DIR가 PHOTO_DIR·GALLERY_DIR와 같거나 안팎에 있음)에 대해, 해석은 예외 없이 AutomationConfig를 만들고, 각 변수는 유효하면 그 값, 무효하면 기본값이며, 무효 변수마다 변수 이름만 담은 ConfigIssue가 1건 생기고, 입력값은 메시지에 나오지 않는다.
 
 **Validates: Requirements 18.1, 18.2, 18.9, 4.2**
 
@@ -1310,7 +1393,7 @@ def migrate_schema(path: Path | None, engine: Engine) -> Literal["new", "rebuilt
 
 ### Property 26: DB 추가 업그레이드는 보존적이고 멱등이다
 
-*For any* user_version 2 DB(임의 Outfit, Weather_Snapshot, feedback, photo_analyses 행)에 대해, Phase 2 엔진을 만들면 네 테이블의 행이 그대로이고, Phase 2 테이블 8개가 생기며, user_version은 3이고, 같은 파일로 다시 만들면 행·테이블·버전이 바뀌지 않는다.
+*For any* user_version 2 DB(임의 Outfit, Weather_Snapshot, feedback, photo_analyses 행)에 대해, Phase 2 엔진을 만들면 네 테이블의 행이 그대로이고, Phase 2 테이블 9개가 생기며, user_version은 3이고, 같은 파일로 다시 만들면 행·테이블·버전이 바뀌지 않는다.
 
 **Validates: Requirements 19.2, 19.6**
 
@@ -1319,6 +1402,18 @@ def migrate_schema(path: Path | None, engine: Engine) -> Literal["new", "rebuilt
 *For any* (secure context, serviceWorker, PushManager, Notification 지원 여부, 권한 default/granted/denied/null, 구독 여부) 조합에 대해, `pushState`는 Req 16.5 규칙의 참조 함수와 같은 상태를 돌려주고, *for any* (위치 권한 상태, 마지막 보고 시각, 현재 시각)에 대해 `shouldReportLocation`은 권한이 `granted`이고 마지막 보고가 없거나 30분 이상 지났을 때에만 true다.
 
 **Validates: Requirements 16.5, 16.6, 16.12**
+
+### Property 28: uncertain 확정은 Vision 없이 원자적으로 저장된다
+
+*For any* Gallery_File 기록 상태(`uncertain`, 그 밖의 상태, 없는 id), 원본 상태(같은 바이트, 바뀐 바이트, 없음), 저장된 판정 태그(있음/없음), 저장 단계 실패 주입에 대해, 확정은 `uncertain` + 같은 바이트일 때에만 Outfit 1건, `photo_analyses`의 `outfit` 판정, `photo_confirmations` 1건을 함께 남기고, 그 밖의 경우나 저장 실패 시에는 셋 다 남기지 않으며 기록은 `uncertain`으로 남고, 어떤 경우에도 Vision_Provider 호출은 0회이며, 같은 기록을 두 번 확정해도 Outfit은 1건이다.
+
+**Validates: Requirements 6.12, 6.13, 6.14**
+
+### Property 29: 홈 오늘 날씨의 Live 전환
+
+*For any* (WEATHER_PROVIDER fixture/open_meteo, 시나리오 선택 여부, Last_Location 유무, Forecast 응답 성공/실패)에 대해, GET /api/weather/today의 값은 fixture 모드이거나 시나리오가 선택되어 있으면 Phase 1 TodayWeatherService 결과와 같고, Live 모드이고 시나리오가 없으면 같은 시계와 위치로 부른 Current_Weather_Service 결과(실패 시 `provider=fixture`, `is_fixture=true`)와 같으며, 응답 스키마 필드 집합은 Phase 1과 같다.
+
+**Validates: Requirements 10.5, 10.7, 10.8**
 
 ## Error Handling
 
@@ -1329,6 +1424,7 @@ def migrate_schema(path: Path | None, engine: Engine) -> Literal["new", "rebuilt
 | `INVALID_LOCATION` | 422 | POST /api/location 검증 | 위치 값이 올바르지 않습니다. | 없음 (Last_Location 유지) |
 | `GALLERY_IMPORT_NOT_FOUND` | 404 | reanalyze | 사진 처리 기록을 찾을 수 없습니다. | 없음 |
 | `GALLERY_IMPORT_NOT_REANALYZABLE` | 409 | reanalyze | 이 사진은 다시 분석할 수 없는 상태입니다. | 없음 |
+| `GALLERY_IMPORT_NOT_CONFIRMABLE` | 409 | confirm-outfit | 이 사진은 착장으로 확정할 수 없는 상태입니다. (원본 문제: 원본 사진을 찾을 수 없습니다.) | 없음 (uncertain 유지) |
 | `DAILY_BRIEF_IN_PROGRESS` | 409 | daily-brief/run 잠금 | 브리핑을 만드는 중입니다. 잠시 뒤 다시 시도해 주세요. | 없음 |
 | `PUSH_SUBSCRIPTION_INVALID` | 422 | 구독 검증 | 푸시 구독 정보가 올바르지 않습니다. | 없음 |
 | `PUSH_SUBSCRIPTION_NOT_FOUND` | 404 | 구독 삭제 | 푸시 구독을 찾을 수 없습니다. | 없음 |
@@ -1413,6 +1509,8 @@ def test_advance_trackers_matches_model(steps): ...
 | `tests/test_secrets_automation_props.py` | 25 |
 | `tests/test_db_automation_props.py` | 26 |
 | `frontend/src/lib/push.test.ts` | 27 |
+| `tests/test_gallery_confirm_props.py` | 28 |
+| `tests/test_today_weather_live_props.py` | 29 |
 
 ### 예제·통합 테스트 (pytest, Req 20.3 영역)
 
@@ -1420,14 +1518,16 @@ def test_advance_trackers_matches_model(steps): ...
 |---|---|---|
 | (a) 기준선과 새 파일 | `test_first_poll_records_baseline_without_analysis`, `test_new_file_after_baseline_is_imported`, `test_file_added_while_stopped_is_processed_on_restart`, `test_baseline_not_redone_for_same_gallery_dir`, `test_watch_disabled_reads_nothing` | 2.4, 2.5, 1.3 |
 | (b) debounce | `test_growing_file_not_read_until_stable`, `test_zero_byte_file_ignored`, `test_signature_change_resets_stability`, `test_hidden_tmp_then_rename_processed_once`, `test_ignored_names_never_read` | 2.1~2.3 |
-| (c) 중복·불변식 | `test_same_bytes_two_names_one_outfit`, `test_demo_photo_bytes_in_gallery_is_duplicate`, `test_demo_dirs_unchanged_after_imports`(tmp 사본 해시 비교), `test_user_photo_dir_conflict_falls_back`, `test_server_and_cli_claim_once` | 2.6, 4.1, 4.2, 1.7 |
+| (c) 중복·불변식 | `test_same_bytes_two_names_one_outfit`, `test_demo_photo_bytes_in_gallery_is_duplicate`, `test_demo_dirs_unchanged_after_imports`(tmp 사본 해시 비교), `test_user_photo_dir_conflict_falls_back`, `test_server_and_cli_claim_once`, `test_duplicate_reopened_when_same_bytes_holder_fails`, `test_duplicate_not_reopened_while_another_row_holds_the_bytes` | 2.6, 4.1, 4.2, 1.7 |
 | (d) 게이트·overlay | `test_outfit_imported_with_user_photo`, `test_non_outfit_skipped_copy_removed`, `test_uncertain_kept_out_and_listed`, `test_low_confidence_outfit_is_uncertain`(0.69), `test_fixture_unknown_hash_uncertain_without_overlay`, `test_overlay_written_before_file_imports_as_outfit`, `test_overlay_reload_on_change`, `test_known_non_outfit_hash_skips_vision` | 3.3, 3.4, 6.3, 6.4, 2.7 |
-| (e) 추정 사이드카 | `test_no_exif_uses_first_seen_and_default_location`, `test_no_exif_uses_last_location`, `test_datetime_without_offset_uses_app_tz`, `test_estimated_sidecar_only_in_user_dir`, `test_imports_list_marks_estimated` | 5.1~5.5 |
+| (m) uncertain 확정 | `test_confirm_uncertain_creates_outfit_with_audit`, `test_confirm_does_not_call_vision`, `test_confirm_twice_conflict`, `test_confirm_source_missing_or_changed_409`, `test_confirm_storage_failure_rolls_back_all`, `test_confirmed_unknown_tags_listed_not_recommended` | 6.12~6.15 |
+| (n) Live 홈 날씨 | `test_live_home_weather_uses_last_location_forecast`(respx), `test_live_home_weather_fallback_marks_fixture`, `test_fixture_home_weather_unchanged`, `test_scenario_still_wins_in_live_mode`, `test_home_and_brief_same_weather` | 10.5, 10.7, 10.8 |
+| (e) 추정 사이드카 | `test_no_exif_uses_mtime_and_default_location`, `test_future_mtime_clamped_to_now`, `test_no_exif_uses_last_location`, `test_datetime_without_offset_uses_app_tz`, `test_estimated_sidecar_only_in_user_dir`, `test_imports_list_marks_estimated` | 5.1~5.5 |
 | (f) 재시도 | `test_vision_timeout_retries_after_1_then_5_minutes`, `test_third_failure_is_final`, `test_invalid_format_not_retried`, `test_failed_attempt_leaves_no_rows`, `test_reanalyze_uncertain_and_failed_only`, `test_unexpected_exception_does_not_kill_watcher` | 6.5~6.8, 6.10, 1.8 |
 | (g) 날씨 엔드포인트 | `test_recent_photo_uses_forecast_past_days`(respx, 파라미터 확인), `test_old_photo_uses_archive`, `test_forecast_failure_falls_back_to_archive_then_fixture`, `test_fixture_mode_today_photo_gets_today_default`, `test_demo_scan_weather_unchanged` | 7.1~7.5 |
-| (h) 브리핑 문구 | `test_brief_matches_user_example_with_fixture_demo_data`(데모 데이터 스캔 → `run("manual")` → 본문이 "오늘 서울 14.5°C, 습도 55%. 비슷했던 14.4°C 날 크림 니트를 입고 '적당했어'라고 했어요."와 정확히 같음, 사진 없으면 skip), `test_brief_without_vote`, `test_brief_cold_tail`, `test_brief_fallback_wording`, `test_brief_insufficient_data`, `test_brief_without_humidity`, `test_title_marks_fixture_and_scenario`, `test_scenario_overrides_current_weather`, `test_live_current_weather_mapping`(respx) | 11.1~11.13, 10.1~10.4 |
-| (i) 하루 1회 | `test_scheduled_once_per_day_across_restarts`, `test_start_after_catch_up_window_skips_today`, `test_manual_run_does_not_block_scheduled`, `test_concurrent_run_returns_409`, `test_cli_daily_brief_idempotent`, `test_failed_scheduled_run_retried_10_minutes_later` | 12.1~12.6, 13.1~13.3 |
-| (j) Web Push | `test_410_deletes_subscription`, `test_404_deletes_subscription`, `test_500_keeps_subscription`, `test_payload_shape_ttl_subject`, `test_zero_subscriptions_records_only`, `test_push_test_disabled_with_log_notifier`, `test_vapid_key_created_once_with_0600`, `test_corrupt_key_renamed_and_subscriptions_cleared`, `test_vapid_dir_unwritable_returns_503` | 15.1~15.10, 14.2, 14.3 |
+| (h) 브리핑 문구 | `test_compose_matches_user_example`(입력: 서울, 14.5°C/55%, 1순위 14.4°C·knit·none·cream·comfortable → 본문이 "오늘 서울 14.5°C, 습도 55%. 비슷했던 14.4°C 날 크림 니트를 입고 '적당했어'라고 했어요."와 정확히 같음), `test_brief_with_fixture_demo_data`(데모 데이터 스캔 → `run("manual")` → 병합된 `today_default`와 1순위 추천 값으로 만든 기대 문장과 같음, 사진 없으면 skip), `test_brief_without_vote`, `test_brief_cold_tail`, `test_brief_fallback_wording`, `test_brief_insufficient_data`, `test_brief_without_humidity`, `test_title_marks_fixture_and_scenario`, `test_scenario_overrides_current_weather`, `test_live_current_weather_mapping`(respx) | 11.1~11.13, 10.1~10.4 |
+| (i) 하루 1회 | `test_scheduled_once_per_day_across_restarts`, `test_start_after_catch_up_window_skips_today`, `test_manual_run_does_not_block_scheduled`, `test_concurrent_run_returns_409`, `test_cli_daily_brief_idempotent`, `test_failed_scheduled_run_retried_10_minutes_later`, `test_interrupted_scheduled_run_counts_as_failed_and_is_retried`, `test_run_that_stored_its_brief_is_never_retried` | 12.1~12.6, 13.1~13.3 |
+| (j) Web Push | `test_410_deletes_subscription`, `test_404_deletes_subscription`, `test_500_keeps_subscription`, `test_payload_shape_ttl_subject`, `test_zero_subscriptions_records_only`, `test_push_test_disabled_with_log_notifier`, `test_vapid_key_created_once_with_0600`, `test_corrupt_key_renamed_and_subscriptions_cleared`, `test_vapid_dir_unwritable_returns_503`, `test_other_hosts_rejected_without_echoing_them`, `test_stored_endpoint_outside_allowlist_is_not_contacted` | 15.1~15.10, 14.2, 14.3 |
 | (k) DB 업그레이드 | `test_v2_db_upgraded_to_v3_without_data_loss`, `test_v1_db_still_backed_up`, `test_newer_db_version_not_downgraded`, `test_existing_tables_unchanged`(PRAGMA table_info 비교) | 19.1~19.5 |
 | (l) 설정 | `test_phase2_defaults`, `test_invalid_phase2_values_fall_back_with_issue`, `test_relative_paths_resolved_to_repo_root`, `test_env_example_lists_21_vars`(Phase 1 테스트 갱신분), `test_gitignore_has_user_and_secrets` | 18.1~18.6, 4.5 |
 | 위치·상태 | `test_location_round_and_replace`, `test_location_invalid_422_keeps_previous`, `test_location_not_logged`, `test_brief_location_default_then_browser`, `test_automation_status_fields_no_secrets`, `test_gallery_imports_filters_and_order` | 9, 17 |
@@ -1439,18 +1539,18 @@ def test_advance_trackers_matches_model(steps): ...
 
 | 파일 | 바꾸는 점 |
 |---|---|
-| `backend/tests/test_config.py` | `test_env_example_lists_exactly_twelve_vars_with_empty_key`: Phase 1 12개 + Phase 2 9개 = 21개 정확히 비교(이름은 유지하거나 `..._phase1_and_phase2_vars`로 바꿈). `test_raw_settings_declares_same_backend_vars_and_model_default`: 백엔드 변수 20개 |
+| `backend/tests/test_config.py` | `test_env_example_lists_exactly_twelve_vars_with_empty_key`: Phase 1 12개 + Phase 2 10개 = 22개 정확히 비교(이름은 유지하거나 `..._phase1_and_phase2_vars`로 바꿈). `test_raw_settings_declares_same_backend_vars_and_model_default`: 백엔드 변수 21개 |
 | `backend/tests/test_db.py` | `test_new_db_has_schema_version`: `SCHEMA_VERSION == 3` |
 | `backend/tests/test_api_routes.py` | ROUTER_MODULES 집합에 6개 추가 |
-| `backend/tests/test_api.py` | `EXPECTED_OPERATIONS`에 Phase 2 경로 11개 추가 |
+| `backend/tests/test_api.py` | `EXPECTED_OPERATIONS`에 Phase 2 operation 12개 추가 |
 | `frontend/src/components/layout/AppShell.test.tsx` | 탭 기대값 [홈, 기록, 알림] (개발 모드는 + 데모) |
 
 ### 프론트엔드 테스트 (vitest + Testing Library, jsdom)
 
 - `push.test.ts`: Property 27, `urlBase64ToUint8Array` 예제, `enablePush`가 권한 → 등록 → subscribe → POST 순서로 부르는지(가짜 `navigator`).
 - `NotificationsPage.test.tsx`: 상태 4종 문구, 자동 권한 요청 없음(마운트 시 `requestPermission`·`getCurrentPosition` 호출 0회), 켜기·끄기 흐름, 위치 거부 안내, 최근 알림 목록, 확인이 필요한 사진과 다시 분석.
-- `DailyBriefCard.test.tsx`: 오늘 알림만 표시, fixture 배지, 탭 이동, 알림 없으면 렌더링 없음. `HomePage.smoke.test.tsx`에 카드 위치(Notification_Card 위) 확인 추가.
-- `HistoryPage.test.tsx`에 `visibilitychange` 재조회 추가. `DemoPage.smoke.test.tsx`에 "지금 보내기"와 자동화 상태 추가.
+- `DailyBriefCard.test.tsx`: 오늘 알림만 표시, fixture 배지, 탭 이동, 알림 없으면 렌더링 없음. `HomePage.smoke.test.tsx`에 카드 위치(`home-dashboard` 첫 영역, `home-weather` 앞) 확인 추가. `NotificationsPage.test.tsx`에 "착장 맞음" 흐름 추가.
+- `HistoryPage.smoke.test.tsx`에 `visibilitychange` 재조회 추가. `DemoPage.smoke.test.tsx`에 "지금 보내기"와 자동화 상태 추가.
 - `sw.test.ts`: `self`를 흉내 내 push → `showNotification` 인자, notificationclick → focus/openWindow를 확인한다.
 
 ### 수동 확인

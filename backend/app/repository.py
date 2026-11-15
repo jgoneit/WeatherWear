@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import UTC, datetime
 
 from pydantic import AwareDatetime, BaseModel
@@ -235,12 +236,23 @@ class OutfitRepository:
             return True
 
     def create_outfit_bundle(
-        self, outfit: OutfitCreate, weather: WeatherReading, seed_vote: ThermalVote | None
+        self,
+        outfit: OutfitCreate,
+        weather: WeatherReading,
+        seed_vote: ThermalVote | None,
+        *,
+        before_commit: Callable[[Session], None] | None = None,
     ) -> int:
         """Insert Outfit + Weather_Snapshot (+ ``demo_seed`` feedback) atomically.
 
         Returns the new Outfit id. On any exception the transaction is rolled
         back, nothing is stored, and the exception propagates (Req 1.10, 2.6).
+
+        ``before_commit`` (Phase 2 Req 6.13) is called with the open session
+        after every row above is flushed and before the commit, so its writes
+        (e.g. a ``photo_confirmations`` audit row) share the transaction. The
+        new Outfit can be found in that session by ``outfit.sha256``. If it
+        raises, the whole bundle is rolled back.
         """
         now = to_utc_iso(_utc_now())
         tags = outfit.tags
@@ -317,6 +329,9 @@ class OutfitRepository:
                     )
                 )
             session.flush()
+            if before_commit is not None:
+                before_commit(session)
+                session.flush()
         return outfit_id
 
     def add_feedback(

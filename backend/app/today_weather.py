@@ -10,6 +10,12 @@
   default coordinates (Req 5.1, 5.4, 5.5). ``OpenMeteoWeatherProvider`` already
   falls back to fixture data internally (Req 5.8); if a provider raises anyway,
   the optional ``fallback`` provider is used.
+- Phase 2 (decision A8, Req 10.7): with the optional ``live_current`` callable
+  (wired in tasks 7.1 only when ``WEATHER_PROVIDER=open_meteo``), today's
+  weather without a scenario comes from it instead: the Current_Weather_Service
+  at the brief location, which already marks a fixture fallback with
+  ``provider='fixture'``. ``live_current=None`` (the default) keeps the Phase 1
+  behaviour unchanged.
 """
 
 from __future__ import annotations
@@ -133,6 +139,27 @@ class ScenarioStore:
             self._selected = None
 
 
+def scenario_weather(scenario: WeatherScenario, now_local: datetime) -> WeatherContext:
+    """Today's WeatherContext for a selected scenario (Req 5.3; Phase 2 Req 10.4).
+
+    A scenario has no observation time, so ``observed_at`` is the current hour
+    of ``now_local`` (already in APP_TIMEZONE). Shared by TodayWeatherService
+    and the Phase 2 Current_Weather_Service so both give the same value.
+    """
+    return WeatherContext(
+        actual_temperature_c=scenario.actual_temperature_c,
+        apparent_temperature_c=scenario.apparent_temperature_c,
+        relative_humidity_pct=scenario.relative_humidity_pct,
+        wind_speed_kmh=scenario.wind_speed_kmh,
+        precipitation_mm=scenario.precipitation_mm,
+        observed_at=now_local.replace(minute=0, second=0, microsecond=0),
+        provider="scenario",
+        is_fixture=True,
+        scenario_id=scenario.id,
+        scenario_name=scenario.name,
+    )
+
+
 def _from_reading(reading: WeatherReading) -> WeatherContext:
     return WeatherContext(
         actual_temperature_c=reading.actual_temperature_c,
@@ -149,7 +176,8 @@ def _from_reading(reading: WeatherReading) -> WeatherContext:
 
 
 class TodayWeatherService:
-    """Builds today's WeatherContext: selected scenario > provider > fallback."""
+    """Builds today's WeatherContext: selected scenario > live current (Phase 2,
+    Live mode only) > provider > fallback."""
 
     def __init__(
         self,
@@ -159,6 +187,7 @@ class TodayWeatherService:
         *,
         fallback: WeatherProvider | None = None,
         now: Callable[[], datetime] | None = None,
+        live_current: Callable[[], WeatherContext] | None = None,
     ) -> None:
         self._tz: ZoneInfo = config.app_timezone
         self._latitude = config.default_latitude
@@ -167,6 +196,7 @@ class TodayWeatherService:
         self._fallback = fallback
         self._store = store
         self._now = now or (lambda: datetime.now(UTC))
+        self._live_current = live_current
 
     @property
     def store(self) -> ScenarioStore:
@@ -176,19 +206,19 @@ class TodayWeatherService:
         now = self._now().astimezone(self._tz)
         scenario = self._store.selected()
         if scenario is not None:
-            return WeatherContext(
-                actual_temperature_c=scenario.actual_temperature_c,
-                apparent_temperature_c=scenario.apparent_temperature_c,
-                relative_humidity_pct=scenario.relative_humidity_pct,
-                wind_speed_kmh=scenario.wind_speed_kmh,
-                precipitation_mm=scenario.precipitation_mm,
-                # A scenario has no observation time; use the current hour in APP_TIMEZONE.
-                observed_at=now.replace(minute=0, second=0, microsecond=0),
-                provider="scenario",
-                is_fixture=True,
-                scenario_id=scenario.id,
-                scenario_name=scenario.name,
-            )
+            return scenario_weather(scenario, now)
+
+        if self._live_current is not None:
+            # Current_Weather_Service at the brief location (Req 10.7). It never
+            # raises for Forecast problems; anything unexpected falls through
+            # to the Phase 1 provider path below.
+            try:
+                return self._live_current()
+            except Exception as exc:
+                logger.warning(
+                    "Live current weather failed (%s); using the Phase 1 weather provider",
+                    type(exc).__name__,
+                )
 
         try:
             reading = self._provider.get_weather(now, self._latitude, self._longitude)

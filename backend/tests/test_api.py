@@ -81,6 +81,23 @@ EXPECTED_OPERATIONS = {
     ("/api/outfits/{outfit_id}/feedback", "post"),
 }
 
+# Phase 2 routes (Phase 2 design.md §19, Req 20.4): 12 operations.
+PHASE2_OPERATIONS = {
+    ("/api/automation/status", "get"),
+    ("/api/gallery/imports", "get"),
+    ("/api/gallery/imports/{import_id}/reanalyze", "post"),
+    ("/api/gallery/imports/{import_id}/confirm-outfit", "post"),
+    ("/api/location", "post"),
+    ("/api/location", "get"),
+    ("/api/notifications", "get"),
+    ("/api/daily-brief/run", "post"),
+    ("/api/push/vapid-public-key", "get"),
+    ("/api/push/subscriptions", "post"),
+    ("/api/push/subscriptions/{subscription_id}", "delete"),
+    ("/api/push/test", "post"),
+}
+EXPECTED_OPERATIONS = EXPECTED_OPERATIONS | PHASE2_OPERATIONS
+
 
 # --- Helpers ----------------------------------------------------------------
 

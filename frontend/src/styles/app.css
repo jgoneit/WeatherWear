@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./automation.css";
 
 @theme {
   --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif;

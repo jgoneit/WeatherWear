@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { Outlet } from "react-router";
 import { IS_DEV } from "../../lib/env";
+import { autoReportLocation } from "../../lib/location";
 import { BottomTabBar } from "./BottomTabBar";
 import { GlassHeader } from "./GlassHeader";
 import { TemperatureBackground } from "./TemperatureBackground";
@@ -14,6 +16,12 @@ interface AppShellProps {
 
 /** Responsive application shell with desktop navigation and mobile tabs. */
 export function AppShell({ showDemoTab = IS_DEV, initialTemperatureC = null }: AppShellProps) {
+  // 앱을 열 때 위치 권한이 이미 granted이고 30분이 지났으면 조용히 위치를 보낸다 (Req 16.6).
+  // 권한을 요청하지 않으며(Req 16.2), 실패해도 화면에는 아무것도 띄우지 않는다.
+  useEffect(() => {
+    void autoReportLocation();
+  }, []);
+
   return (
     <TodayTemperatureProvider initialTemperatureC={initialTemperatureC}>
       <ShellFrame showDemoTab={showDemoTab} />

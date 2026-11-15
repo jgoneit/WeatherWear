@@ -307,11 +307,33 @@ EXPECTED_OPERATIONS = {
     ("/api/outfits/{outfit_id}/feedback", "post"),
 }
 
+# Phase 2 routes (Phase 2 design.md §19, Req 20.4): 12 operations.
+PHASE2_OPERATIONS = {
+    ("/api/automation/status", "get"),
+    ("/api/gallery/imports", "get"),
+    ("/api/gallery/imports/{import_id}/reanalyze", "post"),
+    ("/api/gallery/imports/{import_id}/confirm-outfit", "post"),
+    ("/api/location", "post"),
+    ("/api/location", "get"),
+    ("/api/notifications", "get"),
+    ("/api/daily-brief/run", "post"),
+    ("/api/push/vapid-public-key", "get"),
+    ("/api/push/subscriptions", "post"),
+    ("/api/push/subscriptions/{subscription_id}", "delete"),
+    ("/api/push/test", "post"),
+}
+EXPECTED_OPERATIONS = EXPECTED_OPERATIONS | PHASE2_OPERATIONS
+
 
 def test_all_router_modules_registered(client: TestClient) -> None:
     from app.main import ROUTER_MODULES
 
-    assert set(ROUTER_MODULES) == {"outfits", "demo", "weather", "recommendations", "meta"}
+    assert set(ROUTER_MODULES) == {
+        "outfits", "demo", "weather", "recommendations", "meta",
+        # Phase 2 (Req 20.4)
+        "gallery", "location", "notifications", "push", "daily_brief", "automation",
+    }
+    assert len(PHASE2_OPERATIONS) == 12
     paths = client.get("/openapi.json").json()["paths"]
     operations = {(path, method) for path, item in paths.items() for method in item}
     assert operations == EXPECTED_OPERATIONS
@@ -421,3 +443,97 @@ def test_demo_data_end_to_end(tmp_path: Path) -> None:
         assert unknown.json()["error"]["code"] == "UNKNOWN_SCENARIO"
         assert test_client.get("/api/demo/scenarios").json()["selected_id"] == "heatwave"
         assert test_client.get("/api/weather/today").json()["scenario_id"] == "heatwave"
+
+
+# --- Phase 2 skeleton (Phase 2 tasks 1.7) --------------------------------------
+
+
+def test_phase2_error_codes_registered() -> None:
+    from app.main import MESSAGES, PHASE2_ERROR_CODES
+
+    assert len(PHASE2_ERROR_CODES) == 9
+    assert "GALLERY_IMPORT_NOT_CONFIRMABLE" in PHASE2_ERROR_CODES
+    for code in PHASE2_ERROR_CODES:
+        assert MESSAGES[code]
+
+
+PHASE2_SERVICE_FIELDS = (
+    "gallery_store", "gallery_importer", "outfit_confirm", "current_weather", "notification_log",
+    "push_store", "vapid_keys", "notifier", "daily_brief", "brief_runs",
+)
+
+
+def test_phase2_services_are_wired_into_the_container(client: TestClient) -> None:
+    container = client.app.state.container
+    for name in PHASE2_SERVICE_FIELDS:
+        assert getattr(container, name) is not None, name
+    # Code defaults: watching and the daily brief are off, so no watcher or scheduler (Req 1.3, 12.2).
+    assert container.gallery_watcher is None
+    assert container.brief_scheduler is None
+    assert container.place_label(37.5665, 126.978) == "서울"
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "status"),
+    [
+        ("get", "/api/automation/status", 200),
+        ("get", "/api/gallery/imports", 200),
+        ("post", "/api/gallery/imports/1/reanalyze", 404),
+        ("post", "/api/gallery/imports/1/confirm-outfit", 404),
+        ("get", "/api/notifications", 200),
+        ("delete", "/api/push/subscriptions/1", 404),
+        ("post", "/api/push/test", 409),  # NOTIFIER=log -> WEB_PUSH_DISABLED
+    ],
+)
+def test_phase2_routes_answer_after_wiring(
+    isolated_client: TestClient, method: str, path: str, status: int
+) -> None:
+    response = getattr(isolated_client, method)(path)
+    assert response.status_code == status, response.text
+
+
+def test_require_answers_501_when_a_service_is_missing(isolated_client: TestClient) -> None:
+    container = isolated_client.app.state.container
+    container.notification_log = None
+    response = isolated_client.get("/api/notifications")
+    assert response.status_code == 501
+    assert response.json() == {
+        "error": {"code": "NOT_IMPLEMENTED", "message": "아직 준비되지 않은 기능입니다."}
+    }
+
+
+@pytest.fixture
+def isolated_client(tmp_path: Path):
+    """App whose Phase 2 folders are all under ``tmp_path`` (nothing written to the repo)."""
+    config = make_config(
+        tmp_path,
+        GALLERY_DIR=str(tmp_path / "gallery"),
+        USER_PHOTO_DIR=str(tmp_path / "user" / "photos"),
+        VAPID_KEY_DIR=str(tmp_path / "secrets"),
+    )
+    with make_client(config) as test_client:
+        yield test_client
+
+
+def test_push_subscription_body_error_code(client: TestClient) -> None:
+    response = client.post("/api/push/subscriptions", json={"endpoint": "https://push.example/x"})
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "PUSH_SUBSCRIPTION_INVALID"
+
+
+def test_phase2_list_query_limits(client: TestClient) -> None:
+    for path in ("/api/gallery/imports?limit=0", "/api/gallery/imports?limit=101",
+                 "/api/gallery/imports?status=baseline", "/api/notifications?limit=101",
+                 "/api/notifications?kind=email"):
+        response = client.get(path)
+        assert response.status_code == 422, path
+        assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+def test_phase2_schemas_carry_no_secret_fields(client: TestClient) -> None:
+    schemas = client.get("/openapi.json").json()["components"]["schemas"]
+    names = [name for name in schemas if name.endswith("Out")]
+    forbidden = {"endpoint", "p256dh", "auth", "private_key", "path", "gemini_api_key"}
+    for name in names:
+        fields = set(schemas[name].get("properties", {}))
+        assert not (fields & forbidden), name

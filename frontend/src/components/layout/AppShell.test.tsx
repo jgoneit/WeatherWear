@@ -57,13 +57,21 @@ describe("temperatureBand", () => {
 });
 
 describe("AppShell", () => {
-  it("헤더, 본문, 홈/기록 탭을 보여준다", () => {
+  it("헤더, 본문, 홈/기록/알림 탭을 보여준다", () => {
     renderShell(<ReportingPage celsius={undefined} />, { showDemoTab: false });
     expect(screen.getByRole("banner")).toHaveTextContent(STRINGS.appName);
     expect(screen.getByRole("heading", { name: "page" })).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: STRINGS.nav.label });
     const links = within(nav).getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual([STRINGS.nav.home, STRINGS.nav.history]);
+    expect(links.map((l) => l.textContent)).toEqual([
+      STRINGS.nav.home,
+      STRINGS.nav.history,
+      STRINGS.nav.notifications,
+    ]);
+    expect(within(nav).getByRole("link", { name: STRINGS.nav.notifications })).toHaveAttribute(
+      "href",
+      "/notifications",
+    );
     expect(within(nav).getByRole("link", { name: STRINGS.nav.home })).toHaveAttribute("aria-current", "page");
   });
 

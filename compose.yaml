@@ -1,6 +1,10 @@
 # docker compose up --build
 #   frontend: http://localhost:5173   backend: http://localhost:8000/api/meta
 # Default is fixture mode: no API key needed. For Gemini live mode see README.
+# Phase 2: the gallery watch and the daily brief are on here (the code default
+# is off). The host's ex_img/ is the watched gallery (read-only), ./data/user is
+# shared with the host so scripts/simulate_capture.py can add photos and
+# fixture overlay entries, and the VAPID keys live in a named volume.
 name: weatherwear
 
 services:
@@ -17,6 +21,16 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Seoul}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      # Phase 2 automation (Req 18.10)
+      GALLERY_WATCH_ENABLED: ${GALLERY_WATCH_ENABLED:-true}
+      DAILY_BRIEF_ENABLED: ${DAILY_BRIEF_ENABLED:-true}
+      DAILY_BRIEF_TIME: ${DAILY_BRIEF_TIME:-07:30}
+      NOTIFIER: ${NOTIFIER:-log}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:weatherwear@example.com}
+      # Fixed container paths for the volumes below.
+      GALLERY_DIR: /data/gallery
+      USER_PHOTO_DIR: /data/user/photos
+      VAPID_KEY_DIR: /data/secrets
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
@@ -25,6 +39,13 @@ services:
       # Photos and *.metadata.json sidecars (read-only). Override the host path
       # with PHOTO_HOST_DIR to scan another folder.
       - ${PHOTO_HOST_DIR:-./data/demo/photos}:/data/photos:ro
+      # Phase 2: the watched gallery (the watcher never writes to it).
+      - ${GALLERY_HOST_DIR:-./ex_img}:/data/gallery:ro
+      # Copies of watched photos, estimated-capture sidecars and the fixture
+      # Vision overlay; shared with the host for scripts/simulate_capture.py.
+      - ./data/user:/data/user
+      # VAPID key pair (private key never leaves this volume).
+      - vapid-keys:/data/secrets
     healthcheck:
       test:
         - CMD
@@ -59,3 +80,4 @@ services:
 
 volumes:
   db-data:
+  vapid-keys:

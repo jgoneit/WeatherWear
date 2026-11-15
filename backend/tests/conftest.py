@@ -61,3 +61,19 @@ def _block_external_network(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture(autouse=True)
 def _remove_gemini_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+
+# Phase 2 (tasks 7.1): the default Phase 2 folders resolve into the repository
+# (data/user/, data/secrets/). A test that forgets to point them at tmp_path
+# would write user photos or a VAPID key into the working tree; fail the run
+# if one of them appears during the session.
+_REPO_ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
+_GUARDED_DIRS = (_REPO_ROOT / "data" / "user", _REPO_ROOT / "data" / "secrets")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _no_writes_to_repo_phase2_dirs():
+    existing = {path for path in _GUARDED_DIRS if path.exists()}
+    yield
+    created = [str(path.relative_to(_REPO_ROOT)) for path in _GUARDED_DIRS if path.exists() and path not in existing]
+    assert not created, f"tests created repository folders: {created}"

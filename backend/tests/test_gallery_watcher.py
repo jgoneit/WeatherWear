@@ -276,3 +276,65 @@ def test_watch_gallery_once_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
     assert "new.png: imported" in out
     assert str(tmp_path) not in out
     assert (tmp_path / "user" / "photos" / "new.png").read_bytes() == new
+
+
+# --- review fix (1): a same-byte duplicate is reopened when the holder fails ------
+
+
+def test_duplicate_reopened_when_same_bytes_holder_fails(tmp_path: Path) -> None:
+    """a.png and b.png have the same bytes. a is collected first and keeps
+    failing Vision (retry_wait counts as in progress), so b ends as duplicate.
+    When a finally fails, b must go back to pending and be stored."""
+    from datetime import timedelta
+
+    from sqlalchemy import func
+    from sqlmodel import Session, select
+
+    from app.db import Outfit
+    from app.providers.vision.base import VisionError
+
+    vision = FakeVision(VisionError("timeout"))
+    env = GalleryEnv(tmp_path, vision)
+    env.poll()  # baseline of the empty gallery
+    data = png_bytes((21, 22, 23))
+    env.add("a.png", data)
+    env.add("b.png", data)
+    env.poll(2)  # stable -> a: Vision timeout (retry_wait), b: duplicate of a
+    assert env.row("a.png").status == "retry_wait"
+    assert env.row("b.png").status == "duplicate"
+
+    for wait in (timedelta(minutes=1), timedelta(minutes=5)):
+        env.clock.advance(wait.total_seconds())
+        env.poll()
+    assert env.row("a.png").status == "failed"  # 3 attempts used
+    reopened = env.row("b.png")
+    assert reopened.status == "pending"
+    assert reopened.attempts == 0 and reopened.last_error_code is None
+
+    vision.default = OUTFIT  # Vision works again
+    env.poll()
+    stored = env.row("b.png")
+    assert stored.status == "imported" and stored.outfit_id is not None
+    with Session(env.engine) as session:
+        assert session.exec(select(func.count()).select_from(Outfit)).one() == 1
+
+
+def test_duplicate_not_reopened_while_another_row_holds_the_bytes(tmp_path: Path) -> None:
+    from app.gallery.rules import Signature, StableEvent
+    from app.gallery.store import ImportOutcome, gallery_key
+
+    env = GalleryEnv(tmp_path, FakeVision(OUTFIT))
+    key = gallery_key(env.gallery)
+    sha = "c" * 64
+    rows = {}
+    for name in ("a.png", "b.png", "c.png"):
+        rows[name] = env.store.upsert_version(
+            key, StableEvent(name=name, signature=Signature(size=10, mtime_ns=1), first_seen=env.clock()), env.clock()
+        )
+    now = env.clock()
+    for name, status in (("c.png", "imported"), ("b.png", "duplicate")):
+        assert env.store.claim(rows[name].id, now)
+        env.store.finish(rows[name].id, ImportOutcome(status=status, sha256=sha), now)
+    assert env.store.claim(rows["a.png"].id, now)
+    env.store.finish(rows["a.png"].id, ImportOutcome(status="failed", sha256=sha, code="VISION_TIMEOUT"), now)
+    assert env.row("b.png").status == "duplicate"  # c.png still holds the bytes

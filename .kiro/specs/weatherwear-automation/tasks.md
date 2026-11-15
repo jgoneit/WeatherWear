@@ -365,6 +365,41 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
   - 백엔드 `cd backend && python -m pytest -q`, 프론트엔드 `npx vitest --run`, `npm run typecheck`, `npm run check:bundle`이 API 키와 외부 연결 없이 모두 통과하는지 확인하고, README 데모 절차를 fixture 모드로 한 번 따라 한다. 질문이 생기면 사용자에게 묻는다.
   - _Requirements: 20.5_
 
+- [x] 9. 독립 검토 반영 (`5354ace` 검토, 비차단 4건, 리드)
+  - [x] 9.1 같은 바이트의 앞 파일이 실패하면 duplicate 재개 (`backend/app/gallery/store.py`, `backend/tests/test_gallery_watcher.py`)
+    - `GalleryStore.finish()`가 `failed`를 기록한 트랜잭션에서 같은 해시의 보유 행(`imported`·`uncertain`·`retry_wait`·`pending`·`processing`)이 없으면 그 해시의 `duplicate` 행을 `pending`(attempts 0)으로 되돌린다
+    - 예제: `test_duplicate_reopened_when_same_bytes_holder_fails`, `test_duplicate_not_reopened_while_another_row_holds_the_bytes`
+    - _Requirements: 2.6_
+
+  - [x] 9.2 푸시 서비스 호스트 허용 목록 (`backend/app/notifications/push_store.py`, `backend/app/notifications/webpush.py`, `backend/app/api/push.py`, `backend/app/notifications/runtime.py`, `backend/app/config.py`, `.env.example`)
+    - `DEFAULT_PUSH_HOSTS`와 `endpoint_allowed()`. https, 포트 443, userinfo 없음, 호스트가 일치해야 하고 `*.도메인`은 하위 호스트만 받는다
+    - `validate_subscription(payload, allowed_hosts)`는 목록 밖이면 422다. `WebPushNotifier`는 목록 밖 저장 구독에 보내지 않고 `PUSH_ENDPOINT_NOT_ALLOWED`로 기록한다
+    - Phase 2 변수 `PUSH_ALLOWED_HOSTS`를 더한다(1.2의 9개 → 10개, `.env.example` 합계 21 → 22, 백엔드 변수 20 → 21). 잘못된 값은 이슈를 남기고 기본 목록만 쓴다
+    - 예제: `test_known_push_service_hosts_accepted`, `test_other_hosts_rejected_without_echoing_them`, `test_push_allowed_hosts_extends_the_list`, `test_stored_endpoint_outside_allowlist_is_not_contacted`, `test_push_allowed_hosts_parsed`, `test_invalid_subscription_422`(허용 목록 밖 호스트)
+    - _Requirements: 15.5, 18.1, 18.2, 18.5, 18.9, 20.4_
+
+  - [x] 9.3 번들 검사의 VAPID 개인키 형태 확장 (`frontend/scripts/vapid-secret-forms.mjs`, `frontend/scripts/check-bundle.mjs`, `frontend/src/checkBundle.test.ts`)
+    - PEM 본문 16자 창에 더해 개인 스칼라 `d`의 base64url·base64 16자 창, hex 소문자·대문자 24자 창을 검사한다. 출력은 파일 이름만
+    - 예제: `src/checkBundle.test.ts`(WebCrypto 임시 P-256 키, 커밋되는 키 없음)
+    - _Requirements: 18.8_
+
+  - [x] 9.4 중단된 예약 브리핑 재시도 (`backend/app/notifications/daily_brief.py`, `backend/app/notifications/scheduler.py`, `backend/app/notifications/records.py`, `backend/app/api/automation.py`, `backend/tests/test_daily_brief.py`)
+    - `is_interrupted()`는 running이고 notification_id가 없으며 시작 뒤 `STALE_RUNNING_AFTER`(10분)가 지난 행이다
+    - `counts_as_failed()`를 `scheduled_decision`·`next_run_at`·`DailyBriefRuns.retry`가 같이 쓴다. `retry`는 읽은 status·attempts를 조건으로 UPDATE한다
+    - `NotificationLog.create(before_commit=...)`로 알림과 실행 행의 `notification_id`를 한 트랜잭션에 쓴다. Automation_Status는 `effective_status`를 보인다
+    - 예제: `test_scheduled_decision_table`(running 행), `test_interrupted_scheduled_run_counts_as_failed_and_is_retried`, `test_interrupted_run_taken_back_by_one_process_only`, `test_interrupted_three_times_stops_and_shows_failed`, `test_run_that_stored_its_brief_is_never_retried`
+    - _Requirements: 12.5, 12.3_
+
+  - [x] 9.5 README 반영 (`README.md`)
+    - Phase 2 변수 표 10개
+    - "인증 없는 로컬 전용 API" 절: 공개 주소로 열 때의 위험, compose 포트 바인드, Push_Host_Allowlist
+    - 동작 요약에 duplicate 재개, 중단된 브리핑 재시도, check:bundle 형태를 적는다
+    - _Requirements: 20.7_
+
+- [x] 10. Checkpoint - 검토 반영 확인
+  - 백엔드 pytest, `npx vitest --run`, `npm run typecheck`, `npm run check:bundle`이 API 키와 외부 연결 없이 모두 통과하는지 확인한다.
+  - _Requirements: 20.5_
+
 ## Notes
 
 - `*`가 붙은 sub-task는 선택 항목이며 빠른 구현을 위해 건너뛸 수 있다. 모든 property test(Hypothesis, fast-check)와 프론트엔드 화면 테스트 묶음이 여기에 속한다. Requirement 20.3의 예제 테스트 영역 (a)~(n)은 필수 태스크 안에 있다.
@@ -380,6 +415,7 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
 - Phase 1 테스트 중 고치는 것은 Requirement 20.4의 5곳뿐이다(1.2, 1.4, 1.7, 5.6). 1.6, 3.7, 3.14, 4.16, 5.4, 5.5, 5.7, 5.8, 5.10, 7.6은 Phase 1 파일을 고치거나 테스트 케이스를 더하지만 기존 테스트는 그대로 통과해야 한다.
 - 4.1은 구현 전에 Open-Meteo Forecast 문서를 확인하는 태스크다(design "근거와 가정" 표의 가정). 7.4는 `pywebpush`·`cryptography` 버전을 확인하는 태스크다. 둘 다 구현자 환경의 네트워크가 필요하고, 테스트는 계속 오프라인이다.
 - 실제 브라우저 푸시 수신 확인(Chrome, `NOTIFIER=webpush`)과 Finder 복사 중 debounce 확인, 360/390/430px 가로 스크롤 확인은 design "수동 확인" 절에 두고 태스크에 넣지 않았다.
+- 9.x는 Final checkpoint 뒤 독립 검토(`5354ace`)의 비차단 4건을 리드가 반영한 것이다. requirements.md "독립 검토 반영" 절이 바뀐 기준을 적는다.
 - 각 태스크는 requirements.md의 세부 기준 번호를 참조한다. Property 번호는 design.md의 Correctness Properties 절을 따른다.
 
 ## Task Dependency Graph
@@ -398,7 +434,9 @@ Phase 1 브랜치를 main(PR #6, 사진 분류 게이트)과 병합한 결과 �
     { "id": 8, "tasks": ["7.1", "7.4", "7.6"] },
     { "id": 9, "tasks": ["7.2"] },
     { "id": 10, "tasks": ["7.3"] },
-    { "id": 11, "tasks": ["7.5"] }
+    { "id": 11, "tasks": ["7.5"] },
+    { "id": 12, "tasks": ["9.1", "9.2", "9.3", "9.4"] },
+    { "id": 13, "tasks": ["9.5"] }
   ]
 }
 ```

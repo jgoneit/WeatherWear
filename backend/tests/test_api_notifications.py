@@ -208,6 +208,9 @@ def test_create_subscription_201_and_upsert(tmp_path: Path) -> None:
         {"endpoint": "https://push.example.com/x"},  # shape: no keys
         {"endpoint": 5, "keys": subscription_json(1)["keys"]},
         [],
+        # review fix (2): only known push service hosts (no SSRF through /api/push/test)
+        subscription_json(1, host="attacker.example"),
+        subscription_json(1, host="169.254.169.254"),
     ],
 )
 def test_invalid_subscription_422(tmp_path: Path, payload) -> None:

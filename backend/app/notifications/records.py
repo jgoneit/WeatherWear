@@ -116,8 +116,13 @@ class NotificationLog:
         *,
         brief_date: date | None,
         weather: WeatherContext | None,
+        before_commit: Callable[[Session, int], None] | None = None,
     ) -> NotificationRecord:
-        """Store one notification (Req 14.1). Raises on a database error."""
+        """Store one notification (Req 14.1). Raises on a database error.
+
+        ``before_commit(session, notification_id)`` runs inside the same
+        transaction, so whatever it writes commits together with the row.
+        """
         row = Notification(
             kind=kind,
             title=message.title,
@@ -133,6 +138,8 @@ class NotificationLog:
             session.add(row)
             session.flush()
             record = _record(row)
+            if before_commit is not None:
+                before_commit(session, record.id)
         logger.info("알림을 기록했습니다: id=%d kind=%s", record.id, record.kind)
         return record
 

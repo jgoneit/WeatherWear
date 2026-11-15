@@ -6,6 +6,13 @@ characters, ``keys.p256dh`` base64url of a 65-byte uncompressed P-256 point
 (first byte 0x04) and ``keys.auth`` base64url of 16 bytes. Padding is optional.
 Reasons name the field and rule only, never the value.
 
+Only endpoints on a known push service host are accepted (review fix 2):
+the server sends ``POST`` requests to stored endpoints (``/api/push/test``,
+the daily brief), so an arbitrary https host would let anyone who can reach
+the API make the server call that host (SSRF). ``DEFAULT_PUSH_HOSTS`` covers
+the browser push services; PUSH_ALLOWED_HOSTS adds more. Endpoints with
+user info or a port other than 443 are refused too.
+
 Subscriptions are keyed by ``endpoint`` (UNIQUE): registering the same
 endpoint again updates its keys instead of adding a row. Endpoints and keys
 are never logged; logs carry the subscription id and the endpoint host name
@@ -18,7 +25,7 @@ import base64
 import binascii
 import logging
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from urllib.parse import urlparse
@@ -38,6 +45,15 @@ MAX_ENDPOINT_LENGTH = 2048
 P256DH_BYTES = 65
 AUTH_BYTES = 16
 _BASE64URL = re.compile(r"^[A-Za-z0-9_-]+={0,2}$")
+
+# Browser push services (review fix 2). "*.<domain>" matches any subdomain.
+DEFAULT_PUSH_HOSTS: tuple[str, ...] = (
+    "fcm.googleapis.com",  # Chrome, Edge (Chromium), Opera, Samsung Internet
+    "android.googleapis.com",  # older Chromium (GCM) endpoints
+    "updates.push.services.mozilla.com",  # Firefox
+    "*.notify.windows.com",  # Windows Push Notification Services
+    "web.push.apple.com",  # Safari (macOS, iOS home screen web apps)
+)
 
 
 class InvalidSubscription(ValueError):
@@ -64,6 +80,34 @@ def endpoint_host(endpoint: str) -> str:
         return "?"
 
 
+def host_allowed(host: str, patterns: Sequence[str]) -> bool:
+    """``host`` equals a pattern, or is a subdomain of a ``*.<domain>`` pattern."""
+    host = (host or "").lower().rstrip(".")
+    if not host:
+        return False
+    for pattern in patterns:
+        if pattern.startswith("*."):
+            if host.endswith(pattern[1:]) and host != pattern[2:]:
+                return True
+        elif host == pattern:
+            return True
+    return False
+
+
+def endpoint_allowed(endpoint: str, patterns: Sequence[str]) -> bool:
+    """https, no user info, default port, and a host from ``patterns``."""
+    try:
+        parsed = urlparse(endpoint)
+        port = parsed.port
+    except ValueError:
+        return False
+    if parsed.scheme != "https" or parsed.username is not None or parsed.password is not None:
+        return False
+    if port not in (None, 443):
+        return False
+    return host_allowed(parsed.hostname or "", patterns)
+
+
 def b64url_decode(value: str) -> bytes | None:
     """Strict base64url decode (padding optional); None when not base64url."""
     if not isinstance(value, str) or not _BASE64URL.match(value):
@@ -77,7 +121,9 @@ def b64url_decode(value: str) -> bytes | None:
         return None
 
 
-def validate_subscription(payload: PushSubscriptionIn) -> str | None:
+def validate_subscription(
+    payload: PushSubscriptionIn, allowed_hosts: Sequence[str] = DEFAULT_PUSH_HOSTS
+) -> str | None:
     """None when valid, otherwise a short reason without the value (Req 15.5)."""
     endpoint = payload.endpoint
     if not isinstance(endpoint, str) or not endpoint.startswith("https://"):
@@ -86,6 +132,8 @@ def validate_subscription(payload: PushSubscriptionIn) -> str | None:
         return f"endpoint must be at most {MAX_ENDPOINT_LENGTH} characters"
     if any(ch.isspace() for ch in endpoint) or endpoint_host(endpoint) in {"", "?"}:
         return "endpoint must be an https URL"
+    if not endpoint_allowed(endpoint, allowed_hosts):
+        return "endpoint must be on a known push service host"
     p256dh = b64url_decode(payload.keys.p256dh)
     if p256dh is None or len(p256dh) != P256DH_BYTES or p256dh[0] != 0x04:
         return f"keys.p256dh must be base64url of a {P256DH_BYTES}-byte uncompressed point"
@@ -111,16 +159,23 @@ def _row(model: PushSubscription) -> PushSubscriptionRow:
 
 
 class PushSubscriptionStore:
-    def __init__(self, engine: Engine, clock: Callable[[], datetime] = _utc_now) -> None:
+    def __init__(
+        self,
+        engine: Engine,
+        clock: Callable[[], datetime] = _utc_now,
+        *,
+        allowed_hosts: Sequence[str] = DEFAULT_PUSH_HOSTS,
+    ) -> None:
         self._engine = engine
         self._clock = clock
+        self.allowed_hosts: tuple[str, ...] = tuple(allowed_hosts)
 
     def upsert(self, sub: PushSubscriptionIn, public_key: str, now: datetime | None = None) -> int:
         """Insert or update by endpoint; returns the subscription id.
 
         Raises ``InvalidSubscription`` (nothing stored) when the body fails the rules.
         """
-        reason = validate_subscription(sub)
+        reason = validate_subscription(sub, self.allowed_hosts)
         if reason is not None:
             raise InvalidSubscription(reason)
         stamp = to_utc_iso(now or self._clock())

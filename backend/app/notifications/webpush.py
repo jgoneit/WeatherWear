@@ -24,7 +24,12 @@ import logging
 from dataclasses import dataclass
 from typing import Literal, Protocol, runtime_checkable
 
-from app.notifications.push_store import PushSubscriptionRow, PushSubscriptionStore, endpoint_host
+from app.notifications.push_store import (
+    PushSubscriptionRow,
+    PushSubscriptionStore,
+    endpoint_allowed,
+    endpoint_host,
+)
 from app.notifications.records import DeliveryResult, DeliveryStatus, NotificationRecord
 from app.notifications.vapid import VapidKeys, VapidKeyStore, VapidKeyUnavailable
 
@@ -37,6 +42,9 @@ SEND_TIMEOUT_S = 10.0
 PUSH_TIMEOUT = "PUSH_TIMEOUT"
 PUSH_CONNECTION_ERROR = "PUSH_CONNECTION_ERROR"
 PUSH_SEND_ERROR = "PUSH_SEND_ERROR"  # encryption/signing or another local error
+# A stored endpoint whose host is not on the allowlist (e.g. saved before the
+# allowlist existed). Nothing is sent to it (review fix 2).
+PUSH_ENDPOINT_NOT_ALLOWED = "PUSH_ENDPOINT_NOT_ALLOWED"
 
 
 @dataclass(frozen=True)
@@ -147,6 +155,23 @@ class WebPushNotifier:
         payload = build_payload(notification)
         results: list[DeliveryResult] = []
         for sub in self._store.list_active():
+            if not endpoint_allowed(sub.endpoint, self._store.allowed_hosts):
+                logger.warning(
+                    "허용 목록 밖 푸시 서비스라 보내지 않습니다: subscription_id=%d host=%s",
+                    sub.id,
+                    endpoint_host(sub.endpoint),
+                )
+                self._store.mark_failure(sub.id)
+                results.append(
+                    DeliveryResult(
+                        channel="webpush",
+                        status="failed",
+                        subscription_id=sub.id,
+                        http_status=None,
+                        error_code=PUSH_ENDPOINT_NOT_ALLOWED,
+                    )
+                )
+                continue
             try:
                 outcome = self._sender.send(sub, payload, ttl=self._ttl, keys=keys, subject=self._subject)
             except Exception as exc:

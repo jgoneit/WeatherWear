@@ -9,7 +9,9 @@
    makes a scheduled brief happen at most once per local date, across
    restarts, worker processes and the CLI (Req 12.3). A ``failed`` row with
    fewer than 3 attempts is taken back with a conditional UPDATE (Req 12.5).
-   Neither possible → ``BriefRunResult(skipped=True)``. ``manual`` runs add a
+   So is an *interrupted* row (``is_interrupted``): still ``running`` without a
+   notification ``STALE_RUNNING_AFTER`` after it started, because the process
+   that claimed it died. Neither possible → ``BriefRunResult(skipped=True)``. ``manual`` runs add a
    row of their own and never block the scheduled one (Req 13.1).
 3. Brief location → current weather → ``recommendations_for`` → ``compose_brief``
    → Notification_Log → Notifier → delivery results → run ``sent``.
@@ -17,8 +19,11 @@
 Weather problems and "no data" are not failures: the Current_Weather_Service
 falls back to fixture weather and the composer has an insufficient-data text
 (Req 11.9, 12.5). Any other exception marks the run ``failed`` and propagates.
-Once a notification is stored, the run counts as sent even if recording the
-delivery results fails, so a retry never sends the same day's brief twice.
+The notification row and the run's ``notification_id`` are written in one
+transaction. Once a notification is stored, the run is never taken back (a
+process dying during delivery leaves ``running`` *with* a notification id) and
+counts as sent even if recording the delivery results fails, so a retry never
+sends the same day's brief twice.
 """
 
 from __future__ import annotations
@@ -27,7 +32,7 @@ import logging
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
@@ -52,6 +57,10 @@ Trigger = Literal["scheduled", "manual"]
 RunStatus = Literal["running", "sent", "failed"]
 
 MAX_SCHEDULED_ATTEMPTS = 3
+# A brief stores its notification within seconds (weather calls have short
+# timeouts). A scheduled run still ``running`` without one this long after it
+# started belongs to a process that died; it counts as failed (review fix 4).
+STALE_RUNNING_AFTER = timedelta(minutes=10)
 STORAGE_ERROR = "STORAGE_ERROR"
 BRIEF_ERROR = "DAILY_BRIEF_ERROR"
 
@@ -89,6 +98,16 @@ class BriefRunResult:
 
 def _utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+def is_interrupted(run: RunRow, now: datetime) -> bool:
+    """A ``running`` row with no notification, started at least ``STALE_RUNNING_AFTER`` ago."""
+    return run.status == "running" and run.notification_id is None and now >= run.started_at + STALE_RUNNING_AFTER
+
+
+def counts_as_failed(run: RunRow, now: datetime) -> bool:
+    """``failed``, or interrupted: what the retry rules of Req 12.5 apply to."""
+    return run.status == "failed" or is_interrupted(run, now)
 
 
 def _run_row(row: DailyBriefRun) -> RunRow:
@@ -131,17 +150,27 @@ class DailyBriefRuns:
             return None
 
     def retry(self, brief_date: date) -> RunRow | None:
-        """Take back a ``failed`` scheduled row with attempts < 3; None otherwise."""
+        """Take back the scheduled row of ``brief_date`` for one more attempt; None otherwise.
+
+        Only a row that ``counts_as_failed`` (``failed``, or interrupted) with
+        attempts < 3 (Req 12.5). The UPDATE repeats the status, attempts and
+        empty notification id just read. Every attempt changes one of them, so
+        when two processes race for the same row exactly one gets it.
+        """
+        now = self._clock()
+        current = self.get_scheduled(brief_date)
+        if current is None or current.attempts >= MAX_SCHEDULED_ATTEMPTS or not counts_as_failed(current, now):
+            return None
         statement = (
             update(DailyBriefRun)
-            .where(DailyBriefRun.brief_date == brief_date.isoformat())
-            .where(DailyBriefRun.trigger == "scheduled")
-            .where(DailyBriefRun.status == "failed")
-            .where(DailyBriefRun.attempts < MAX_SCHEDULED_ATTEMPTS)
+            .where(DailyBriefRun.id == current.id)
+            .where(DailyBriefRun.status == current.status)
+            .where(DailyBriefRun.attempts == current.attempts)
+            .where(DailyBriefRun.notification_id.is_(None))  # type: ignore[union-attr]
             .values(
                 status="running",
-                attempts=DailyBriefRun.attempts + 1,
-                started_at=to_utc_iso(self._clock()),
+                attempts=current.attempts + 1,
+                started_at=to_utc_iso(now),
                 finished_at=None,
                 error_code=None,
             )
@@ -150,7 +179,24 @@ class DailyBriefRuns:
             result = conn.execute(statement)
         if (result.rowcount or 0) != 1:
             return None
+        if current.status == "running":
+            logger.warning(
+                "%s 예약 브리핑이 중단된 채 남아 있어 실패로 보고 다시 시도합니다 (시도 %d회째)",
+                brief_date.isoformat(),
+                current.attempts + 1,
+            )
         return self.get_scheduled(brief_date)
+
+    @staticmethod
+    def link_notification(session: Session, run_id: int, notification_id: int) -> None:
+        """Record the run's notification inside the transaction that stores it."""
+        session.execute(
+            update(DailyBriefRun).where(DailyBriefRun.id == run_id).values(notification_id=notification_id)
+        )
+
+    def effective_status(self, run: RunRow) -> RunStatus:
+        """The stored status, but ``failed`` for an interrupted run (Automation_Status)."""
+        return "failed" if is_interrupted(run, self._clock()) else run.status
 
     def start_manual(self, brief_date: date) -> RunRow:
         row = DailyBriefRun(
@@ -280,7 +326,15 @@ class DailyBriefService:
             message = compose_brief(
                 BriefInput(place=self._place_label(point.latitude, point.longitude), today=today, top=top)
             )
-            record = self._log.create("daily_brief", message, brief_date=day, weather=today)
+            record = self._log.create(
+                "daily_brief",
+                message,
+                brief_date=day,
+                weather=today,
+                before_commit=lambda session, notification_id: self._runs.link_notification(
+                    session, run.id, notification_id
+                ),
+            )
         except Exception as exc:
             code = _error_code(exc)
             logger.error("매일 브리핑 실패(%s, %s): %s", trigger, day.isoformat(), type(exc).__name__)

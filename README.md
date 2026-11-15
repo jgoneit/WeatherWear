@@ -93,7 +93,7 @@
 | 시드 체감 투표 | 66개 |
 | 유사 기온 허용 오차 | ±3.0°C (후보가 없으면 ±5.0°C로 1회 확장) |
 | 데모 시나리오 | 14.5°C 정상 · −16.0°C 경계 · 44.0°C 범위 확장 · 48.0°C 데이터 부족 |
-| 테스트 | 백엔드 1109 passed · 프론트엔드 100 passed |
+| 테스트 | 백엔드 1138 passed · 프론트엔드 106 passed |
 
 TODO(팀): 사용자 테스트를 했다면 "춥거나 덥게 입은 날 비율" 같은 측정값을 적는다.
 
@@ -155,10 +155,10 @@ cd backend && .venv/bin/python -m pytest -q
 cd frontend && npx vitest --run && npm run typecheck && npm run check:bundle
 ```
 
-| 검사 | 결과 (Phase 2 통합, 2026-11-14) |
+| 검사 | 결과 (Phase 2 통합 + 검토 반영, 2026-11-15) |
 |---|---|
-| 백엔드 pytest | ✅ 1109 passed (skip 0) |
-| 프론트엔드 vitest | ✅ 100 passed |
+| 백엔드 pytest | ✅ 1138 passed (skip 0) |
+| 프론트엔드 vitest | ✅ 106 passed |
 | typecheck · check:bundle | ✅ 통과 |
 | 데모 데이터 규칙 `scripts/select_scenarios.py --check` | ✅ 통과 |
 
@@ -327,7 +327,7 @@ Phase 2는 "사진을 찍으면 알아서 기록되고, 아침에는 알림이 �
 - `.env.example`과 `compose.yaml`은 두 값을 `true`로 켜 둔다. 루트 `.env`에 `GALLERY_WATCH_ENABLED=true`, `DAILY_BRIEF_ENABLED=true`를 넣고 서버를 다시 시작한다.
 - 켜면 서버 lifespan이 감시 스레드(`gallery-watcher`)와 브리핑 스케줄러 스레드(`daily-brief`)를 띄운다. 끄면 스레드를 만들지 않고 `ex_img/`를 읽지 않는다.
 
-#### Phase 2 환경 변수 (9개)
+#### Phase 2 환경 변수 (10개)
 
 | 변수 | 기본값 | 설명 |
 |---|---|---|
@@ -340,6 +340,7 @@ Phase 2는 "사진을 찍으면 알아서 기록되고, 아침에는 알림이 �
 | `NOTIFIER` | `log` | `log`(알림 기록만, 오프라인) 또는 `webpush`(Web Push) |
 | `VAPID_KEY_DIR` | `./data/secrets` | VAPID 키 쌍 폴더. 개인키가 있으므로 커밋하지 않는다 |
 | `VAPID_SUBJECT` | `mailto:weatherwear@example.com` | Web Push 발신자 연락처(`mailto:` 또는 `https://`) |
+| `PUSH_ALLOWED_HOSTS` | (빈 값) | 푸시 구독 endpoint로 더 받을 호스트(쉼표 구분, `*.example.com` 가능). 기본 목록은 아래 "인증 없는 로컬 전용 API" |
 
 잘못된 값은 Phase 1과 같이 기동을 막지 않는다. 로그에 변수 이름과 허용값만 남기고 기본값을 쓴다.
 
@@ -347,11 +348,11 @@ Phase 2는 "사진을 찍으면 알아서 기록되고, 아침에는 알림이 �
 
 - **기준선**: 감시를 처음 시작할 때 `ex_img/`에 있던 파일(데모 사진 174장)은 기준선으로만 기록하고 분석하지 않는다. 그 뒤 생긴 파일만 처리한다.
 - **쓰는 중인 파일**: 크기와 수정 시각이 두 번 연속 같고 `GALLERY_POLL_SECONDS`가 지나야 처리한다. 갤러리 폴더의 파일은 고치거나 옮기지 않는다.
-- **저장**: 새 사진은 `data/user/photos/`에 바이트 그대로 복사한 뒤 Phase 1 수집(사진 분류 게이트 → 메타데이터 → 날씨 → 저장)을 그대로 탄다. 같은 해시는 다시 분석하지 않는다. 감시로 들어온 사진은 사용자 본인 사진이라 `data/user/`(git 무시)에만 두고 데모 manifest에는 넣지 않는다.
+- **저장**: 새 사진은 `data/user/photos/`에 바이트 그대로 복사한 뒤 Phase 1 수집(사진 분류 게이트 → 메타데이터 → 날씨 → 저장)을 그대로 탄다. 같은 해시는 다시 분석하지 않는다. 같은 바이트의 앞 사진이 처리 중이라 `duplicate`가 된 사진은, 앞 사진이 끝내 실패하면 다시 대기열(`pending`)로 돌아간다. 감시로 들어온 사진은 사용자 본인 사진이라 `data/user/`(git 무시)에만 두고 데모 manifest에는 넣지 않는다.
 - **Fixture 모드의 새 사진**: Fixture Vision은 모르는 사진을 `uncertain`으로 판정한다. 그래서 `scripts/simulate_capture.py`가 사진을 넣기 전에 `data/user/fixtures/vision.overlay.json`에 판정을 먼저 적는다. 실제 분석은 `VISION_PROVIDER=gemini`일 때만 된다.
 - **EXIF가 없는 사진**: 실패시키지 않는다. 촬영 시각은 파일 수정 시각(`APP_TIMEZONE`, 미래 시각이면 처리 시각), 위치는 마지막 브라우저 위치(없으면 기본 위치)로 채우고 "촬영 정보 추정"으로 표시한다.
 - **확인이 필요한 사진**: `uncertain`은 푸시하지 않고 "알림" 탭의 "확인이 필요한 사진"에만 보인다. "착장 맞음"을 누르면 Vision을 다시 부르지 않고 착장으로 저장한다(감사 기록 `photo_confirmations`). "다시 분석"은 한 번 더 분석한다. 태그가 모두 `unknown`이면 기록에는 보이지만 추천에는 쓰이지 않는다.
-- **매일 브리핑**: `DAILY_BRIEF_TIME`에 마지막 위치의 현재 날씨로 `rule_based_v1` 1순위를 골라 알림을 만든다. 하루에 한 번만 보낸다(DB가 날짜별로 막는다). 서버가 그 시각 뒤 3시간 안에 켜지면 그때 보내고, 3시간이 지나면 그날은 건너뛴다.
+- **매일 브리핑**: `DAILY_BRIEF_TIME`에 마지막 위치의 현재 날씨로 `rule_based_v1` 1순위를 골라 알림을 만든다. 하루에 한 번만 보낸다(DB가 날짜별로 막는다). 서버가 그 시각 뒤 3시간 안에 켜지면 그때 보내고, 3시간이 지나면 그날은 건너뛴다. 실패하면 10분 뒤 다시 시도한다(최대 3회). 브리핑 도중 프로세스가 죽어 `running`으로 남은 실행도, 알림이 아직 저장되지 않았으면 10분 뒤 실패로 보고 같은 규칙으로 다시 보낸다. 알림이 저장된 뒤에 죽었으면 다시 보내지 않는다.
 - **홈 오늘 날씨**: Live 모드(`WEATHER_PROVIDER=open_meteo`)에서만 마지막 위치 + Forecast API 현재 날씨로 바뀐다. Fixture 모드는 Phase 1 그대로다. 홈과 브리핑은 같은 위치·같은 날씨를 쓴다.
 - **위치**: 브라우저 위치는 소수 둘째 자리(약 1km)로 반올림해 1건만 저장하고, 로그에는 좌표를 남기지 않는다. Open-Meteo 요청 URL의 좌표도 로그에서 지운다.
 
@@ -368,7 +369,25 @@ Phase 2는 "사진을 찍으면 알아서 기록되고, 아침에는 알림이 �
 - Web Push와 위치는 secure context(`http://localhost` 또는 HTTPS)에서만 동작한다. 휴대폰에서 HTTPS로 여는 구성은 범위 밖이라 데모는 데스크톱 브라우저로 한다.
 - iOS Safari는 홈 화면에 추가한 웹 앱에서만 푸시를 받는다.
 - 브라우저 권한은 버튼을 누를 때만 요청한다. 앱을 열 때는 묻지 않는다. 권한이 이미 있으면 앱을 열 때 마지막 보고 뒤 30분이 지났을 때만 조용히 위치를 보고한다.
-- 실제 푸시는 `NOTIFIER=webpush`에서 "알림" 탭의 "알림 켜기" → 데모 화면 "오늘 브리핑 지금 보내기"로 보낸다(푸시 서비스로 가는 네트워크 필요). VAPID 키는 첫 실행 때 `VAPID_KEY_DIR`에 만들어지고, 개인키는 로그·응답·번들에 나오지 않는다(`npm run check:bundle`이 확인).
+- 실제 푸시는 `NOTIFIER=webpush`에서 "알림" 탭의 "알림 켜기" → 데모 화면 "오늘 브리핑 지금 보내기"로 보낸다(푸시 서비스로 가는 네트워크 필요). VAPID 키는 첫 실행 때 `VAPID_KEY_DIR`에 만들어지고, 개인키는 로그·응답·번들에 나오지 않는다. `npm run check:bundle`이 PEM 본문뿐 아니라 개인 스칼라를 JWK `d`(base64url), base64, hex로 쓴 형태까지 찾는다.
+
+#### 인증 없는 로컬 전용 API
+
+WeatherWear API에는 인증이 없다. 한 사람이 자기 컴퓨터에서 쓰는 데모라서 브라우저와 서버가 같은 컴퓨터에 있다고 가정한다.
+
+- 위 실행 명령(`uvicorn ... --port 8000`)은 `127.0.0.1`에만 열린다. `docker compose`는 포트를 모든 네트워크 인터페이스에 연다. 같은 네트워크의 다른 기기를 막으려면 `BACKEND_PORT=127.0.0.1:8000 FRONTEND_PORT=127.0.0.1:5173 docker compose up`으로 실행한다.
+- 서버를 공개 주소(터널, `0.0.0.0` 바인드)로 열면 주소를 아는 누구나 다음을 할 수 있다.
+  - 위치 바꾸기(`POST /api/location`)
+  - 푸시 구독 등록, 순번 id로 삭제(`POST /api/push/subscriptions`, `DELETE /api/push/subscriptions/{id}`)
+  - 테스트 알림과 브리핑 보내기(`POST /api/push/test`, `POST /api/daily-brief/run`)
+  - 사진 판정 바꾸기(`POST /api/gallery/imports/{id}/confirm-outfit`, `…/reanalyze`)와 피드백 저장
+- 공개하려면 앞단에 인증(예: 리버스 프록시 Basic 인증, Cloudflare Access)을 둔다.
+- 서버가 임의 주소로 요청을 보내지 않도록(SSRF) 푸시 구독 `endpoint`는 알려진 푸시 서비스 호스트만 받는다.
+  - 기본 목록: `fcm.googleapis.com`, `android.googleapis.com`(Chrome), `updates.push.services.mozilla.com`(Firefox), `*.notify.windows.com`(Edge), `web.push.apple.com`(Safari)
+  - HTTPS 443 포트만 받는다. 다른 호스트는 422로 거절한다.
+  - 목록 밖 호스트로 이미 저장된 구독에는 보내지 않는다(`PUSH_ENDPOINT_NOT_ALLOWED`).
+  - 다른 푸시 서비스는 `PUSH_ALLOWED_HOSTS`로 더한다.
+  - 이 목록은 서버가 엉뚱한 곳으로 요청을 보내는 것만 막는다. 인증을 대신하지 않는다.
 
 #### Docker Compose
 
@@ -445,8 +464,8 @@ pytest 자동화 테스트 영역(Req 17.4)과 대표 테스트:
 | (g) 내장 메타데이터 읽기 | `backend/tests/test_metadata.py` | `test_user_comment_json_parsed`, `test_standard_exif_jpeg_parsed`, `test_user_comment_preferred_over_standard_exif`, `test_sidecar_fallback_when_no_exif`, `test_no_metadata_fails_metadata_not_found`, `test_broken_sidecar_fails_even_with_exif` |
 
 - 테스트는 API 키 없이 돈다. `backend/tests/conftest.py`가 테스트마다 `GEMINI_API_KEY`를 환경에서 지우고 localhost 외 네트워크 연결을 막는다. Open-Meteo는 `respx`, Gemini는 가짜 클라이언트로 대체한다. pytest는 `scripts/record_fixture_weather.py`와 `scripts/check_gemini_model.py`를 실행하지 않는다.
-- 이 README 작성 시점 결과(2026-11-14, 데모 사진 189장 준비 상태, Phase 2 통합 후): 백엔드 1109 passed, 프론트엔드 12개 파일 100 tests passed, typecheck 오류 0, check:bundle OK, `select_scenarios.py --check` 통과. Phase 1만 있던 때는 백엔드 602, 프론트엔드 92였다.
-- Phase 2 대표 테스트: 감시·기준선 `test_gallery_watcher.py`, 수집·판정별 처리 `test_gallery_processor.py`, 추정 촬영 정보 `test_gallery_estimate.py`, "착장 맞음" `test_gallery_confirm.py`, 브리핑 문구 `test_brief_compose.py::test_compose_matches_user_example`, 하루 1회 `test_daily_brief.py`, Web Push `test_webpush.py`, DB 2→3 업그레이드 `test_db_automation.py`, 설정 `test_config_automation.py`, 상태 API `test_api_automation.py`, lifespan `test_lifespan_automation.py`, 종단 `test_automation_e2e.py`. 테스트가 저장소의 `data/user/`, `data/secrets/`를 만들면 `conftest.py`가 실패로 처리한다.
+- 이 README 작성 시점 결과(2026-11-15, 데모 사진 189장 준비 상태, Phase 2 통합과 검토 반영 후): 백엔드 1138 passed, 프론트엔드 13개 파일 106 tests passed, typecheck 오류 0, check:bundle OK, `select_scenarios.py --check` 통과. Phase 1만 있던 때는 백엔드 602, 프론트엔드 92였다.
+- Phase 2 대표 테스트: 감시·기준선 `test_gallery_watcher.py`, 수집·판정별 처리 `test_gallery_processor.py`, 추정 촬영 정보 `test_gallery_estimate.py`, "착장 맞음" `test_gallery_confirm.py`, 브리핑 문구 `test_brief_compose.py::test_compose_matches_user_example`, 하루 1회·중단된 실행 재시도 `test_daily_brief.py`, Web Push·호스트 허용 목록 `test_webpush.py`, 번들의 VAPID 개인키 형태 `frontend/src/checkBundle.test.ts`, DB 2→3 업그레이드 `test_db_automation.py`, 설정 `test_config_automation.py`, 상태 API `test_api_automation.py`, lifespan `test_lifespan_automation.py`, 종단 `test_automation_e2e.py`. 테스트가 저장소의 `data/user/`, `data/secrets/`를 만들면 `conftest.py`가 실패로 처리한다.
 - 데모 사진이 없으면(새로 클론한 직후) 사진 파일을 읽는 테스트(`test_integration.py`의 데모 사진 테스트, `test_api_routes.py::test_demo_data_end_to_end`, `test_image_check.py::test_all_demo_photos_pass_check_image`, `test_metadata.py::test_user_comment_json_parsed_from_real_ex_img_photo` 등)는 skip된다. 전체를 확인하려면 먼저 데모 사진을 준비한다.
 - 데모 데이터 파일이 시나리오·시드 투표 규칙을 지키는지는 pytest와 별도로 `backend/.venv/bin/python scripts/select_scenarios.py --check`로 확인한다(위 "데모 사진 준비").
 
@@ -478,10 +497,10 @@ pytest 자동화 테스트 영역(Req 17.4)과 대표 테스트:
 - REST API와 OpenAPI 문서, 사진 엔드포인트(경로 비노출), CORS 정확 일치
 - 설정 로더(기본값 대체, 잘못된 값 로그)와 API 키 마스킹, 번들 비밀값 검사
 - 모바일 웹: 홈(오늘 날씨, 알림 카드, 추천), 기록 그리드, 상세, 데모 관리 화면(vitest smoke 테스트와 5분 데모 절차)
-- Phase 2 갤러리 감시: 기준선, 쓰는 중인 파일 대기, 바이트 그대로 복사, 해시 중복 제거, 판정별 처리(`imported`/`duplicate`/`skipped_non_outfit`/`uncertain`/재시도/실패), Vision 실패 1분·5분 재시도(최대 3회), 재시작 후 이어서 처리, 사진 처리 기록 API, "다시 분석"과 "착장 맞음"
+- Phase 2 갤러리 감시: 기준선, 쓰는 중인 파일 대기, 바이트 그대로 복사, 해시 중복 제거(앞 사진이 실패하면 중복 사진을 다시 처리), 판정별 처리(`imported`/`duplicate`/`skipped_non_outfit`/`uncertain`/재시도/실패), Vision 실패 1분·5분 재시도(최대 3회), 재시작 후 이어서 처리, 사진 처리 기록 API, "다시 분석"과 "착장 맞음"
 - Phase 2 촬영 정보 추정: EXIF 없으면 파일 수정 시각 + 마지막 위치, 추정 사이드카와 "촬영 정보 추정" 표시, 최근 7일은 Forecast `past_days`, 그 전은 Archive
-- Phase 2 매일 브리핑: 위치·현재 날씨·1순위 추천으로 한국어 문장(조사 을/를, 장소 이름 16곳), 하루 1회(DB 부분 고유 인덱스), 3시간 따라잡기, 실패 시 10분 뒤 재시도(최대 3회), CLI와 "지금 보내기" API
-- Phase 2 알림: Notification_Log, `log` Notifier, Web Push(VAPID 키 생성·보관, 구독 저장, 404/410 구독 삭제, 결과 기록), Service Worker 알림 표시와 클릭 이동, 홈 브리핑 카드, "알림" 탭
+- Phase 2 매일 브리핑: 위치·현재 날씨·1순위 추천으로 한국어 문장(조사 을/를, 장소 이름 16곳), 하루 1회(DB 부분 고유 인덱스), 3시간 따라잡기, 실패 시 10분 뒤 재시도(최대 3회, 중단되어 `running`으로 남은 실행 포함), CLI와 "지금 보내기" API
+- Phase 2 알림: Notification_Log, `log` Notifier, Web Push(VAPID 키 생성·보관, 푸시 서비스 호스트 허용 목록, 구독 저장, 404/410 구독 삭제, 결과 기록), Service Worker 알림 표시와 클릭 이동, 홈 브리핑 카드, "알림" 탭
 - Phase 2 위치·상태: 위치 보고(반올림, 1건 보관, 좌표 비로그), Live 모드 홈 날씨 전환, 자동화 상태 API와 데모 카드, DB user_version 2→3 추가 업그레이드, Docker Compose 볼륨
 - Phase 2 데모 리허설(2026-11-14, 임시 DB·폴더, 오프라인): 서버 기동 → 스캔 189 → 위치(부산) → `simulate_capture.py` → 감시가 `imported`(착장 170) → `daily_brief.py` 전송, 두 번째 실행은 "이미 보냄"
 

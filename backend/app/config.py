@@ -86,6 +86,8 @@ class RawSettings(BaseSettings):
     NOTIFIER: str = "log"
     VAPID_KEY_DIR: str = "./data/secrets"
     VAPID_SUBJECT: str = "mailto:weatherwear@example.com"
+    # Extra push service hosts on top of the built-in allowlist (review fix 2).
+    PUSH_ALLOWED_HOSTS: str = ""
 
 
 # Phase 2 defaults (Req 18.1).
@@ -100,10 +102,13 @@ DEFAULT_NOTIFIER: Literal["log"] = "log"
 DEFAULT_VAPID_KEY_DIR = Path("./data/secrets")
 DEFAULT_VAPID_SUBJECT = "mailto:weatherwear@example.com"
 VAPID_SUBJECT_PREFIXES: tuple[str, ...] = ("mailto:", "https://")
+# One host name, or "*.<domain>" for any subdomain of <domain>.
+_HOST_PATTERN = re.compile(r"^(\*\.)?[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
 
 AUTOMATION_VARS: tuple[str, ...] = (
     "GALLERY_WATCH_ENABLED", "GALLERY_DIR", "GALLERY_POLL_SECONDS", "USER_PHOTO_DIR",
     "DAILY_BRIEF_ENABLED", "DAILY_BRIEF_TIME", "NOTIFIER", "VAPID_KEY_DIR", "VAPID_SUBJECT",
+    "PUSH_ALLOWED_HOSTS",
 )
 
 
@@ -120,6 +125,9 @@ class AutomationConfig:
     notifier: Literal["log", "webpush"] = DEFAULT_NOTIFIER
     vapid_key_dir: Path = DEFAULT_VAPID_KEY_DIR
     vapid_subject: str = DEFAULT_VAPID_SUBJECT
+    # Push service hosts allowed in addition to the built-in list
+    # (app.notifications.push_store.DEFAULT_PUSH_HOSTS).
+    push_allowed_hosts: tuple[str, ...] = ()
 
     @property
     def vision_overlay_path(self) -> Path:
@@ -355,6 +363,14 @@ def parse_hhmm(value: str) -> time | None:
     return time(int(match.group(1)), int(match.group(2)))
 
 
+def parse_host_list(value: str) -> tuple[str, ...] | None:
+    """Comma-separated host names or ``*.<domain>`` patterns, lowercased; None when any item is invalid."""
+    items = [item.strip().lower() for item in str(value).split(",") if item.strip()]
+    if not items or not all(_HOST_PATTERN.fullmatch(item) for item in items):
+        return None
+    return tuple(dict.fromkeys(items))
+
+
 def _is_same_or_nested(a: Path, b: Path) -> bool:
     """True when ``a`` and ``b`` are the same path or one contains the other."""
     return a == b or a in b.parents or b in a.parents
@@ -377,6 +393,7 @@ def resolve_automation_config(
 
     Never raises. Every invalid variable yields one ``ConfigIssue`` whose
     message has the variable name and the allowed values only (Req 18.2, 18.9).
+    The 10th variable, PUSH_ALLOWED_HOSTS, extends the push service allowlist.
     The USER_PHOTO_DIR conflict check here compares the configured (usually
     relative) paths; ``main.resolve_paths`` repeats it on absolute paths.
     """
@@ -455,6 +472,19 @@ def resolve_automation_config(
                 "VAPID_SUBJECT는 mailto: 또는 https://로 시작해야 합니다. 기본값을 사용합니다.",
             )
 
+    push_hosts: tuple[str, ...] = ()
+    hosts_value = _get(raw, "PUSH_ALLOWED_HOSTS")
+    if hosts_value is not None:
+        parsed_hosts = parse_host_list(hosts_value)
+        if parsed_hosts is None:
+            issue(
+                "PUSH_ALLOWED_HOSTS",
+                "PUSH_ALLOWED_HOSTS는 쉼표로 구분한 호스트 이름 또는 *.도메인 목록이어야 합니다. "
+                "기본 푸시 서비스 목록만 사용합니다.",
+            )
+        else:
+            push_hosts = parsed_hosts
+
     user_photo_dir = path("USER_PHOTO_DIR", DEFAULT_USER_PHOTO_DIR)
     if user_photo_dir_conflicts(user_photo_dir, photo_dir, gallery_dir):
         issue(
@@ -474,6 +504,7 @@ def resolve_automation_config(
         notifier=notifier,
         vapid_key_dir=vapid_key_dir,
         vapid_subject=vapid_subject,
+        push_allowed_hosts=push_hosts,
     )
     return config, issues
 

@@ -83,6 +83,9 @@ def test_valid_phase2_values_are_used():
         ("NOTIFIER", "fcm"),
         ("VAPID_SUBJECT", "http://insecure.example"),
         ("VAPID_SUBJECT", "someone@example.com"),
+        ("PUSH_ALLOWED_HOSTS", "https://push.example.com"),
+        ("PUSH_ALLOWED_HOSTS", "*.com"),
+        ("PUSH_ALLOWED_HOSTS", "localhost"),
     ],
 )
 def test_invalid_phase2_values_fall_back_with_issue(name: str, value: str):
@@ -192,6 +195,7 @@ def test_env_example_turns_automation_on_and_documents_defaults():
     assert values["NOTIFIER"] == "log"
     assert values["VAPID_KEY_DIR"] == "./data/secrets"
     assert values["VAPID_SUBJECT"] == "mailto:weatherwear@example.com"
+    assert values["PUSH_ALLOWED_HOSTS"] == ""
 
     def comment_before(name: str) -> str:
         index = next(i for i, line in enumerate(lines) if line.startswith(f"{name}="))
@@ -208,3 +212,9 @@ def test_env_example_turns_automation_on_and_documents_defaults():
     assert "개인키가 저장되므로 커밋하지 않는다" in comment_before("VAPID_KEY_DIR")
     for name in AUTOMATION_VARS:
         assert comment_before(name), name
+
+
+def test_push_allowed_hosts_parsed() -> None:
+    cfg, issues = resolve_config({"PUSH_ALLOWED_HOSTS": " Push.Example.com, *.push.example.net ,push.example.com"})
+    assert issues == []
+    assert cfg.automation.push_allowed_hosts == ("push.example.com", "*.push.example.net")

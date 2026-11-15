@@ -23,6 +23,7 @@ from app.domain import UNKNOWN_TAGS, ClothingTags, VisionAnalysis
 from app.ingestion.service import ImageIngestionService, NotOutfit
 from app.notifications.compose import INSUFFICIENT_DATA_TEXT
 from app.notifications.daily_brief import (
+    STALE_RUNNING_AFTER,
     DailyBriefInProgress,
     DailyBriefService,
     RunRow,
@@ -94,8 +95,14 @@ def env(tmp_path: Path, clock: FakeClock):
     environment.close()
 
 
-def run_row(status: str, attempts: int, started: datetime, finished: datetime | None = None) -> RunRow:
-    return RunRow(1, date(2026, 11, 14), "scheduled", status, attempts, None, None, started, finished)  # type: ignore[arg-type]
+def run_row(
+    status: str,
+    attempts: int,
+    started: datetime,
+    finished: datetime | None = None,
+    notification_id: int | None = None,
+) -> RunRow:
+    return RunRow(1, date(2026, 11, 14), "scheduled", status, attempts, notification_id, None, started, finished)  # type: ignore[arg-type]
 
 
 # --- scheduled_decision / next_run_at (pure) ---------------------------------------
@@ -112,8 +119,17 @@ def test_scheduled_decision_table() -> None:
     sent = run_row("sent", 1, at(7, 30))
     assert scheduled_decision(at(8, 0), BRIEF_TIME, sent) == "done"
     assert scheduled_decision(at(11, 0), BRIEF_TIME, sent) == "done"
+    # Running: in progress for 10 minutes; after that, without a notification,
+    # the process that claimed it died and the run counts as failed (review fix 4).
     running = run_row("running", 1, at(7, 30))
-    assert scheduled_decision(at(9, 0), BRIEF_TIME, running) == "done"
+    assert scheduled_decision(at(7, 39, 59), BRIEF_TIME, running) == "done"
+    assert scheduled_decision(at(7, 40), BRIEF_TIME, running) == "retry"
+    assert scheduled_decision(at(9, 0), BRIEF_TIME, running) == "retry"
+    assert scheduled_decision(at(10, 30), BRIEF_TIME, running) == "done"  # never past the window
+    delivering = run_row("running", 1, at(7, 30), notification_id=7)
+    assert scheduled_decision(at(9, 0), BRIEF_TIME, delivering) == "done"  # the brief exists: never twice
+    interrupted_last = run_row("running", 3, at(7, 50))
+    assert scheduled_decision(at(9, 0), BRIEF_TIME, interrupted_last) == "done"
     failed = run_row("failed", 1, at(7, 30), at(7, 31))
     assert scheduled_decision(at(7, 40, 59), BRIEF_TIME, failed) == "done"
     assert scheduled_decision(at(7, 41), BRIEF_TIME, failed) == "retry"
@@ -270,6 +286,101 @@ def test_failed_scheduled_run_stops_after_three_attempts(env: Env, clock: FakeCl
     row = env.rt.runs.get_scheduled(date(2026, 11, 14))
     assert row is not None and (row.status, row.attempts) == ("failed", 3)
     assert env.notifications() == []
+
+
+# --- interrupted runs (review fix 4) ------------------------------------------------------
+
+
+def test_interrupted_scheduled_run_counts_as_failed_and_is_retried(
+    tmp_path: Path, env: Env, clock: FakeClock
+) -> None:
+    """A process claims the date at 07:30 and dies before storing the brief."""
+    add_outfit(env.container.repository, TODAY_DEFAULT["actual_temperature_c"], vote="comfortable")
+    day = date(2026, 11, 14)
+    clock.set(kst(14, 7, 30))
+    claimed = env.rt.runs.claim(day)
+    assert claimed is not None and claimed.status == "running"
+    env.close()  # the process is gone; the row stays "running"
+
+    restarted = Env(tmp_path, clock)
+    try:
+        runs = restarted.rt.runs
+        clock.set(kst(14, 7, 35))
+        assert restarted.scheduler.tick() == "done"  # may still be in progress elsewhere
+        assert restarted.rt.daily_brief.run("scheduled", day).skipped is True  # the CLI waits too
+        row = runs.get_scheduled(day)
+        assert row is not None and runs.effective_status(row) == "running"
+
+        clock.set(kst(14, 7, 30) + STALE_RUNNING_AFTER)
+        row = runs.get_scheduled(day)
+        assert row is not None and runs.effective_status(row) == "failed"
+        assert restarted.scheduler.next_run_at() == clock.now.astimezone(SEOUL)  # due now
+        assert restarted.scheduler.tick() == "retry"
+        row = runs.get_scheduled(day)
+        assert row is not None and (row.status, row.attempts) == ("sent", 2)
+        notes = restarted.notifications()
+        assert len(notes) == 1 and row.notification_id == notes[0].notification.id
+
+        clock.advance(minutes=30)
+        assert restarted.scheduler.tick() == "done"
+        assert len(restarted.notifications()) == 1
+    finally:
+        restarted.close()
+
+
+def test_interrupted_run_taken_back_by_one_process_only(env: Env, clock: FakeClock) -> None:
+    day = date(2026, 11, 14)
+    clock.set(kst(14, 7, 30))
+    assert env.rt.runs.claim(day) is not None
+    clock.set(kst(14, 7, 45))
+    first = env.rt.runs.retry(day)
+    assert first is not None and (first.status, first.attempts) == ("running", 2)
+    assert env.rt.runs.retry(day) is None  # the second process sees a fresh attempt
+
+
+def test_interrupted_three_times_stops_and_shows_failed(env: Env, clock: FakeClock) -> None:
+    day = date(2026, 11, 14)
+    runs = env.rt.runs
+    clock.set(kst(14, 7, 30))
+    assert runs.claim(day) is not None
+    for minute in (40, 50):  # two more attempts, each dies too
+        clock.set(kst(14, 7, minute))
+        assert runs.retry(day) is not None
+    clock.set(kst(14, 8, 0))
+    assert runs.retry(day) is None
+    assert env.scheduler.tick() == "done"
+    row = runs.get_scheduled(day)
+    assert row is not None and (row.status, row.attempts) == ("running", 3)
+    assert runs.effective_status(row) == "failed"
+    assert env.scheduler.next_run_at() == datetime(2026, 11, 15, 7, 30, tzinfo=SEOUL)
+    assert env.notifications() == []
+
+
+def test_run_that_stored_its_brief_is_never_retried(
+    env: Env, clock: FakeClock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Dying during delivery: the notification and the run's notification_id commit together."""
+    import app.notifications.daily_brief as daily_brief_module
+
+    def killed(*_args, **_kwargs):
+        raise RuntimeError("process killed during delivery")
+
+    add_outfit(env.container.repository, TODAY_DEFAULT["actual_temperature_c"], vote="comfortable")
+    monkeypatch.setattr(daily_brief_module, "deliver", killed)
+    day = date(2026, 11, 14)
+    clock.set(kst(14, 7, 30))
+    assert env.scheduler.tick() == "run"  # the error stays inside tick()
+    row = env.rt.runs.get_scheduled(day)
+    notes = env.notifications()
+    assert len(notes) == 1
+    assert row is not None and (row.status, row.notification_id) == ("running", notes[0].notification.id)
+
+    monkeypatch.undo()
+    clock.set(kst(14, 9, 0))
+    assert env.rt.runs.effective_status(row) == "running"
+    assert env.scheduler.tick() == "done"
+    assert env.rt.daily_brief.run("scheduled", day).skipped is True
+    assert len(env.notifications()) == 1
 
 
 def test_unexpected_tick_error_does_not_escape(env: Env, clock: FakeClock, monkeypatch: pytest.MonkeyPatch) -> None:

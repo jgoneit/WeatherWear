@@ -30,7 +30,7 @@ from app.notifications.current_weather import CurrentWeatherService
 from app.notifications.daily_brief import DailyBriefRuns, DailyBriefService
 from app.notifications.notifier import Notifier, build_notifier
 from app.notifications.places import place_label
-from app.notifications.push_store import PushSubscriptionStore
+from app.notifications.push_store import DEFAULT_PUSH_HOSTS, PushSubscriptionStore
 from app.notifications.records import NotificationLog
 from app.notifications.scheduler import DailyBriefScheduler
 from app.notifications.vapid import VapidKeyStore
@@ -89,7 +89,10 @@ def build_brief_runtime(
     current_weather = CurrentWeatherService(config, forecast, container.scenario_store, fixture, now)
 
     log = NotificationLog(engine, now)
-    push_store = PushSubscriptionStore(engine, now)
+    push_store = PushSubscriptionStore(
+        engine, now,
+        allowed_hosts=DEFAULT_PUSH_HOSTS + config.automation.push_allowed_hosts,
+    )
     vapid_keys = VapidKeyStore(
         config.automation.vapid_key_dir,
         now,

@@ -123,8 +123,8 @@ def b64url(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
 
-def subscription_json(n: int = 1, host: str = "push.example.com") -> dict[str, Any]:
-    """A browser ``PushSubscription.toJSON()`` that passes the format rules."""
+def subscription_json(n: int = 1, host: str = "fcm.googleapis.com") -> dict[str, Any]:
+    """A browser ``PushSubscription.toJSON()`` that passes the format rules (allowlisted host)."""
     p256dh = b"\x04" + hashlib.sha256(f"x{n}".encode()).digest() + hashlib.sha256(f"y{n}".encode()).digest()
     auth = hashlib.md5(f"auth{n}".encode()).digest()  # 16 bytes  # noqa: S324
     return {

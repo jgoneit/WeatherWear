@@ -5,9 +5,10 @@
 //   2. the actual GEMINI_API_KEY value, if one is set in the environment or in
 //      the repository-root .env file;
 //   3. the string "PRIVATE KEY" (catches any PEM private key block);
-//   4. the VAPID private key body: when VAPID_KEY_DIR (process environment, then the
+//   4. the VAPID private key: when VAPID_KEY_DIR (process environment, then the
 //      repository-root .env, then the default data/secrets) holds vapid_private.pem,
-//      every 16-character window of its base64 body is searched for.
+//      every 16-character window of its base64 body, and the private scalar `d` as
+//      base64url (JWK), base64 and hex (see vapid-secret-forms.mjs), are searched for.
 // The checks are case-sensitive on purpose: the bundle legitimately contains the
 // API field `gemini_api_key_configured` and the UI label "Gemini API 키".
 // Exit 0: nothing found. Exit 1: a match was found, or dist/ is missing/empty.
@@ -15,11 +16,11 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { containsAny, secretNeedles } from "./vapid-secret-forms.mjs";
 
 const NEEDLE = "GEMINI";
 const PEM_NEEDLE = "PRIVATE KEY";
 const MIN_KEY_LENGTH = 8;
-const VAPID_WINDOW = 16;
 const VAPID_PRIVATE_FILE = "vapid_private.pem";
 const DEFAULT_VAPID_KEY_DIR = "data/secrets";
 const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -77,27 +78,13 @@ async function vapidKeyDir() {
   return path.resolve(repoRoot, dir);
 }
 
-// Base64 body of <VAPID_KEY_DIR>/vapid_private.pem (PEM armour and whitespace removed),
-// or "" when the file does not exist or cannot be read.
-async function loadVapidKeyBody() {
-  let text;
+// Text of <VAPID_KEY_DIR>/vapid_private.pem, or "" when it does not exist or cannot be read.
+async function loadVapidPem() {
   try {
-    text = await readFile(path.join(await vapidKeyDir(), VAPID_PRIVATE_FILE), "utf8");
+    return await readFile(path.join(await vapidKeyDir(), VAPID_PRIVATE_FILE), "utf8");
   } catch {
     return "";
   }
-  return text
-    .split(/\r?\n/)
-    .filter((line) => !line.startsWith("-----"))
-    .join("")
-    .replace(/[^A-Za-z0-9+/=]/g, "");
-}
-
-// Every distinct 16-character window of the key body.
-function keyWindows(body) {
-  const windows = new Set();
-  for (let i = 0; i + VAPID_WINDOW <= body.length; i += 1) windows.add(body.slice(i, i + VAPID_WINDOW));
-  return [...windows];
 }
 
 function report(label, hits) {
@@ -121,7 +108,7 @@ async function main() {
   }
 
   const apiKey = await loadApiKey();
-  const vapidWindows = keyWindows(await loadVapidKeyBody());
+  const vapidWindows = secretNeedles(await loadVapidPem());
   const nameHits = [];
   const keyHits = [];
   const pemHits = [];
@@ -133,7 +120,7 @@ async function main() {
     if (text.includes(NEEDLE)) nameHits.push(name);
     if (apiKey && text.includes(apiKey)) keyHits.push(name);
     if (text.includes(PEM_NEEDLE)) pemHits.push(name);
-    if (vapidWindows.some((window) => text.includes(window))) vapidHits.push(name);
+    if (containsAny(text, vapidWindows)) vapidHits.push(name);
   }
 
   if (nameHits.length + keyHits.length + pemHits.length + vapidHits.length > 0) {

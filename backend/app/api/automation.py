@@ -73,7 +73,7 @@ def daily_brief_status(container: AppContainer) -> DailyBriefStatusOut:
         last_scheduled=(
             None
             if latest is None
-            else LastScheduledBriefOut(date=latest.brief_date.isoformat(), status=latest.status)
+            else LastScheduledBriefOut(date=latest.brief_date.isoformat(), status=runs.effective_status(latest))
         ),
     )
 

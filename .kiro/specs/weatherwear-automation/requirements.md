@@ -57,6 +57,18 @@ A1, A3, A5, A8은 사용자가 결정했다(아래 "결정"). A6, A7, Q7, Q8(문
 - (결정 A8) 홈 화면의 "오늘 날씨"(Phase 1 GET /api/weather/today, GET /api/recommendations/today)는 Live 모드(`WEATHER_PROVIDER=open_meteo`)에서만 마지막 위치 + Forecast API 현재 날씨로 바꾼다. fixture 모드와 Weather_Scenario 선택 시에는 Phase 1 동작 그대로다(Requirement 10.7, 10.8).
 - (확인 Q7) 휴대폰 HTTPS는 범위 밖이다. 데모는 데스크톱 브라우저(`http://localhost`)로 한다.
 
+### 독립 검토 반영 (2026-11-15, `5354ace` 검토)
+
+구현을 독립 검토했더니 차단 0건, 비차단 4건이 나왔다. 그 4건으로 다음 기준을 고쳤고, 태스크 9가 구현한다.
+
+1. **Requirement 2.6**: 같은 바이트의 앞 Gallery_File이 끝내 `failed`가 되면, 그 해시로 `duplicate`가 된 Gallery_File을 `pending`으로 되돌린다. 전에는 앞 파일이 `retry_wait`일 때 들어온 같은 바이트 사진이 영영 저장되지 않았다.
+2. **Requirement 15.5, 18.1, 18.2, 18.5, 18.9, 20.4, 20.7**
+   - 구독 endpoint를 Push_Host_Allowlist로 제한한다. API에 인증이 없어서 서버가 임의 주소로 요청하게 되는 것(SSRF)을 막기 위해서다.
+   - Phase 2 변수 PUSH_ALLOWED_HOSTS를 더했다. Phase 2 변수는 10개, `.env.example`은 합계 22개가 된다.
+   - README에 인증 없는 로컬 전용 API라는 점을 적는다.
+3. **Requirement 18.8**: 번들 검사가 PEM 본문 외에 개인 스칼라의 JWK `d`(base64url), base64, hex 형태도 찾는다.
+4. **Requirement 12.5**: 프로세스가 죽어 `running`으로 남은 예약 실행을 다시 보낸다. 알림이 저장되지 않았으면 10분 뒤 실패로 보고 같은 재시도 규칙을 적용한다.
+
 ### Phase 1 불변식 (Phase 2가 깨지 않는 것)
 
 - `data/demo/photos`의 사진은 `data/demo/photos.manifest.json`의 `rights_confirmed: true` 189장(main `cf87e92` 기준)과 같다(`test_demo_data_layout`, `test_image_check`). Phase 2는 이 폴더, manifest, `data/demo/fixtures/*`를 쓰거나 지우지 않는다.
@@ -111,6 +123,7 @@ A1, A3, A5, A8은 사용자가 결정했다(아래 "결정"). A6, A7, Q7, Q8(문
 - **Notification_Log**: 만든 알림과 채널별 전달 결과를 저장하는 기록(`notifications`, `notification_deliveries` 테이블)
 - **VAPID_Key_Store**: VAPID 키 쌍(P-256)을 VAPID_KEY_DIR에 만들고 읽는 구성 요소
 - **Push_Subscription**: 브라우저가 `pushManager.subscribe()`로 만든 구독(endpoint, p256dh, auth)
+- **Push_Host_Allowlist**: 구독 endpoint로 받는 푸시 서비스 호스트 목록이다. 기본값은 `fcm.googleapis.com`, `android.googleapis.com`, `updates.push.services.mozilla.com`, `*.notify.windows.com`, `web.push.apple.com`이고, PUSH_ALLOWED_HOSTS로 더한다. `*.도메인`은 그 도메인의 하위 호스트만 뜻한다
 - **Push_Subscription_Store**: Push_Subscription을 저장·삭제하는 구성 요소
 - **Service_Worker**: `frontend/public/sw.js`. push 이벤트를 받아 시스템 알림을 띄운다
 - **Daily_Brief_Card**: 홈 화면에서 오늘 만든 Daily_Brief를 보여 주는 카드
@@ -146,7 +159,7 @@ A1, A3, A5, A8은 사용자가 결정했다(아래 "결정"). A6, A7, Q7, Q8(문
 3. WHEN Gallery_File의 File_Signature가 바뀌면, THE Gallery_Watcher SHALL 그 파일을 새 버전으로 보고 안정 판정을 처음부터 다시 하며, 새 버전은 이전 버전의 시도 횟수와 상태를 이어받지 않는다
 4. WHEN Gallery_Watcher가 어떤 Gallery_Dir에 대해 처음 시작되면, THE Gallery_Watcher SHALL 그때 있던 후보 파일을 모두 Baseline_File로 DB에 기록하고 분석하지 않는다(현재 `ex_img/`의 데모 사진과 생성 사진 포함). 이 기록은 재시작 후에도 남는다
 5. WHEN Gallery_Watcher가 재시작되면, THE Gallery_Watcher SHALL 서버가 멈춰 있던 동안 생긴 후보 파일(Baseline_File도 처리 기록도 없는 파일)을 새 사진으로 처리한다
-6. WHEN Stable_File을 처리하면, THE Gallery_Import_Service SHALL 파일 바이트 전체의 SHA-256을 계산하고, 같은 해시의 Outfit이 이미 있거나, 같은 해시의 다른 Gallery_File이 수집됐거나(`imported`), 수집 중(`pending`, `processing`, `retry_wait`)이거나, `uncertain`으로 판정됐으면(자동 재분석 방지, Requirement 6.7) Vision_Provider와 Weather_Provider를 호출하지 않고 `duplicate`로 기록한다 (Phase 1 Req 1.4와 같은 중복 제거)
+6. WHEN Stable_File을 처리하면, THE Gallery_Import_Service SHALL 파일 바이트 전체의 SHA-256을 계산하고, 같은 해시의 Outfit이 이미 있거나, 같은 해시의 다른 Gallery_File이 수집됐거나(`imported`), 수집 중(`pending`, `processing`, `retry_wait`)이거나, `uncertain`으로 판정됐으면(자동 재분석 방지, Requirement 6.7) Vision_Provider와 Weather_Provider를 호출하지 않고 `duplicate`로 기록한다 (Phase 1 Req 1.4와 같은 중복 제거). 같은 해시의 앞 Gallery_File이 `failed`로 끝나면, 그 해시의 다른 Gallery_File이 `imported`, `uncertain`, `pending`, `processing`, `retry_wait` 중 어느 것도 아닐 때 그 해시로 `duplicate`가 된 Gallery_File을 `pending`(시도 횟수 0)으로 되돌려 다시 처리한다
 7. WHEN 같은 해시에 `non_outfit` 판정이 `photo_analyses`에 이미 있으면, THE Gallery_Import_Service SHALL Vision_Provider를 다시 호출하지 않고 `skipped_non_outfit`으로 기록한다
 8. THE Gallery_Watcher SHALL 한 번의 확인에서 Stable_File을 처음 관찰한 시각 순(같으면 파일 이름 순)으로 한 번에 1건씩 처리한다
 9. FOR ALL 관찰 순서(파일 생성, 크기 증가, 서명 변경, 삭제, 이름 변경이 섞인 임의 순서)에 대해, Stable_File 판정 결과 SHALL 같은 관찰 순서에 Stable_File 정의와 기준 3을 그대로 적용한 참조 모델의 결과와 같다
@@ -303,7 +316,7 @@ A1, A3, A5, A8은 사용자가 결정했다(아래 "결정"). A6, A7, Q7, Q8(문
 2. WHERE DAILY_BRIEF_ENABLED가 false(기본값)이면, THE API_Server SHALL Daily_Brief_Scheduler를 시작하지 않는다
 3. THE Daily_Brief_Service SHALL 예약 실행을 현지 날짜마다 최대 1회로 제한하고, 이 제한을 프로세스 메모리가 아닌 DB 고유 제약(daily_brief_runs의 날짜별 예약 실행 1건)으로 보장한다. 그래서 서버 재시작, 여러 프로세스, CLI 실행이 겹쳐도 같은 날 예약 알림은 1번만 나간다
 4. IF API_Server가 그날 Catch_Up_Window가 끝난 뒤 처음 기동되면, THEN THE Daily_Brief_Scheduler SHALL 그날 예약 실행을 하지 않고 다음 날 DAILY_BRIEF_TIME을 기다린다
-5. IF 예약 실행이 예외(DB 오류 등)로 실패하면, THEN THE Daily_Brief_Scheduler SHALL 실패를 기록하고 10분 뒤 같은 날짜로 다시 시도하며, 같은 날짜의 시도는 최대 3회이고 Catch_Up_Window를 넘기지 않는다. 날씨 조회 실패와 데이터 부족은 실패가 아니다 (Requirement 10.2, 11.9)
+5. IF 예약 실행이 예외(DB 오류 등)로 실패하면, THEN THE Daily_Brief_Scheduler SHALL 실패를 기록하고 10분 뒤 같은 날짜로 다시 시도하며, 같은 날짜의 시도는 최대 3회이고 Catch_Up_Window를 넘기지 않는다. 날씨 조회 실패와 데이터 부족은 실패가 아니다 (Requirement 10.2, 11.9). 예약 실행 행이 알림 없이(`notification_id` 없음) `running`인 채로 시작 뒤 10분이 지나면, 그 실행을 시작한 프로세스가 끝난 것으로 보고 실패와 같이 다룬다(같은 10분·3회 규칙). 알림과 그 실행 행의 `notification_id`는 한 트랜잭션으로 저장하고, 알림이 저장된 실행은 다시 시도하지 않는다
 6. WHEN 개발자가 `scripts/daily_brief.py`를 실행하면, THE Daily_Brief_Service SHALL API_Server와 같은 설정과 DB로 그날 예약 실행 1회를 시도하고(이미 있으면 보내지 않고 "이미 보냄"을 출력한 뒤 종료 코드 0), `--force`이면 수동 실행으로 알림 1건을 만든다. 그래서 OS cron이나 launchd에서도 같은 멱등 규칙으로 쓸 수 있다
 7. THE Daily_Brief_Scheduler SHALL 주입할 수 있는 시계로 시각을 판정하고, 현지 시각은 `zoneinfo`로 계산하며, 서머타임 때문에 같은 현지 시각이 두 번 오거나 오지 않는 날에도 그 날짜에 최대 1회만 실행한다
 8. FOR ALL 시계 진행 순서(재시작, 뒤로 가는 시각, 날짜 경계 포함)에 대해, 예약 실행 횟수 SHALL 현지 날짜마다 1 이하이고, 각 실행 시작 시각은 그 날짜의 Catch_Up_Window 안이다
@@ -344,7 +357,7 @@ A1, A3, A5, A8은 사용자가 결정했다(아래 "결정"). A6, A7, Q7, Q8(문
 2. WHILE 유효한 개인키 파일이 있는 동안, THE VAPID_Key_Store SHALL 새 키를 만들지 않고 개인키에서 공개키를 계산해 쓴다. 두 프로세스가 동시에 처음 실행돼도 키 쌍은 1개만 만들어진다
 3. IF 개인키 파일을 읽을 수 없거나 형식이 맞지 않으면, THEN THE VAPID_Key_Store SHALL 그 파일을 지우지 않고 `vapid_private.pem.invalid-<UTC yyyymmddHHMMSS>`로 이름을 바꾼 뒤 새 키 쌍을 만들고, 이전 공개키로 만든 Push_Subscription을 모두 지우며, WARNING 로그를 남긴다
 4. WHEN GET /api/push/vapid-public-key 요청을 받으면, THE API_Server SHALL 공개키(base64url)만 반환하고 개인키는 어떤 응답에도 넣지 않는다
-5. WHEN POST /api/push/subscriptions 요청을 브라우저 PushSubscription JSON(`endpoint`(https URL, 2,048자 이하), `keys.p256dh`(base64url, 65바이트), `keys.auth`(base64url, 16바이트))으로 받으면, THE Push_Subscription_Store SHALL endpoint 기준으로 저장하거나 갱신하고(같은 endpoint 2건 없음) 201과 구독 id를 반환하며, 형식이 맞지 않으면 422 `PUSH_SUBSCRIPTION_INVALID`를 반환하고 저장하지 않는다
+5. WHEN POST /api/push/subscriptions 요청을 브라우저 PushSubscription JSON(`endpoint`(https URL, 2,048자 이하), `keys.p256dh`(base64url, 65바이트), `keys.auth`(base64url, 16바이트))으로 받으면, THE Push_Subscription_Store SHALL endpoint 기준으로 저장하거나 갱신하고(같은 endpoint 2건 없음) 201과 구독 id를 반환하며, 형식이 맞지 않으면 422 `PUSH_SUBSCRIPTION_INVALID`를 반환하고 저장하지 않는다. endpoint는 포트 443(생략 가능)이고 사용자 정보가 없어야 하며, 호스트가 Push_Host_Allowlist에 있어야 한다. 아니면 같은 422로 거절하고 응답에 그 호스트를 넣지 않는다. WebPush_Notifier는 목록 밖 endpoint로 이미 저장된 구독에 요청을 보내지 않고, 그 전달을 `failed`/`PUSH_ENDPOINT_NOT_ALLOWED`로 기록한다
 6. WHEN DELETE /api/push/subscriptions/{id} 요청을 받으면, THE Push_Subscription_Store SHALL 그 구독을 지우고 204를 반환하며, 없는 id이면 404 `PUSH_SUBSCRIPTION_NOT_FOUND`를 반환한다
 7. WHEN Web Push 전송 응답이 404 또는 410(Gone)이면, THE WebPush_Notifier SHALL 그 Push_Subscription을 지우고 전달 결과를 `gone`으로 기록한다. 그 밖의 실패(나머지 4xx, 5xx, 10초 시간 초과, 연결 오류)는 `failed`로 기록하고 구독을 지우지 않으며, 같은 알림을 다시 보내지 않는다
 8. THE WebPush_Notifier SHALL 푸시 본문을 JSON {"title", "body", "url", "notification_id", "kind"}로 만들어 3,000바이트 이하로 보내고, TTL은 12시간, VAPID 클레임 `sub`는 VAPID_SUBJECT로 둔다
@@ -388,15 +401,15 @@ A1, A3, A5, A8은 사용자가 결정했다(아래 "결정"). A6, A7, Q7, Q8(문
 
 #### Acceptance Criteria
 
-1. THE Config_Loader SHALL Phase 2 변수 9개를 Phase 1 Req 16.2와 같은 우선순위(프로세스 환경 변수 > `.env` > 기본값)로 읽고, 값이 없으면 다음 기본값을 쓴다: GALLERY_WATCH_ENABLED=false, GALLERY_DIR=./ex_img, GALLERY_POLL_SECONDS=2, USER_PHOTO_DIR=./data/user/photos, DAILY_BRIEF_ENABLED=false, DAILY_BRIEF_TIME=07:30, NOTIFIER=log, VAPID_KEY_DIR=./data/secrets, VAPID_SUBJECT=mailto:weatherwear@example.com
-2. IF 불리언 변수가 `true`/`false`/`1`/`0`/`yes`/`no`/`on`/`off`(대소문자 무시)가 아니거나, GALLERY_POLL_SECONDS가 0.5 이상 60 이하의 유한한 숫자가 아니거나, DAILY_BRIEF_TIME이 24시간 `HH:MM`이 아니거나, NOTIFIER가 `log`/`webpush`가 아니거나, VAPID_SUBJECT가 `mailto:` 또는 `https://`로 시작하지 않으면, THEN THE Config_Loader SHALL 변수 이름과 허용값만 담은 설정 오류를 ERROR 로그로 남기고(입력값은 남기지 않음) 그 변수에 기본값을 쓴다
+1. THE Config_Loader SHALL Phase 2 변수 10개를 Phase 1 Req 16.2와 같은 우선순위(프로세스 환경 변수 > `.env` > 기본값)로 읽고, 값이 없으면 다음 기본값을 쓴다: GALLERY_WATCH_ENABLED=false, GALLERY_DIR=./ex_img, GALLERY_POLL_SECONDS=2, USER_PHOTO_DIR=./data/user/photos, DAILY_BRIEF_ENABLED=false, DAILY_BRIEF_TIME=07:30, NOTIFIER=log, VAPID_KEY_DIR=./data/secrets, VAPID_SUBJECT=mailto:weatherwear@example.com, PUSH_ALLOWED_HOSTS=(빈 값)
+2. IF 불리언 변수가 `true`/`false`/`1`/`0`/`yes`/`no`/`on`/`off`(대소문자 무시)가 아니거나, GALLERY_POLL_SECONDS가 0.5 이상 60 이하의 유한한 숫자가 아니거나, DAILY_BRIEF_TIME이 24시간 `HH:MM`이 아니거나, NOTIFIER가 `log`/`webpush`가 아니거나, PUSH_ALLOWED_HOSTS가 쉼표로 구분한 호스트 이름 또는 `*.도메인`(최상위 도메인 하나만은 안 됨) 목록이 아니거나, VAPID_SUBJECT가 `mailto:` 또는 `https://`로 시작하지 않으면, THEN THE Config_Loader SHALL 변수 이름과 허용값만 담은 설정 오류를 ERROR 로그로 남기고(입력값은 남기지 않음) 그 변수에 기본값을 쓴다
 3. THE Config_Loader SHALL 상대 경로인 GALLERY_DIR, USER_PHOTO_DIR, VAPID_KEY_DIR를 Phase 1 PHOTO_DIR과 같이 저장소 루트 기준 절대 경로로 바꾼다
 4. THE Config_Loader SHALL Phase 2 설정을 기본값이 있는 AutomationConfig로 AppConfig에 붙여, Phase 1 테스트가 AppConfig를 만드는 기존 호출을 고치지 않아도 되게 하고, AutomationConfig 기본값은 감시와 매일 브리핑이 모두 꺼진 상태로 둔다
-5. THE WeatherWear_System SHALL `.env.example`에 Phase 1 변수 12개와 Phase 2 변수 9개(합계 21개)를 각각 이름, 값, 한 줄 이상 설명과 함께 둔다. GALLERY_WATCH_ENABLED와 DAILY_BRIEF_ENABLED는 값을 `true`로 두고 설명에 "코드 기본값은 false"를 적으며(결정 A1), 나머지 Phase 2 변수의 값은 기준 1의 기본값이다. 또 GALLERY_DIR 설명에 "`ex_img/`를 휴대폰 갤러리로 본다"는 점을, VAPID_KEY_DIR 설명에 "개인키가 저장되므로 커밋하지 않는다"는 점을 적는다
+5. THE WeatherWear_System SHALL `.env.example`에 Phase 1 변수 12개와 Phase 2 변수 10개(합계 22개)를 각각 이름, 값, 한 줄 이상 설명과 함께 둔다. GALLERY_WATCH_ENABLED와 DAILY_BRIEF_ENABLED는 값을 `true`로 두고 설명에 "코드 기본값은 false"를 적으며(결정 A1), 나머지 Phase 2 변수의 값은 기준 1의 기본값이다. 또 GALLERY_DIR 설명에 "`ex_img/`를 휴대폰 갤러리로 본다"는 점을, VAPID_KEY_DIR 설명에 "개인키가 저장되므로 커밋하지 않는다"는 점을 적는다
 6. THE WeatherWear_System SHALL `.gitignore`에 `data/secrets/`를 넣어 VAPID 키 파일이 커밋되지 않게 한다
 7. THE WeatherWear_System SHALL VAPID 개인키 값과 Push_Subscription의 endpoint 전체·`p256dh`·`auth` 값을 로그, 예외 메시지, API 응답, README, 브라우저 콘솔에 출력하지 않고, 로그에는 구독 id와 endpoint의 호스트 이름만 남기며, Phase 1 RedactingFilter가 VAPID 개인키 문자열도 `***`로 바꾸게 한다
-8. THE WeatherWear_System SHALL `npm run check:bundle`을 넓혀, `dist/`에 `PRIVATE KEY` 문자열이 있거나, VAPID_KEY_DIR(프로세스 환경 변수, 루트 `.env`, 기본값 순)의 `vapid_private.pem`이 있을 때 그 키 본문(base64 부분에서 연속 16자 이상)이 있으면 실패하게 하고, 일치한 내용과 키를 출력하지 않는다
-9. FOR ALL Phase 2 변수 9개에 대한 임의 문자열(빈 문자열, 형식 밖 값, 범위 밖 숫자, NaN 포함)에 대해, 설정 해석 SHALL 예외 없이 AutomationConfig를 만들고, 각 변수는 유효하면 그 값, 무효하면 기준 1의 기본값이 되며, 무효한 변수마다 변수 이름을 담은 ConfigIssue가 1건 생긴다
+8. THE WeatherWear_System SHALL `npm run check:bundle`을 넓혀, `dist/`에 `PRIVATE KEY` 문자열이 있거나, VAPID_KEY_DIR(프로세스 환경 변수, 루트 `.env`, 기본값 순)의 `vapid_private.pem`이 있을 때 그 키 본문(base64 부분에서 연속 16자 이상)이나 개인 스칼라(JWK `d`의 base64url과 표준 base64에서 연속 16자 이상, hex 소문자·대문자에서 연속 24자 이상)가 있으면 실패하게 하고, 일치한 내용과 키를 출력하지 않는다
+9. FOR ALL Phase 2 변수 10개에 대한 임의 문자열(빈 문자열, 형식 밖 값, 범위 밖 숫자, NaN 포함)에 대해, 설정 해석 SHALL 예외 없이 AutomationConfig를 만들고, 각 변수는 유효하면 그 값, 무효하면 기준 1의 기본값이 되며, 무효한 변수마다 변수 이름을 담은 ConfigIssue가 1건 생긴다
 10. THE WeatherWear_System SHALL `compose.yaml`의 backend 서비스에 GALLERY_WATCH_ENABLED·DAILY_BRIEF_ENABLED(기본 `true`), DAILY_BRIEF_TIME, NOTIFIER(기본 `log`), VAPID_SUBJECT를 호스트 환경에서 넘기고, 컨테이너 경로 GALLERY_DIR=`/data/gallery`, USER_PHOTO_DIR=`/data/user/photos`, VAPID_KEY_DIR=`/data/secrets`를 고정한다. 볼륨은 `${GALLERY_HOST_DIR:-./ex_img}:/data/gallery:ro`(감시는 쓰지 않음), `./data/user:/data/user`(쓰기 가능, 호스트의 Capture_Simulator와 Vision_Fixture_Overlay 공유), named volume `vapid-keys:/data/secrets`로 둔다. 기존 `read_only: true`와 `/data/photos:ro`는 유지한다
 
 ### Requirement 19: DB 스키마 확장
@@ -421,8 +434,8 @@ A1, A3, A5, A8은 사용자가 결정했다(아래 "결정"). A6, A7, Q7, Q8(문
 1. THE WeatherWear_System SHALL Phase 2 자동화 테스트를 Phase 1 소켓 가드(`conftest.py`) 아래에서 외부 네트워크 없이 실행하고, Open_Meteo_Forecast_API는 respx로, Web Push 전송은 주입한 가짜 Push_Sender로, 시각은 주입한 시계로 대신한다
 2. THE WeatherWear_System SHALL Gallery_Watcher 테스트는 백그라운드 스레드 없이 tmp 디렉터리에서 `poll_once()`를 직접 호출해 확인하고, 스레드 시작과 종료는 lifespan 테스트로만 확인한다
 3. THE WeatherWear_System SHALL 다음 영역마다 1개 이상의 pytest 예제 테스트를 둔다: (a) 감시 기준선과 새 파일 수집, (b) 쓰기 중 파일 debounce, (c) 중복 제거와 Phase 1 데모 데이터 불변식, (d) Photo_Gate 판정별 처리(`outfit`/`non_outfit`/`uncertain`)와 fixture overlay, (e) 내장 메타데이터 없음 → 추정 사이드카, (f) Vision 실패 재시도와 최종 실패, (g) Recent_Weather_Window 엔드포인트 선택, (h) 매일 브리핑 문구(입력을 직접 만든 단위 테스트에서 사용자 결정 2의 예시 문장과 정확히 일치하고, fixture 데모 데이터 통합 테스트에서는 병합된 `today_default`와 1순위 추천 값으로 만든 기대 문장과 일치), (m) uncertain 확정(감사 기록, Vision 재호출 없음, 409 경우), (n) Live 모드 홈 오늘 날씨 전환과 fixture 모드 불변, (i) 하루 1회 멱등성, (j) Web Push 410 구독 삭제, (k) DB user_version 2 → 3 추가 업그레이드, (l) 환경 변수 기본값과 오류 대체
-4. THE WeatherWear_System SHALL Phase 1 테스트 중 목록을 정확히 고정한 다음 테스트만 Phase 2 기준으로 고친다: `test_env_example_lists_exactly_twelve_vars_with_empty_key`와 `test_raw_settings_declares_same_backend_vars_and_model_default`(변수 21개 / 백엔드 변수 20개), `test_new_db_has_schema_version`(3), `test_api_routes.py`의 ROUTER_MODULES 집합, `test_api.py`의 `EXPECTED_OPERATIONS`, 프론트엔드 `AppShell.test.tsx`의 하단 탭 목록(홈, 기록, 알림). 그 밖의 Phase 1 테스트는 고치지 않고 통과해야 한다
+4. THE WeatherWear_System SHALL Phase 1 테스트 중 목록을 정확히 고정한 다음 테스트만 Phase 2 기준으로 고친다: `test_env_example_lists_exactly_twelve_vars_with_empty_key`와 `test_raw_settings_declares_same_backend_vars_and_model_default`(변수 22개 / 백엔드 변수 21개), `test_new_db_has_schema_version`(3), `test_api_routes.py`의 ROUTER_MODULES 집합, `test_api.py`의 `EXPECTED_OPERATIONS`, 프론트엔드 `AppShell.test.tsx`의 하단 탭 목록(홈, 기록, 알림). 그 밖의 Phase 1 테스트는 고치지 않고 통과해야 한다
 5. WHEN 개발자가 API 키 없이 README의 테스트 명령을 실행하면, THE WeatherWear_System SHALL Phase 1과 Phase 2 pytest 테스트, 프론트엔드 vitest·typecheck·check:bundle을 모두 통과하고 종료 코드 0으로 끝난다 (Phase 1 Req 17.5)
 6. THE WeatherWear_System SHALL 새 직접 의존성(`pywebpush`, `cryptography`)을 `backend/requirements.txt`에 정확한 버전(`==`)으로 고정하고, 그 버전으로 전체 테스트가 통과함을 확인한다 (Phase 1 Req 17.7)
-7. THE WeatherWear_System SHALL README에 Phase 2 절을 두고 다음을 적는다: 감시와 매일 브리핑을 켜는 방법, Phase 2 환경 변수 9개와 기본값, fixture 모드에서는 Vision_Fixture_Overlay가 없는 새 사진이 `uncertain`으로 남고 실제 분석은 VISION_PROVIDER=gemini일 때만 된다는 점, `scripts/simulate_capture.py`·`scripts/watch_gallery.py`·`scripts/daily_brief.py` 사용법, Web Push와 위치는 secure context(`http://localhost` 또는 HTTPS)에서만 동작하고 iOS Safari는 홈 화면에 추가한 웹 앱에서만 푸시를 받는다는 점, 번호 매긴 Phase 2 데모 절차(API 키 없이 fixture 모드, 데스크톱 브라우저로 가능), `docker compose`로 실행할 때의 Phase 2 볼륨과 흉내 스크립트 위치 옵션(`--lat/--lon`), uncertain 사진 확정 방법. 저장소 링크는 `https://github.com/jgoneit/kirothon-020`으로 쓴다
+7. THE WeatherWear_System SHALL README에 Phase 2 절을 두고 다음을 적는다: 감시와 매일 브리핑을 켜는 방법, Phase 2 환경 변수 10개와 기본값, API에 인증이 없어 로컬 전용이라는 점(공개 주소로 열 때의 위험과 Push_Host_Allowlist), fixture 모드에서는 Vision_Fixture_Overlay가 없는 새 사진이 `uncertain`으로 남고 실제 분석은 VISION_PROVIDER=gemini일 때만 된다는 점, `scripts/simulate_capture.py`·`scripts/watch_gallery.py`·`scripts/daily_brief.py` 사용법, Web Push와 위치는 secure context(`http://localhost` 또는 HTTPS)에서만 동작하고 iOS Safari는 홈 화면에 추가한 웹 앱에서만 푸시를 받는다는 점, 번호 매긴 Phase 2 데모 절차(API 키 없이 fixture 모드, 데스크톱 브라우저로 가능), `docker compose`로 실행할 때의 Phase 2 볼륨과 흉내 스크립트 위치 옵션(`--lat/--lon`), uncertain 사진 확정 방법. 저장소 링크는 `https://github.com/jgoneit/kirothon-020`으로 쓴다
 8. THE WeatherWear_System SHALL README의 Phase 2 개선 목록에서 이번에 구현한 Web Push와 갤러리 대체 감시를 완료 목록으로 옮기고, 실제 휴대폰 갤러리 접근과 FCM은 범위 밖으로 남긴다

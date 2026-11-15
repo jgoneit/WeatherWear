@@ -19,6 +19,7 @@ never as live ORM objects.
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -27,13 +28,15 @@ from typing import Literal
 
 from sqlalchemy import and_, delete, func, or_, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Connection, Engine
 from sqlmodel import Session, col, select
 
 from app.db import from_iso, session_scope, to_utc_iso
 from app.db_automation import GALLERY_STATUSES, AppState, GalleryFile, UserPhoto
 from app.gallery.rules import Signature, StableEvent
 from app.schemas import ScanDecision
+
+logger = logging.getLogger(__name__)
 
 GalleryStatus = Literal[
     "baseline", "pending", "processing", "imported", "duplicate",
@@ -177,6 +180,12 @@ _CLEARED_VERSION_FIELDS = {
 }
 
 
+# Rows that still hold a hash: a same-byte duplicate of them is a real duplicate.
+_HOLDING_STATUSES = ("imported", "uncertain", "retry_wait", "pending", "processing")
+# Reopened duplicates start a fresh attempt (the hash stays; the bytes are the same).
+_REOPENED_FIELDS = {key: value for key, value in _CLEARED_VERSION_FIELDS.items() if key != "sha256"}
+
+
 class GalleryStore:
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
@@ -317,6 +326,11 @@ class GalleryStore:
         newer file version replaced it meanwhile); nothing is written then.
         A ``deferred`` outcome releases the row to ``pending`` and uncounts the
         attempt; the stability tracker registers the new version later.
+
+        A ``failed`` outcome also reopens same-byte ``duplicate`` rows in the
+        same transaction (``_reopen_duplicates``): they were marked duplicate
+        only because this row was collecting those bytes (``retry_wait`` counts
+        as in progress), and would otherwise never be stored nor reanalyzable.
         """
         if outcome.status == "deferred":
             return self._release(row_id, now)
@@ -347,7 +361,46 @@ class GalleryStore:
             .values(**values)
         )
         with self._engine.begin() as conn:
-            return conn.execute(statement).rowcount == 1
+            changed = conn.execute(statement).rowcount == 1
+            if changed and outcome.status == "failed":
+                self._reopen_duplicates(conn, row_id, to_utc_iso(now))
+            return changed
+
+    def _reopen_duplicates(self, conn: Connection, failed_id: int, now_iso: str) -> int:
+        """After ``failed_id`` fails for good, put its same-byte ``duplicate`` rows back to ``pending``.
+
+        Only when no other row still holds those bytes (``imported``,
+        ``uncertain``, ``retry_wait``, ``pending``, ``processing``): then the
+        duplicates have no file left that will store them. The lowest-id
+        reopened row is processed first; the others become ``duplicate`` again
+        through ``active_with_sha``. A duplicate of an already stored Outfit
+        ends as ``duplicate`` again without a Vision call. Returns the number
+        of reopened rows.
+        """
+        sha256 = conn.execute(
+            select(GalleryFile.sha256).where(col(GalleryFile.id) == failed_id)
+        ).scalar()
+        if sha256 is None:
+            return 0
+        holder = conn.execute(
+            select(GalleryFile.id)
+            .where(
+                GalleryFile.sha256 == sha256,
+                col(GalleryFile.id) != failed_id,
+                col(GalleryFile.status).in_(_HOLDING_STATUSES),
+            )
+            .limit(1)
+        ).first()
+        if holder is not None:
+            return 0
+        reopened = conn.execute(
+            update(GalleryFile)
+            .where(GalleryFile.sha256 == sha256, col(GalleryFile.status) == "duplicate")
+            .values(status="pending", updated_at=now_iso, **_REOPENED_FIELDS)
+        ).rowcount
+        if reopened:
+            logger.info("같은 사진의 중복 기록 %d건을 다시 처리 대기로 돌립니다.", reopened)
+        return reopened
 
     def _release(self, row_id: int, now: datetime) -> bool:
         statement = (

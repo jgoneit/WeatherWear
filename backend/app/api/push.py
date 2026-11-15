@@ -74,9 +74,10 @@ def create_push_subscription(
     keys: Callable[[], Any] = Depends(deferred(get_vapid_keys)),
 ) -> PushSubscriptionCreatedOut:
     """Upsert by endpoint; 422 ``PUSH_SUBSCRIPTION_INVALID`` (Req 15.5)."""
-    if validate_subscription(body) is not None:
+    subscriptions = store()
+    if validate_subscription(body, subscriptions.allowed_hosts) is not None:
         raise ApiError(422, "PUSH_SUBSCRIPTION_INVALID", SUBSCRIPTION_INVALID_MESSAGE)
-    subscriptions, vapid = store(), keys()
+    vapid = keys()
     public_key = _keys_or_503(vapid).public_key_b64url
     return PushSubscriptionCreatedOut(id=subscriptions.upsert(body, public_key))
 

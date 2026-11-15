@@ -18,6 +18,7 @@ from app.db import create_db_engine
 from app.notifications.compose import BriefMessage
 from app.notifications.notifier import deliver
 from app.notifications.push_store import (
+    DEFAULT_PUSH_HOSTS,
     InvalidSubscription,
     PushSubscriptionStore,
     endpoint_host,
@@ -27,6 +28,7 @@ from app.notifications.records import DeliveryResult, DeliverySummary, Notificat
 from app.notifications.vapid import VapidKeyStore
 from app.notifications.webpush import (
     MAX_PAYLOAD_BYTES,
+    PUSH_ENDPOINT_NOT_ALLOWED,
     PUSH_TTL_SECONDS,
     PyWebPushSender,
     SendResult,
@@ -129,7 +131,7 @@ def test_invalid_subscriptions_rejected(override: dict, store: PushSubscriptionS
 
 
 def test_endpoint_length_boundary() -> None:
-    base = "https://push.example.com/"
+    base = "https://fcm.googleapis.com/"
     assert validate_subscription(sub_in(endpoint=base + "a" * (2048 - len(base)))) is None
     assert validate_subscription(sub_in(endpoint=base + "a" * (2049 - len(base)))) is not None
 
@@ -311,10 +313,10 @@ def test_logs_have_id_and_host_only(store, keys, log, caplog: pytest.LogCaptureF
     sender = FakePushSender(default=SendResult(410, None))
     notifier(store, keys, sender).send(brief(log))
     text = caplog.text
-    assert "push.example.com" in text
+    assert "fcm.googleapis.com" in text
     assert data["endpoint"] not in text and "secret-token" not in text
     assert data["keys"]["p256dh"] not in text and data["keys"]["auth"] not in text
-    assert endpoint_host(data["endpoint"]) == "push.example.com"
+    assert endpoint_host(data["endpoint"]) == "fcm.googleapis.com"
 
 
 # --- PyWebPushSender (pywebpush patched, no network) ----------------------------------------
@@ -366,3 +368,68 @@ def test_pywebpush_sender_maps_results(monkeypatch: pytest.MonkeyPatch, store, k
     assert first["vapid_claims"] == {"sub": SUBJECT}
     assert first["ttl"] == PUSH_TTL_SECONDS and first["timeout"] == 10.0
     assert first["data"] == '{"a":1}'
+
+
+# --- review fix (2): push endpoints are limited to known push service hosts ------------
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "https://fcm.googleapis.com/fcm/send/abc",
+        "https://android.googleapis.com/gcm/send/abc",
+        "https://updates.push.services.mozilla.com/wpush/v2/abc",
+        "https://wns2-par02p.notify.windows.com/w/?token=abc",
+        "https://web.push.apple.com/QGx",
+        "https://fcm.googleapis.com:443/fcm/send/abc",
+    ],
+)
+def test_known_push_service_hosts_accepted(endpoint: str) -> None:
+    assert validate_subscription(sub_in(endpoint=endpoint)) is None
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "https://attacker.example/collect",
+        "https://169.254.169.254/latest/meta-data",
+        "https://127.0.0.1/x",
+        "https://localhost/x",
+        "https://fcm.googleapis.com.evil.example/x",
+        "https://evilfcm.googleapis.com/x",
+        "https://user@fcm.googleapis.com/x",
+        "https://fcm.googleapis.com:8443/x",
+        "https://notify.windows.com/x",  # the wildcard needs a subdomain
+    ],
+)
+def test_other_hosts_rejected_without_echoing_them(endpoint: str, store: PushSubscriptionStore) -> None:
+    reason = validate_subscription(sub_in(endpoint=endpoint))
+    assert reason is not None and endpoint not in reason
+    with pytest.raises(InvalidSubscription):
+        store.upsert(sub_in(endpoint=endpoint), "public")
+    assert store.count() == 0
+
+
+def test_push_allowed_hosts_extends_the_list(engine, clock) -> None:
+    extended = PushSubscriptionStore(engine, clock, allowed_hosts=(*DEFAULT_PUSH_HOSTS, "push.example.com"))
+    assert extended.upsert(sub_in(endpoint="https://push.example.com/x"), "public") > 0
+    assert validate_subscription(sub_in(endpoint="https://push.example.com/x")) is not None  # not by default
+
+
+def test_stored_endpoint_outside_allowlist_is_not_contacted(engine, clock, keys, log) -> None:
+    """A row saved before the allowlist (or by hand) never makes the server call its host."""
+    from app.db import session_scope
+    from app.db_automation import PushSubscription
+
+    data = subscription_json(1)
+    with session_scope(engine) as session:
+        session.add(PushSubscription(
+            endpoint="https://attacker.example/collect", p256dh=data["keys"]["p256dh"],
+            auth=data["keys"]["auth"], vapid_public_key=keys.ensure().public_key_b64url,
+            created_at="2026-11-14T00:00:00.000000+00:00",
+        ))
+    store = PushSubscriptionStore(engine, clock)
+    sender = FakePushSender()
+    results = notifier(store, keys, sender).send(brief(log))
+    assert sender.calls == []
+    assert [(r.status, r.error_code) for r in results] == [("failed", PUSH_ENDPOINT_NOT_ALLOWED)]

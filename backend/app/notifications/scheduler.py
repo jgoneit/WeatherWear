@@ -8,7 +8,9 @@ date of "now" (APP_TIMEZONE via ``zoneinfo``):
   date has no scheduled run, otherwise ``done`` (Req 12.4);
 - no run yet → ``run``;
 - a ``failed`` run with fewer than 3 attempts whose last attempt is at least
-  10 minutes old → ``retry`` (Req 12.5);
+  10 minutes old → ``retry`` (Req 12.5). A run left ``running`` without a
+  notification by a process that died counts as failed once it is
+  ``STALE_RUNNING_AFTER`` (10 minutes) old (``counts_as_failed``);
 - otherwise → ``done``.
 
 ``run``/``retry`` call ``DailyBriefService.run("scheduled")``, which claims the
@@ -36,6 +38,7 @@ from app.notifications.daily_brief import (
     DailyBriefRuns,
     DailyBriefService,
     RunRow,
+    counts_as_failed,
 )
 
 logger = logging.getLogger(__name__)
@@ -70,7 +73,7 @@ def scheduled_decision(now_local: datetime, brief_time: time, run: RunRow | None
     if run is None:
         return "run"
     if (
-        run.status == "failed"
+        counts_as_failed(run, now_local)
         and run.attempts < MAX_SCHEDULED_ATTEMPTS
         and now_local >= run.last_attempt_at + RETRY_AFTER
     ):
@@ -128,7 +131,7 @@ class DailyBriefScheduler:
         local = self._clock().astimezone(self._tz)
         run = self._runs.get_scheduled(local.date())
         done = run is not None and not (
-            run.status == "failed" and run.attempts < MAX_SCHEDULED_ATTEMPTS
+            counts_as_failed(run, local) and run.attempts < MAX_SCHEDULED_ATTEMPTS
         )
         return next_run_at(local, self._brief_time, self._tz, done)
 

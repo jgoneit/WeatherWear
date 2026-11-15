@@ -32,8 +32,8 @@
 
 - **기입할 게 많은 서비스는 쓰기 싫어진다.** 옷 등록, 날씨 입력 같은 과정이 이용의 장벽이라고 봤다.
 - 그래서 입력 과정을 모두 자동으로 바꿔 **사용률을 높이는 것**을 설계 기준으로 삼았다.
-- 현재 구현(Phase 1): 사진 인식, 메타데이터 읽기, 촬영 당일 날씨 연결, 비슷한 기온 착장 추천, 체감 버튼. 습도는 날씨 기록에 함께 저장하고, 추천 비교는 기온 기준이다.
-- 계획(Phase 2, spec 완료): 새 사진 자동 감지와 매일 위치 기반 자동 알림(기온·습도 포함).
+- 구현됨(Phase 1): 사진 인식, 메타데이터 읽기, 촬영 당일 날씨 연결, 비슷한 기온 착장 추천, 체감 버튼. 습도는 날씨 기록에 함께 저장하고, 추천 비교는 기온 기준이다.
+- 구현됨(Phase 2): 새 사진 자동 감지와 매일 위치 기반 자동 알림(기온·습도 포함). 데스크톱 데모라서 갤러리는 `ex_img/` 폴더 감시로, 휴대폰 푸시는 브라우저 Web Push로 대신한다.
 
 ### 대상 사용자
 매일 아침 날씨 앱의 기온만 보고 옷을 고르는 사람. 갤러리에 착장 사진은 쌓여 있지만 옷 고를 때 다시 보지는 않는 사람.
@@ -76,10 +76,11 @@
 | ✅ 체감 피드백 원클릭 저장 → 즉시 재추천 | 그 옷이 적당했는지 기록이 없음 | `backend/app/feedback.py`, `frontend/src/components/FeedbackButtons.tsx` |
 | ✅ 모바일 화면 (홈 · 기록 · 상세 · 데모) | 과거 착장을 날씨와 함께 다시 보기 | `frontend/src/pages/` |
 | ✅ Vision 정확도 평가 · Docker Compose | 품질 확인 · 한 번에 실행 | `backend/app/evaluation/`, `compose.yaml` |
-| ✅ 갤러리 폴더 자동 감시 → 새 착장 자동 기록 | 찍을 때마다 스캔 버튼을 누르는 수고 | `backend/app/gallery/` |
-| ✅ 매일 아침 착장 브리핑 (알림 기록 · Web Push) | 앱을 열어야만 추천이 보임 | `backend/app/notifications/`, `frontend/public/sw.js` |
-| ✅ 브라우저 위치 → 브리핑 위치와 Live 홈 날씨 | 다른 도시에서도 서울 날씨로 추천 | `backend/app/location.py`, `frontend/src/lib/location.ts` |
-| ✅ 확인이 필요한 사진 "착장 맞음" 확정 | 판정이 애매한 착장이 기록에서 빠짐 | `backend/app/gallery/confirm.py`, `frontend/src/pages/NotificationsPage.tsx` |
+| ✅ 갤러리 폴더 자동 감시 → 새 착장 자동 기록 *(Phase 2)* | 찍을 때마다 스캔 버튼을 누르는 수고 | `backend/app/gallery/` |
+| ✅ 매일 아침 착장 브리핑 (알림 기록 · Web Push) *(Phase 2)* | 앱을 열어야만 추천이 보임 | `backend/app/notifications/`, `frontend/public/sw.js` |
+| ✅ 브라우저 위치 → 브리핑 위치와 Live 홈 날씨 *(Phase 2)* | 다른 도시에서도 서울 날씨로 추천 | `backend/app/location.py`, `frontend/src/lib/location.ts` |
+| ✅ 확인이 필요한 사진 "착장 맞음" 확정 *(Phase 2)* | 판정이 애매한 착장이 기록에서 빠짐 | `backend/app/gallery/confirm.py`, `frontend/src/pages/NotificationsPage.tsx` |
+| ✅ EXIF 없는 새 사진의 촬영 정보 추정 *(Phase 2)* | 캡처·편집한 사진이 기록에서 빠짐 | `backend/app/gallery/estimate.py` |
 
 ## 3. 사용 시나리오
 
@@ -114,16 +115,18 @@
 | 유사 기온 허용 오차 | ±3.0°C (후보가 없으면 ±5.0°C로 1회 확장) |
 | 데모 시나리오 | 14.5°C 정상 · −16.0°C 경계 · 44.0°C 범위 확장 · 48.0°C 데이터 부족 |
 | 테스트 | 백엔드 1138 passed · 프론트엔드 106 passed |
+| Phase 2 자동화 (코드 기본값) | 새 사진 확인 2초 간격 · 브리핑 하루 1회 07:30(3시간 안 따라잡기) · 실패 시 10분 간격 최대 3회 |
 
 TODO(팀): 사용자 테스트를 했다면 "춥거나 덥게 입은 날 비율" 같은 측정값을 적는다.
 
 ## 5. 차별점
 
 - 🙋 **내 사진, 내 체감 기준**: 모두에게 같은 옷차림 표가 아니라 *내가* 입었던 옷으로 추천한다.
-- ✋ **입력이 거의 없다**: 옷을 등록하지 않는다. 사진 EXIF와 기록 날씨로 자동으로 날씨를 붙인다.
+- ✋ **입력이 거의 없다**: 옷을 등록하지 않는다. 사진 EXIF와 기록 날씨로 자동으로 날씨를 붙인다. 새 사진은 갤러리 감시로 버튼 없이 기록된다 *(Phase 2)*.
+- 🔔 **앱을 열기 전에 먼저 온다** *(Phase 2)*: 매일 아침 그날 위치의 기온·습도와 비슷했던 날의 내 착장을 알림으로 보낸다. 하루 한 번만 보내고, 실패하면 다시 시도한다.
 - 🔍 **이유가 보이는 추천**: 머신러닝 없이 점수와 근거 문장을 보여 준다. 추천 전략은 교체 가능하게 분리했다.
 - 🧹 **착장 사진만**: 갤러리에 섞인 음식·풍경 사진은 자동으로 뺀다.
-- 🔌 **API 키 없이 바로 실행**: 기본 Fixture 모드에서 외부 호출 없이 전 기능이 동작한다.
+- 🔌 **API 키 없이 바로 실행**: 기본 Fixture 모드에서 외부 호출 없이 전 기능이 동작한다. Phase 2 자동화도 기본 `NOTIFIER=log`(알림 기록)로 오프라인에서 돈다. 실제 Web Push 전송만 네트워크가 필요하다.
 
 ---
 
@@ -531,7 +534,7 @@ pytest 자동화 테스트 영역(Req 17.4)과 대표 테스트:
 - 360~430px 뷰포트에서 가로 스크롤이 없는지 수동 확인(Req 11.6)을 하지 않았다.
 - 실제 휴대폰 기기에서 확인하지 않았다.
 - 화면 문구 한국어 검수(`frontend/src/lib/strings.ts`)를 별도로 하지 않았다.
-- 선택 항목(`tasks.md`에서 `*` 표시)인 property-based test(Hypothesis, fast-check)와 화면별 상세 UI 테스트, 저장소 위생 테스트는 구현하지 않았다. 대신 단위·smoke·통합 테스트가 있다. Phase 2도 같다(선택 property test 29개 중 미작성).
+- 선택 항목(`tasks.md`에서 `*` 표시)인 property-based test(Hypothesis, fast-check)와 화면별 상세 UI 테스트, 저장소 위생 테스트는 구현하지 않았다. 대신 단위·smoke·통합 테스트가 있다. Phase 2도 같다(design의 property 29개를 다루는 선택 태스크 21개는 작성하지 않았다).
 - Phase 2 수동 확인 미실시: Chrome에서 실제 Web Push 수신과 클릭 이동(`NOTIFIER=webpush`, 네트워크 필요), macOS Finder로 큰 JPEG를 복사하는 중 처리되지 않는지, 360/390/430px에서 "알림" 탭 가로 스크롤.
 - Live Forecast 호출은 `respx`로만 테스트했다. 요청 파라미터는 2026-11-14에 Open-Meteo 공식 문서와 대조했다.
 
